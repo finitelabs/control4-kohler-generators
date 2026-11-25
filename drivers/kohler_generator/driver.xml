@@ -26,6 +26,66 @@
       <false_text>Offline</false_text>
       <sort_order>1</sort_order>
     </conditional>
+    <conditional>
+      <id>2</id>
+      <name>ON_GENERATOR_POWER</name>
+      <type>BOOL</type>
+      <condition_statement>Power source</condition_statement>
+      <description>NAME is on STRING</description>
+      <true_text>Generator Power</true_text>
+      <false_text>Utility Power</false_text>
+      <sort_order>2</sort_order>
+    </conditional>
+    <conditional>
+      <id>3</id>
+      <name>GENERATOR_RUNNING</name>
+      <type>BOOL</type>
+      <condition_statement>Engine running status</condition_statement>
+      <description>NAME engine is STRING</description>
+      <true_text>Running</true_text>
+      <false_text>Not Running</false_text>
+      <sort_order>3</sort_order>
+    </conditional>
+    <conditional>
+      <id>4</id>
+      <name>GENERATOR_EXERCISING</name>
+      <type>BOOL</type>
+      <condition_statement>Exercise status</condition_statement>
+      <description>NAME is STRING</description>
+      <true_text>Exercising</true_text>
+      <false_text>Not Exercising</false_text>
+      <sort_order>4</sort_order>
+    </conditional>
+    <conditional>
+      <id>5</id>
+      <name>GENERATOR_IN_AUTO</name>
+      <type>BOOL</type>
+      <condition_statement>Switch position</condition_statement>
+      <description>NAME switch is STRING</description>
+      <true_text>In Auto</true_text>
+      <false_text>Not In Auto</false_text>
+      <sort_order>5</sort_order>
+    </conditional>
+    <conditional>
+      <id>6</id>
+      <name>GENERATOR_FAULT</name>
+      <type>BOOL</type>
+      <condition_statement>Fault status</condition_statement>
+      <description>NAME is STRING</description>
+      <true_text>Faulted</true_text>
+      <false_text>Not Faulted</false_text>
+      <sort_order>6</sort_order>
+    </conditional>
+    <conditional>
+      <id>7</id>
+      <name>MAINTENANCE_DUE</name>
+      <type>BOOL</type>
+      <condition_statement>Maintenance status</condition_statement>
+      <description>NAME maintenance is STRING</description>
+      <true_text>Due</true_text>
+      <false_text>Not Due</false_text>
+      <sort_order>7</sort_order>
+    </conditional>
   </conditionals>
   <events>
     <event>
@@ -37,6 +97,71 @@
       <id>2</id>
       <name>Generator Offline</name>
       <description>When NAME stops reaching the KOHLER cloud, or its account is signed out</description>
+    </event>
+    <event>
+      <id>3</id>
+      <name>Utility Power Lost</name>
+      <description>When the utility power to NAME goes out</description>
+    </event>
+    <event>
+      <id>4</id>
+      <name>Utility Power Restored</name>
+      <description>When the utility power to NAME comes back</description>
+    </event>
+    <event>
+      <id>5</id>
+      <name>Engine Started</name>
+      <description>When NAME's engine starts</description>
+    </event>
+    <event>
+      <id>6</id>
+      <name>Engine Stopped</name>
+      <description>When NAME's engine stops</description>
+    </event>
+    <event>
+      <id>7</id>
+      <name>Exercise Started</name>
+      <description>When NAME starts an exercise</description>
+    </event>
+    <event>
+      <id>8</id>
+      <name>Exercise Ended</name>
+      <description>When NAME ends an exercise</description>
+    </event>
+    <event>
+      <id>9</id>
+      <name>Fault</name>
+      <description>When NAME logs a fault</description>
+    </event>
+    <event>
+      <id>10</id>
+      <name>Warning</name>
+      <description>When NAME logs a warning</description>
+    </event>
+    <event>
+      <id>11</id>
+      <name>Alerts Cleared</name>
+      <description>When NAME's last alert clears</description>
+    </event>
+    <event>
+      <id>12</id>
+      <name>Switch Not In Auto</name>
+      <description>When NAME's switch moves out of Auto</description>
+    </event>
+    <event>
+      <id>13</id>
+      <name>Switch Back In Auto</name>
+      <description>When NAME's switch moves back to Auto</description>
+    </event>
+    <event>
+      <id>14</id>
+      <name>Maintenance Due</name>
+      <description>When NAME's maintenance falls due</description>
+    </event>
+    <event>
+      <id>15</id>
+      <name>Low Battery</name>
+      <description>When NAME logs a low battery</description>
     </event>
   </events>
   <config>
@@ -129,6 +254,24 @@
         <readonly>true</readonly>
       </property>
       <property>
+        <name>Exercise Schedule</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Last Maintenance</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Next Maintenance</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
         <name>Driver</name>
         <type>LABEL</type>
         <default>Driver Settings</default>
@@ -194,6 +337,66 @@
     <proxy proxybindingid="5001" primary="True" name="Kohler Generator" image_source="c4z" large_image="icons/device_lg.png" small_image="icons/device_sm.png">uibutton</proxy>
   </proxies>
   <connections>
+    <connection>
+      <id>1</id>
+      <facing>6</facing>
+      <connectionname>On Generator Power</connectionname>
+      <type>1</type>
+      <consumer>False</consumer>
+      <audiosource>False</audiosource>
+      <videosource>False</videosource>
+      <linelevel>False</linelevel>
+      <classes>
+        <class>
+          <classname>CONTACT_SENSOR</classname>
+        </class>
+      </classes>
+    </connection>
+    <connection>
+      <id>2</id>
+      <facing>6</facing>
+      <connectionname>Running</connectionname>
+      <type>1</type>
+      <consumer>False</consumer>
+      <audiosource>False</audiosource>
+      <videosource>False</videosource>
+      <linelevel>False</linelevel>
+      <classes>
+        <class>
+          <classname>CONTACT_SENSOR</classname>
+        </class>
+      </classes>
+    </connection>
+    <connection>
+      <id>3</id>
+      <facing>6</facing>
+      <connectionname>Fault</connectionname>
+      <type>1</type>
+      <consumer>False</consumer>
+      <audiosource>False</audiosource>
+      <videosource>False</videosource>
+      <linelevel>False</linelevel>
+      <classes>
+        <class>
+          <classname>CONTACT_SENSOR</classname>
+        </class>
+      </classes>
+    </connection>
+    <connection>
+      <id>4</id>
+      <facing>6</facing>
+      <connectionname>Not In Auto</connectionname>
+      <type>1</type>
+      <consumer>False</consumer>
+      <audiosource>False</audiosource>
+      <videosource>False</videosource>
+      <linelevel>False</linelevel>
+      <classes>
+        <class>
+          <classname>CONTACT_SENSOR</classname>
+        </class>
+      </classes>
+    </connection>
     <connection>
       <id>5001</id>
       <facing>6</facing>
