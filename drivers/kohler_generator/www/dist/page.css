@@ -35,7 +35,6 @@
   --text: #ffffff;
   --text-2: rgba(255, 255, 255, 0.62);
   --text-3: rgba(255, 255, 255, 0.4);
-  --accent: #336ee5;
   --ok: #55bb36;
   --warn: #f0a44b;
   --bad: #ff4d4d;
@@ -314,7 +313,9 @@ input:focus-visible {
 }
 
 .btn.primary {
-  background: var(--accent);
+  background: var(--text);
+  color: var(--wall-base);
+  font-weight: 600;
 }
 
 .btn:disabled {
@@ -348,7 +349,7 @@ input:focus-visible {
 }
 
 .switch:checked {
-  background: var(--accent);
+  background: var(--ok);
 }
 
 .switch:checked::after {
