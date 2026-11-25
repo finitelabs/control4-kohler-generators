@@ -52,9 +52,15 @@ local tokenAnswers = {}
 --- The answers the next API calls get, in order; then the fixtures.
 local apiAnswers = {}
 local issued = 0
+--- When set, the answer every API call gets.
+local apiAlways = nil
 
 urlDo = function(method, url, data, _headers, callback, context)
   requests[#requests + 1] = { method = method, url = url, data = data }
+  -- A runaway loop of requests is left unanswered, so it ends and its count shows.
+  if #requests > 100 then
+    return
+  end
   local code, body, responseHeaders = 404, { message = "Not Found" }, {}
   if url:sub(-#constants.TOKEN_PATH) == constants.TOKEN_PATH then
     local answer = table.remove(tokenAnswers, 1)
@@ -65,7 +71,7 @@ urlDo = function(method, url, data, _headers, callback, context)
       code, body = 200, { access_token = "access-" .. issued, refresh_token = "refresh-" .. issued, expires_in = 3600 }
     end
   else
-    local answer = table.remove(apiAnswers, 1)
+    local answer = apiAlways or table.remove(apiAnswers, 1)
     if answer then
       code, body, responseHeaders = answer[1], answer[2], answer[3] or {}
     elseif url:find("/homeowner/homes$") then
@@ -322,5 +328,21 @@ T.eq("one refresh grant", grants, { "refresh_token" })
 T.eq("then the account is read", sent("/homeowner/homes$"), 1)
 T.eq("and every generator", sent("/devices/%d+%?"), 3)
 T.eq("still logged in", props["Login Status"], "Logged In")
+
+T.section("reads refused even with a fresh sign-in wait before signing in again")
+requests = {}
+apiAlways = { 401, { message = "Unauthorized" } }
+EC.Refresh_Generators()
+T.eq("the read, a sign-in and the read again, then it stops", #requests, 3)
+T.eq("Login Status says so", props["Login Status"], "KOHLER refused access")
+T.contains("Driver Status names the wait", props["Driver Status"], "retrying in 5s")
+requests = {}
+ShimFireTimers()
+T.eq("the retry reads, signs in and reads once more", #requests, 3)
+T.contains("and waits longer", props["Driver Status"], "retrying in 10s")
+apiAlways = nil
+ShimFireTimers()
+T.eq("once reads work again", props["Login Status"], "Logged In")
+T.eq("the generators are read", props["Driver Status"], "Connected (3 generators)")
 
 T.finish()

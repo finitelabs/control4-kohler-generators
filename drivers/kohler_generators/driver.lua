@@ -187,8 +187,17 @@ end
 --- Signs in; defined under Sign-in.
 --- @type fun(retryBackoffS?: number)
 local login
+--- Stops and signs in again after a wait; defined under Sign-in.
+--- @type fun(delay: number, loginStatus: string)
+local loginLater
 
---- A failed read: a 429 or 5xx pauses the poll; a refused token signs in again.
+--- The wait before signing in again after reads are refused with a fresh token, growing while
+--- they keep being refused; nil once a read works.
+--- @type number|nil
+local gUnauthorizedBackoffS = nil
+
+--- A failed read: a 429 or 5xx pauses the poll; a refused sign-in signs in again, and a read
+--- refused even after a fresh sign-in waits before trying again.
 --- @param err KohlerError
 --- @param what string
 local function readFailed(err, what)
@@ -201,7 +210,11 @@ local function readFailed(err, what)
     gUnavailableBackoffS = math.min(wait * 2, UNAVAILABLE_BACKOFF_MAX_S)
     gPausedUntil = os.time() + wait
     C4:UpdateProperty("Driver Status", string.format("KOHLER is not answering; retrying in %ds", wait))
-  elseif err.kind == "unauthorized" or err.kind == "credentials" or err.kind == "refused" then
+  elseif err.kind == "unauthorized" then
+    local wait = gUnauthorizedBackoffS or LOGIN_RETRY_S
+    gUnauthorizedBackoffS = math.min(wait * 2, LOGIN_RETRY_MAX_S)
+    loginLater(wait, "KOHLER refused access")
+  elseif err.kind == "credentials" or err.kind == "refused" then
     login()
   else
     C4:UpdateProperty("Driver Status", "Error reading generators: " .. tostring(err.message))
@@ -247,7 +260,7 @@ local function refreshGenerators()
     end
     gRefreshAccepted = refreshId
     gListed = true
-    gUnavailableBackoffS = nil
+    gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
     local listed = {}
     local list = Generator.fromHomes(homes)
     for _, identity in ipairs(list) do
@@ -497,17 +510,23 @@ login = function(retryBackoffS)
       dropGenerators()
       return
     end
-    local delay = err.retryAfter or retryBackoffS or LOGIN_RETRY_S
-    C4:UpdateProperty("Login Status", "Login failed")
-    C4:UpdateProperty("Driver Status", string.format("Not connected; retrying in %ds", delay))
-    for key in pairs(gState.generators) do
-      goOffline(key)
+    loginLater(err.retryAfter or retryBackoffS or LOGIN_RETRY_S, "Login failed")
+  end)
+end
+
+loginLater = function(delay, loginStatus)
+  gLoginGeneration = gLoginGeneration + 1
+  local generation = gLoginGeneration
+  stopPolling()
+  C4:UpdateProperty("Login Status", loginStatus)
+  C4:UpdateProperty("Driver Status", string.format("Not connected; retrying in %ds", delay))
+  for key in pairs(gState.generators) do
+    goOffline(key)
+  end
+  SetTimer("KohlerLoginRetry", delay * ONE_SECOND, function()
+    if generation == gLoginGeneration then
+      login(math.min(delay * 2, LOGIN_RETRY_MAX_S))
     end
-    SetTimer("KohlerLoginRetry", delay * ONE_SECOND, function()
-      if generation == gLoginGeneration then
-        login(math.min(delay * 2, LOGIN_RETRY_MAX_S))
-      end
-    end)
   end)
 end
 

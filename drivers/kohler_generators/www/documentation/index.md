@@ -226,11 +226,13 @@ logs.
 ##### Login Status (read-only)
 
 Displays the sign-in state: `Logged In`, `Logging in...`,
-`Enter email and password`, `Invalid email or password`, `Sign-in refused` or
-`Login failed`. `Sign-in refused` means KOHLER would not let the account sign in
-here, most often because the account asks for a second sign-in step; the driver
-does not try again until the email or password changes or you run Reconnect.
-After `Login failed` the driver tries again on its own.
+`Enter email and password`, `Invalid email or password`, `Sign-in refused`,
+`KOHLER refused access` or `Login failed`. `Sign-in refused` means KOHLER would
+not let the account sign in here, most often because the account asks for a
+second sign-in step; the driver does not try again until the email or password
+changes or you run Reconnect. `KOHLER refused access` means the account signed
+in but KOHLER would not let it read the generators. After it, and after
+`Login failed`, the driver tries again on its own, waiting longer each time.
 
 #### Driver Settings
 
