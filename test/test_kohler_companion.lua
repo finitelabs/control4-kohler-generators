@@ -97,7 +97,7 @@ T.eq("Dealer", props["Dealer"], "Example Power Co., (555) 555-0142")
 T.eq("Driver Status", props["Driver Status"], "Online")
 T.eq("renamed after the generator", renamed, { "Demo Generator" })
 T.eq("Generator Online fires", events, { "Generator Online" })
-T.eq("Online is NOTIFY", online(), true)
+T.eq("Online is true", online(), true)
 
 T.section("the same record again changes nothing")
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
