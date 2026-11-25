@@ -950,6 +950,17 @@ T.truthy("goOffline to its companion", proxySends(constants.CMD.GO_OFFLINE)[bind
 T.falsy("not to the others", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
 table.insert(homes[2].devices, gone)
 
+T.section("after a restart, a build with no KOHLER client takes the companions offline")
+local clientId = constants.CLIENT_ID
+constants.CLIENT_ID = nil
+toProxy = {}
+restart()
+T.eq("Login Status", props["Login Status"], "This build has no KOHLER client")
+T.truthy("goOffline to the companions", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+constants.CLIENT_ID = clientId
+restart()
+T.eq("signed in again", props["Login Status"], "Logged In")
+
 T.section("Reset Driver with no license keeps the account stopped and says so")
 local drivercentral = require("lib.drivercentral")
 local wasLicensed = drivercentral._licensed

@@ -762,6 +762,7 @@ function Account.login(retryBackoffS, waitS, waitStatus)
   if not client:isConfigured() then
     C4:UpdateProperty("Login Status", "This build has no KOHLER client")
     C4:UpdateProperty("Driver Status", "Not configured")
+    dropGenerators()
     return
   end
   C4:UpdateProperty("Login Status", "Logging in...")
