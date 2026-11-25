@@ -189,6 +189,11 @@ local _, empty = Status.news({}, nil)
 T.eq("an empty first log saves a cursor of 0", empty, 0)
 T.eq("so the first event ever logged is news", Status.news(events, empty).lowBattery, true)
 
+local restarted, moved = Status.news(events, first + 1000)
+T.eq("ids that start again below the cursor are not news", restarted.lowBattery, false)
+T.eq("they become the cursor", moved, first)
+T.eq("so the next one is", Status.news(events, first - 1).lowBattery, true)
+
 T.section("the schedule line")
 T.eq("none", Status.schedule(nil), "None")
 T.eq("none without a frequency", Status.schedule({ frequency = nil }), "None")

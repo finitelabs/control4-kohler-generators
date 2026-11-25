@@ -248,10 +248,21 @@ end
 --- @param cursor number|nil The highest event id already seen; nil when no log was ever read.
 --- @param since integer|nil Only events logged at or after this epoch count.
 --- @return KohlerNews news
---- @return number cursor The highest event id now seen; 0 for a log read empty.
+--- @return number cursor The highest event id now seen; 0 for a log read empty. Ids that start
+--- again below the cursor, as after a generator is replaced, become the cursor and are not news.
 function M.news(events, cursor, since)
   local news = { fault = false, warning = false, lowBattery = false }
   local highest = cursor or 0
+  local newest
+  for _, e in ipairs(type(events) == "table" and events or {}) do
+    local id = type(e) == "table" and tonumber(e.id) or nil
+    if id and (newest == nil or id > newest) then
+      newest = id
+    end
+  end
+  if cursor ~= nil and newest ~= nil and newest < cursor then
+    return news, newest
+  end
   for _, e in ipairs(type(events) == "table" and events or {}) do
     local id = type(e) == "table" and tonumber(e.id) or nil
     if id then
