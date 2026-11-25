@@ -193,7 +193,7 @@
       input.disabled = l.disabled || !!pending;
       input.setAttribute("aria-label", l.name);
       input.addEventListener("change", function () {
-        send({ action: "load", load: l.name, on: input.checked });
+        send({ action: "load", load: l.name, state: input.checked ? "On" : "Off" });
       });
       r.appendChild(input);
       c.appendChild(r);

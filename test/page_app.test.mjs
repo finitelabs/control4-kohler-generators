@@ -213,8 +213,8 @@ test("page: a load switch sends its new state", () => {
   const { c4, page } = openPage(KGDemo.state(NOW));
   const loadA = page.all((e) => e.type === "checkbox" && e.getAttribute("aria-label") === "Load A")[0];
   loadA.click();
-  assert.deepEqual(commands(c4).map(({ action, load, on }) => ({ action, load, on })), [
-    { action: "load", load: "Load A", on: true },
+  assert.deepEqual(commands(c4).map(({ action, load, state }) => ({ action, load, state })), [
+    { action: "load", load: "Load A", state: "On" },
   ]);
 });
 

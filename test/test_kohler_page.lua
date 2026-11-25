@@ -304,7 +304,7 @@ ExecuteCommand("KG_PAGE_COMMAND", {
   minutes = "30",
   request = "r3",
 })
-ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", on = "true", request = "r4" })
+ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", state = "On", request = "r4" })
 ExecuteCommand("KG_PAGE_COMMAND", { action = "refresh" })
 T.eq("stop", sent[1], { action = "stop", request = "r2" })
 T.eq("schedule", sent[2], {
@@ -324,11 +324,18 @@ sent = {}
 ExecuteCommand("KG_PAGE_COMMAND", { action = "reset", request = "r5" })
 T.eq("nothing sent", sent, {})
 
+T.section("a load state other than On or Off runs nothing")
+sent = {}
+ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", state = "Off", request = "r7" })
+ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", on = true, request = "r8" })
+ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", state = "true", request = "r9" })
+T.eq("only Off is sent", sent, { { action = "load", load = "HVAC A", on = false, request = "r7" } })
+
 T.section("Set Load from the page while Load Control is off: refused on the page")
 Properties["Load Control"] = "Off"
 OnPropertyChanged("Load Control")
 sent = {}
-ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", on = "true", request = "r6" })
+ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", state = "On", request = "r6" })
 T.eq("nothing sent", sent, {})
 T.eq(
   "the page is told why",

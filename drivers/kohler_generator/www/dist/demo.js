@@ -161,7 +161,7 @@
       } else if (fields.action === "load") {
         answer(fields, true, "Sent");
         s.loads.items.forEach(function (l) {
-          if (l.name === fields.load) l.on = fields.on === true || fields.on === "true";
+          if (l.name === fields.load) l.on = fields.state === "On";
         });
         push();
       } else if (fields.action === "refresh") {

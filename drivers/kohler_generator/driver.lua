@@ -696,7 +696,7 @@ local PAGE_COMMANDS = {
     }, request)
   end,
   load = function(p, request)
-    EC.Set_Load({ Load = p.load, State = (p.on == true or p.on == "true") and "On" or "Off" }, request)
+    EC.Set_Load({ Load = p.load, State = p.state }, request)
   end,
 }
 
@@ -718,7 +718,8 @@ end
 
 --- A command from the generator page: a button the homeowner pressed and, for Start Exercise,
 --- confirmed.
---- @param tParams table { action, request, and the command's own fields }
+--- @param tParams table { action, request, and the command's own fields: a load's state is "On" or
+--- "Off", as Set Load's }
 function EC.KG_PAGE_COMMAND(tParams)
   log:trace("EC.KG_PAGE_COMMAND(%s)", tParams)
   local p = type(tParams) == "table" and tParams or {}
@@ -732,6 +733,10 @@ function EC.KG_PAGE_COMMAND(tParams)
     return
   end
   local request = type(p.request) == "string" and p.request or nil
+  if p.action == "load" and p.state ~= "On" and p.state ~= "Off" then
+    log:warn("The generator page sent a load state this driver does not know: %s", tostring(p.state))
+    return
+  end
   if p.action == "load" and not loadControlOn() then
     gLastCommand = { request = request, action = "load", ok = false, message = "Load Control is off" }
     publishPage()
