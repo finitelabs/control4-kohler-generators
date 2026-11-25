@@ -130,14 +130,6 @@ works. The driver reads the generator through KOHLER's cloud, so a reading can
 be a few minutes old, and a reading the generator's controller does not report
 has no value.
 
-<!-- #ifndef DRIVERCENTRAL -->
-
-If a generator doesn't work as described here, please
-[open an issue](https://github.com/finitelabs/control4-kohler-generators/issues/new)
-with its model and controller.
-
-<!-- #endif -->
-
 # <span style="color:#336EE5">Installer Setup</span>
 
 > ⚠️ Only a **_single_** Kohler Generators driver is required per KOHLER
