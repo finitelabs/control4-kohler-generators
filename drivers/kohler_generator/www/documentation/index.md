@@ -146,7 +146,8 @@ The generator's name in the KOHLER app.
 #### Auto Rename Driver \[ Off | **_On_** \]
 
 When On, this driver is named after the generator, and renamed when the
-generator is renamed in the KOHLER app.
+generator is renamed in the KOHLER app. A generator with no name in the KOHLER
+app, or named only by its serial number, is named KOHLER and its model instead.
 
 #### Model (read-only)
 

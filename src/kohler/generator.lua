@@ -152,7 +152,9 @@ end
 
 --- @class KohlerIdentity
 --- @field id integer The generator's id in the KOHLER cloud.
---- @field name string Its name in the app.
+--- @field name string Its name in Control4: its name in the app, or "KOHLER <model>" when the app's name is
+--- empty or only its serial number.
+--- @field kohlerName string Its name in the app, as the app has it.
 --- @field serial string
 --- @field model string As the app shows it, such as "20 KW".
 --- @field controller string The controller board.
@@ -177,6 +179,13 @@ local function text(value)
   return type(value) == "string" and value or ""
 end
 
+--- A name as it compares: lowercase, without spaces.
+--- @param value string
+--- @return string
+local function bare(value)
+  return (value:lower():gsub("%s", ""))
+end
+
 --- A generator's identity, from a record or a homes entry.
 --- @param record any
 --- @return KohlerIdentity|nil identity Nil when the record carries no id.
@@ -195,12 +204,19 @@ function M.identity(record)
     local name, phone = text(orgs[1].name), text(orgs[1].displayPhoneNumber)
     dealer = (name ~= "" and phone ~= "") and (name .. ", " .. phone) or (name .. phone)
   end
-  local name = text(device.displayName)
+  local kohlerName = text(device.displayName)
+  local serial = text(device.serialNumber)
+  local model = text(device.modelDisplayName) ~= "" and device.modelDisplayName or text(device.model)
+  local name = kohlerName
+  if bare(name) == "" or bare(name) == bare(serial) then
+    name = model ~= "" and ("KOHLER " .. model) or ("KOHLER Generator " .. tostring(id))
+  end
   return {
     id = id,
-    name = name ~= "" and name or ("KOHLER Generator " .. tostring(id)),
-    serial = text(device.serialNumber),
-    model = text(device.modelDisplayName) ~= "" and device.modelDisplayName or text(device.model),
+    name = name,
+    kohlerName = kohlerName,
+    serial = serial,
+    model = model,
     controller = text(device.controllerType),
     firmware = text(device.firmwareVersion),
     fuel = M.label(record.fuelType),

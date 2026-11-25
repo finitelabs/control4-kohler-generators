@@ -147,6 +147,14 @@ RFP.goOffline(constants.GENERATOR_BINDING)
 T.eq("Driver Status", props["Driver Status"], "Offline")
 T.eq("Generator Offline fires", events[#events], "Generator Offline")
 
+T.section("a generator named only by its serial number")
+renamed = {}
+local serialNamed = JSON:decode(fixture("device-58001.json"))
+serialNamed.device.displayName = serialNamed.device.serialNumber
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(serialNamed) })
+T.eq("Generator Name shows the app's name", props["Generator Name"], "DEMO000001")
+T.eq("the driver is named after the model", renamed, { "KOHLER 20 KW" })
+
 T.section("Auto Rename Driver off keeps the integrator's name")
 Properties["Auto Rename Driver"] = "Off"
 renamed = {}

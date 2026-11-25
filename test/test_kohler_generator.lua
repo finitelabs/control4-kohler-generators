@@ -144,4 +144,15 @@ T.eq("not a table", Generator.identity("x"), nil)
 T.eq("a homes reply that is not a list", #Generator.fromHomes("x"), 0)
 T.eq("a nameless generator gets one", Generator.identity({ id = 7 }).name, "KOHLER Generator 7")
 
+T.section("a generator named after its serial number is named after its model")
+local function named(displayName, serial, model)
+  return Generator.identity({ id = 7, displayName = displayName, serialNumber = serial, modelDisplayName = model })
+end
+T.eq("the serial", named("SAMPLE000001", "SAMPLE000001", "26 RCA-A").name, "KOHLER 26 RCA-A")
+T.eq("the serial, case and spaces aside", named(" sample 000001 ", "SAMPLE000001", "26 RCA-A").name, "KOHLER 26 RCA-A")
+T.eq("no name", named("", "SAMPLE000001", "26 RCA-A").name, "KOHLER 26 RCA-A")
+T.eq("a real name wins", named("Backup Power", "SAMPLE000001", "26 RCA-A").name, "Backup Power")
+T.eq("no model", named("SAMPLE000001", "SAMPLE000001", nil).name, "KOHLER Generator 7")
+T.eq("the app's name is kept as it is", named("SAMPLE000001", "SAMPLE000001", "26 RCA-A").kohlerName, "SAMPLE000001")
+
 T.finish()
