@@ -388,4 +388,24 @@ function Client:getDevice(id, host)
   end)
 end
 
+--- A generator's active alerts (devices/{id}/alerts).
+--- @param id integer
+--- @param host string The record's deviceHost.
+--- @return Deferred<table[], KohlerError> alerts
+function Client:getAlerts(id, host)
+  return self:_get("/devices/" .. tostring(id) .. "/alerts", { sourceDeviceHost = host }):next(function(body)
+    return type(body) == "table" and body or {}
+  end)
+end
+
+--- A generator's event log, newest first (devices/{id}/events).
+--- @param id integer
+--- @param host string The record's deviceHost.
+--- @return Deferred<table[], KohlerError> events
+function Client:getEvents(id, host)
+  return self:_get("/devices/" .. tostring(id) .. "/events", { sourceDeviceHost = host }):next(function(body)
+    return type(body) == "table" and body or {}
+  end)
+end
+
 return Client

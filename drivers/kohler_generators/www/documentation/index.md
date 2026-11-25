@@ -292,7 +292,9 @@ address is removed.
 ##### Poll Interval \[ 30 seconds | **_60 seconds_** | 120 seconds | 300 seconds | 900 seconds \]
 
 Sets how often the driver reads the account's generators. Default is
-`60 seconds`.
+`60 seconds`. While a generator's engine runs or its utility power is out, the
+driver reads it every 15 seconds instead. It reads each generator's alerts and
+event log every 2 minutes, and sooner when its alerts or status change.
 
 ### Driver Actions
 
