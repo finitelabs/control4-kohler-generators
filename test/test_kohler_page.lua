@@ -72,7 +72,11 @@ T.eq("name", standby.name, "Demo Generator")
 T.eq("on utility power", standby.top.onGeneratorPower, false)
 T.eq("not running", standby.top.running, false)
 T.eq("no fault", standby.top.fault, false)
-T.eq("reported", standby.top.reported, Generator.time("2026-09-21T13:13:20.0000000+00:00"))
+T.eq(
+  "reported: the newer reading, not the older status change",
+  standby.top.reported,
+  Generator.time("2026-09-21T14:03:20.0000000+00:00")
+)
 T.eq("Start allowed", standby.exercise.start, nil)
 T.eq("Stop refused", standby.exercise.stop, "No exercise is running")
 T.eq("next exercise", standby.exercise.nextAt, Generator.time("2026-09-26T15:00:00Z"))
@@ -100,6 +104,7 @@ local outage = stateOf(fixture("state-outage.json"))
 T.eq("on generator power", outage.top.onGeneratorPower, true)
 T.eq("running", outage.top.running, true)
 T.eq("Start refused with the reason", outage.exercise.start, "Utility power is out")
+T.eq("reported: the newer status change", outage.top.reported, Generator.time("2026-09-21T14:13:31.0000000+00:00"))
 
 T.section("an exercise: Stop allowed, Start refused")
 local exercise = stateOf(fixture("state-exercise.json"))

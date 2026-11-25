@@ -7,6 +7,8 @@
 --   ./test/run_test.sh test_kohler_status.lua
 
 local T = require("testlib")
+
+require("c4_shim")
 local JSON = require("JSON")
 local Generator = require("kohler.generator")
 local Status = require("kohler.status")
@@ -99,6 +101,23 @@ T.eq("utility out", outage.utilityOut, true)
 T.eq("on generator power", outage.onGeneratorPower, true)
 T.eq("running", outage.running, true)
 T.eq("not exercising", outage.exercising, false)
+
+T.section("a generator that doesn't sense utility voltage reports 0 volts on utility power")
+local unsensed = fixture("device-58001.json")
+unsensed.device.id = 59001
+unsensed.utilityVoltageV = 0
+unsensed.generatorVoltageAvgV = 0
+T.eq("utility not out", Status.fromRecord(unsensed, NOW, "F").utilityOut, false)
+T.eq("not busy", Status.busy(unsensed), false)
+unsensed.powerSource = "Generator"
+T.eq("on generator power, it is out", Status.fromRecord(unsensed, NOW, "F").utilityOut, true)
+
+T.section("once it has reported a live line, 0 volts is an outage")
+unsensed.powerSource = "Utility"
+unsensed.utilityVoltageV = 240.1
+T.eq("a live line", Status.fromRecord(unsensed, NOW, "F").utilityOut, false)
+unsensed.utilityVoltageV = 0
+T.eq("then 0 volts is out", Status.fromRecord(unsensed, NOW, "F").utilityOut, true)
 T.truthy("load reads as a positive number", (outage.readings["Load Watts"] or 0) > 0, outage.readings["Load Watts"])
 T.truthy("as does its percentage", (outage.readings["Load Percent"] or 0) > 0, outage.readings["Load Percent"])
 T.eq("busy, so polled faster", Status.busy(fixture("state-outage.json")), true)

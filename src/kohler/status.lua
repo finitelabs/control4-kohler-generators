@@ -1,8 +1,9 @@
 --- What a KOHLER generator record, its alerts and its events say about the generator: power,
---- engine, switch, readings, exercise and service, and what changed between two reads. Pure: no
---- Control4 calls, so the tests run it as it is.
+--- engine, switch, readings, exercise and service, and what changed between two reads. Pure but for
+--- remembering, persisted, which generators sense utility voltage.
 
 local Generator = require("kohler.generator")
+local persist = require("lib.persist")
 
 local M = {}
 
@@ -17,6 +18,8 @@ local RUNNING = {
 
 --- Below this a utility voltage reading means the utility is out.
 local UTILITY_OUT_V = 100
+--- Persist key: the generators that have reported a utility voltage of at least UTILITY_OUT_V, by id.
+local SENSED_KEY = "UtilitySensed"
 
 --- Alert and event levels that mean a fault.
 local FAULT_LEVELS = { Fault = true, Shutdown = true }
@@ -124,6 +127,25 @@ end
 --- @field exerciseSchedule string
 --- @field loads KohlerLoad[] Empty without a load control module.
 
+--- Whether a generator's utility voltage can be trusted: one that doesn't sense utility reports 0
+--- volts, so it counts only once the generator has reported a live line.
+--- @param id any The generator's id.
+--- @param utilityV number
+--- @return boolean
+local function sensesUtility(id, utilityV)
+  if utilityV >= UTILITY_OUT_V then
+    if id ~= nil then
+      local sensed = persist:get(SENSED_KEY, {}) or {}
+      if not sensed[tostring(id)] then
+        sensed[tostring(id)] = true
+        persist:set(SENSED_KEY, sensed)
+      end
+    end
+    return true
+  end
+  return id ~= nil and (persist:get(SENSED_KEY, {}) or {})[tostring(id)] == true
+end
+
 --- The generator's state from its record.
 --- @param record table The full record (devices/{id}).
 --- @param now integer Epoch seconds.
@@ -141,7 +163,7 @@ function M.fromRecord(record, now, scale)
     or (type(runningMode) == "string" and runningMode ~= "None")
     or (type(engine) == "string" and engine:find("^Performing.*Exercise$") ~= nil)
   local utilityOut
-  if utilityV ~= nil then
+  if utilityV ~= nil and sensesUtility(device.id, utilityV) then
     utilityOut = utilityV < UTILITY_OUT_V
   else
     utilityOut = power == "Generator" and not exercising
