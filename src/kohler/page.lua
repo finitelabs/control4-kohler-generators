@@ -43,6 +43,19 @@ for name, cloud in pairs(Controls.MODES) do
   MODE_NAMES[cloud] = name
 end
 
+--- When the generator last reported: the newer of its last reading and its last status change.
+--- @param record table
+--- @param device table
+--- @return integer|nil
+local function reportedAt(record, device)
+  local status = Generator.time(device.statusUpdateTimestamp or record.statusUpdateTimestamp)
+  local reading = Generator.time(device.latestParameterUpdateTimestamp)
+  if status == nil or (reading ~= nil and reading > status) then
+    return reading
+  end
+  return status
+end
+
 --- @param list any
 --- @return table[]
 local function entries(list)
@@ -177,7 +190,7 @@ function M.state(ctx)
       running = s.running,
       exercising = s.exercising,
       fault = s.shutDown or a.fault,
-      reported = Generator.time(device.statusUpdateTimestamp or record.statusUpdateTimestamp),
+      reported = reportedAt(record, device),
     },
     readings = readings,
     exercise = {
