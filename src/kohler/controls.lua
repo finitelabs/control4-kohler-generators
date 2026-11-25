@@ -119,7 +119,8 @@ function M.timestamp(epoch, lastRead)
     return localTime
   end
   local utc = os.date("!*t", epoch)
-  utc.isdst = nil
+  -- Read the UTC fields as local time with the DST flag the moment has, not one mktime guesses.
+  utc.isdst = os.date("*t", epoch).isdst
   local offset = math.floor((epoch - os.time(utc)) / 60)
   local sign = offset < 0 and "-" or "+"
   offset = math.abs(offset)

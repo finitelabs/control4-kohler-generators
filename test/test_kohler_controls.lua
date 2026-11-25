@@ -127,6 +127,22 @@ end
 _, refusal = Controls.request(schedule, fixture("device-58004.json"), NOW)
 T.eq("refused while offline", refusal, "The generator is offline")
 
+T.section("an offset either side of a daylight saving change")
+-- A child luajit in New York's time zone; LUA_PATH carries over from the runner.
+local code = "local C = require('kohler.controls') "
+  .. "for _, e in ipairs({ 1772951400, 1772955000, 1793511000, 1793514600 }) do "
+  .. "print(C.timestamp(e, '2026-09-26T10:00:00-05:00')) end"
+local pipe = assert(io.popen('TZ=America/New_York luajit -e "' .. code .. '"'))
+local stamps = {}
+for line in pipe:lines() do
+  stamps[#stamps + 1] = line
+end
+pipe:close()
+T.eq("1:30 before the spring change", stamps[1], "2026-03-08T01:30:00-05:00")
+T.eq("3:30 after it", stamps[2], "2026-03-08T03:30:00-04:00")
+T.eq("the first 1:30 of the fall change", stamps[3], "2026-11-01T01:30:00-04:00")
+T.eq("the second", stamps[4], "2026-11-01T01:30:00-05:00")
+
 T.section("a time of day")
 T.eq("24-hour", { Controls.timeOfDay("14:05") }, { 14, 5 })
 T.eq("PM", { Controls.timeOfDay("2:05 pm") }, { 14, 5 })
