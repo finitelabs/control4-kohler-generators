@@ -65,13 +65,14 @@ end
 
 --- The exercise schedule as one line: "Weekly, Tuesday 10:00, Unloaded, 20 minutes".
 --- @param exercise any The record's exercise part.
+--- @param clockOffset? integer The generator's clock offset, from Generator.clockOffset.
 --- @return string schedule "None" when no exercise is scheduled.
-function M.schedule(exercise)
+function M.schedule(exercise, clockOffset)
   if type(exercise) ~= "table" or type(exercise.frequency) ~= "string" then
     return "None"
   end
   local parts = { FREQUENCIES[exercise.frequency] or Generator.label(exercise.frequency) }
-  local nextStart = Generator.time(exercise.nextStartTimestamp)
+  local nextStart = Generator.time(exercise.nextStartTimestamp, clockOffset)
   if nextStart then
     local t = os.date("*t", nextStart)
     parts[#parts + 1] = string.format("%s %02d:%02d", DAYS[t.wday], t.hour, t.min)
@@ -168,7 +169,8 @@ function M.fromRecord(record, now, scale)
   else
     utilityOut = power == "Generator" and not exercising
   end
-  local nextMaint = Generator.time(device.nextMaintenanceTimestamp)
+  local clockOffset = Generator.clockOffset(record)
+  local nextMaint = Generator.time(device.nextMaintenanceTimestamp, clockOffset)
   local engineText = type(record.engineStateDisplayNameEn) == "string" and record.engineStateDisplayNameEn
     or Generator.label(engine)
   local oilOk = record.engineOilPressureOk
@@ -212,12 +214,12 @@ function M.fromRecord(record, now, scale)
       ["Hours Since Maintenance"] = n(record.runtimeSinceLastMaintenanceHours),
     },
     oilPressureOk = oilOk,
-    lastRan = M.formatTime(Generator.time(record.lastRanTimestamp)),
-    nextExercise = M.formatTime(Generator.time(exercise.nextStartTimestamp)),
-    lastMaintenance = M.formatTime(Generator.time(device.lastMaintenanceTimestamp)),
+    lastRan = M.formatTime(Generator.time(record.lastRanTimestamp, clockOffset)),
+    nextExercise = M.formatTime(Generator.time(exercise.nextStartTimestamp, clockOffset)),
+    lastMaintenance = M.formatTime(Generator.time(device.lastMaintenanceTimestamp, clockOffset)),
     nextMaintenance = M.formatTime(nextMaint),
     maintenanceDue = nextMaint ~= nil and nextMaint <= now,
-    exerciseSchedule = M.schedule(record.exercise),
+    exerciseSchedule = M.schedule(record.exercise, clockOffset),
     loads = loads,
   }
 end

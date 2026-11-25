@@ -104,7 +104,6 @@ class Generator:
         self.battery_low = False
         self.run_start = None
         self.status_t = now - 3600
-        self.param_t = now - 600
         self.alerts = []
         self.events = []
         self.notifications = []
@@ -634,7 +633,6 @@ class Generator:
         if not group.get("isConnected"):
             raise Refused(409, "The load management module is not connected")
         p["value"] = value
-        self.param_t = self.t
 
     def rename(self, definition_id, name):
         self.settle()
@@ -696,7 +694,7 @@ class Generator:
                 self.status_t, fraction=self.fraction
             ),
             "latestParameterUpdateTimestamp": times.utc_iso(
-                self.param_t, fraction=self.fraction
+                self.t, fraction=self.fraction
             ),
             "dealerOrgs": copy.deepcopy(p.get("dealerOrgs", [])),
             "alertCount": len(self.alerts),

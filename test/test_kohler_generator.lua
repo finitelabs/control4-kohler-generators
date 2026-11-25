@@ -72,6 +72,53 @@ T.eq(
   os.time({ year = 2026, month = 11, day = 25, hour = 7, min = 13, sec = 20 })
 )
 T.eq("a leap day", Generator.time("2028-02-29T00:00:00Z"), 1835395200)
+
+T.section("a generator's own clock")
+-- On 2026-12-01 a controller in a zone with daylight saving is on standard time, while a generator
+-- whose clock doesn't follow it stays 5 hours behind UTC.
+local winter = {
+  controllerClockTimestamp = "2026-12-01T09:05:37",
+  device = { latestParameterUpdateTimestamp = "2026-12-01T14:07:07+00:00" },
+}
+T.eq("its offset, rounded to 15 minutes", Generator.clockOffset(winter), -5 * 3600)
+T.eq(
+  "a local time reads by it",
+  Generator.time("2026-12-01T14:00:00", Generator.clockOffset(winter)),
+  Generator.time("2026-12-01T19:00:00Z")
+)
+T.eq(
+  "a time with Z is left alone",
+  Generator.time("2026-12-01T19:00:00Z", -5 * 3600),
+  Generator.time("2026-12-01T19:00:00Z")
+)
+T.eq(
+  "and one with an offset",
+  Generator.time("2026-12-01T14:00:00-05:00", 3600),
+  Generator.time("2026-12-01T19:00:00Z")
+)
+local ahead = {
+  controllerClockTimestamp = "2026-12-02T00:31:00",
+  device = { latestParameterUpdateTimestamp = "2026-12-01T14:00:00Z" },
+}
+T.eq("east of UTC", Generator.clockOffset(ahead), 10.5 * 3600)
+T.eq("no clock reading", Generator.clockOffset({ device = winter.device }), nil)
+T.eq(
+  "a record time with no zone can't tell",
+  Generator.clockOffset({
+    controllerClockTimestamp = winter.controllerClockTimestamp,
+    device = { latestParameterUpdateTimestamp = "2026-12-01T14:07:07" },
+  }),
+  nil
+)
+T.eq(
+  "a clock days apart from the record is no offset",
+  Generator.clockOffset({
+    controllerClockTimestamp = "2026-11-28T09:05:37",
+    device = winter.device,
+  }),
+  nil
+)
+T.eq("not a record", Generator.clockOffset("x"), nil)
 T.eq("not a time", Generator.time("yesterday"), nil)
 T.eq("a clock that was never set", Generator.time("2011-01-01T00:01:41"), nil)
 T.truthy("2012 is a time", Generator.time("2012-01-01T00:00:00Z"))

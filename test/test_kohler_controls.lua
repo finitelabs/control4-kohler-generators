@@ -88,9 +88,18 @@ T.eq("which is a Tuesday", os.date("%A %H:%M", start), "Tuesday 14:30")
 T.truthy("after now", start > NOW and start <= NOW + 7 * 86400)
 
 local naive = fixture("device-58003.json")
+-- A generator 3 hours behind UTC, so the controller's own zone can't give the same answer.
+naive.controllerClockTimestamp = "2026-09-21T11:13:20"
 request = Controls.request(schedule, naive, NOW)
 T.eq(
-  "local with no offset when the record wrote it so",
+  "local with no offset when the record wrote it so, by the generator's clock",
+  request.body.nextStartTimestamp,
+  os.date("!%Y-%m-%dT%H:%M:%S", start - 3 * 3600)
+)
+naive.controllerClockTimestamp = nil
+request = Controls.request(schedule, naive, NOW)
+T.eq(
+  "by the controller's clock when the record has no clock reading",
   request.body.nextStartTimestamp,
   os.date("%Y-%m-%dT%H:%M:%S", start)
 )

@@ -238,4 +238,23 @@ T.section("the schedule line")
 T.eq("none", Status.schedule(nil), "None")
 T.eq("none without a frequency", Status.schedule({ frequency = nil }), "None")
 
+T.section("local times read by the generator's clock, not the controller's")
+-- A generator 5 hours behind UTC all year, read in December by a controller that may be on
+-- standard time. Its 14:00 is 19:00 UTC.
+local winter = fixture("device-58003.json")
+winter.controllerClockTimestamp = "2026-12-01T09:05:37"
+winter.device.latestParameterUpdateTimestamp = "2026-12-01T14:07:07+00:00"
+winter.exercise.nextStartTimestamp = "2026-12-01T14:00:00"
+winter.device.nextMaintenanceTimestamp = "2026-12-08T09:00:00"
+local s = Status.fromRecord(winter, NOW, "F")
+local exerciseAt = Generator.time("2026-12-01T19:00:00Z")
+T.eq("the next exercise", s.nextExercise, Status.formatTime(exerciseAt))
+T.eq("the next maintenance", s.nextMaintenance, Status.formatTime(Generator.time("2026-12-08T14:00:00Z")))
+local t = os.date("*t", exerciseAt)
+T.truthy(
+  "the schedule line's time",
+  s.exerciseSchedule:find(string.format(" %02d:%02d,", t.hour, t.min), 1, true),
+  s.exerciseSchedule
+)
+
 T.finish()

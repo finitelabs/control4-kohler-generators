@@ -75,7 +75,7 @@ T.eq("no fault", standby.top.fault, false)
 T.eq(
   "reported: the newer reading, not the older status change",
   standby.top.reported,
-  Generator.time("2026-09-21T14:03:20.0000000+00:00")
+  Generator.time("2026-09-21T14:13:20.0000000+00:00")
 )
 T.eq("Start allowed", standby.exercise.start, nil)
 T.eq("Stop refused", standby.exercise.stop, "No exercise is running")
@@ -100,7 +100,9 @@ T.eq(
 )
 
 T.section("an outage: on generator power, Start refused")
-local outage = stateOf(fixture("state-outage.json"))
+local outageRecord = fixture("state-outage.json")
+outageRecord.device.latestParameterUpdateTimestamp = "2026-09-21T14:13:20.0000000+00:00"
+local outage = stateOf(outageRecord)
 T.eq("on generator power", outage.top.onGeneratorPower, true)
 T.eq("running", outage.top.running, true)
 T.eq("Start refused with the reason", outage.exercise.start, "Utility power is out")
