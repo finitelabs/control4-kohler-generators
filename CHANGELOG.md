@@ -20,6 +20,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
+### Fixed
+
+- Fixed Account Disconnected not firing when KOHLER refuses the driver's reads.
+
 <!-- #ifndef DRIVERCENTRAL -->
 
 ### Removed
