@@ -214,6 +214,8 @@ local function setProperty(name, value)
 end
 
 dofile(DRIVER)
+-- Without luasocket the shim's TCP client can't refresh Navigators.
+function RefreshNavs() end
 OnDriverInit()
 ShimLateInit()
 
