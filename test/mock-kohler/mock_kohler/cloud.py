@@ -586,6 +586,8 @@ class Cloud:
             return
         if int(status) not in (429, 500, 502, 503, 504):
             raise ValueError("status must be 429 or a 5xx")
+        if int(b.get("count", 1)) < 1:
+            raise ValueError("count must be at least 1")
         self.fail = {
             "status": int(status),
             "count": int(b.get("count", 1)),

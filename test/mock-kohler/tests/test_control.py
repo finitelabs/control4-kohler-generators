@@ -277,3 +277,10 @@ async def test_readded_generator_joins_the_named_home(signed_in):
     homes = await api.get("/homeowner/homes")
     assert REDGREEN in [d["id"] for d in homes[0]["devices"]]
     assert REDGREEN not in [d["id"] for d in homes[1]["devices"]]
+
+
+async def test_fail_count_must_be_positive(signed_in):
+    _, client, api = await signed_in()
+    resp = await client.post("/_mock/fail", json={"status": 503, "count": 0})
+    assert resp.status == 400
+    await api.record(BLUE)
