@@ -345,17 +345,34 @@ local function feedsDue(key, record)
   return os.time() - last.at >= FEED_INTERVAL_S or device.alertCount ~= last.alertCount or device.status ~= last.status
 end
 
+--- Record reads sent so far, numbering each.
+local gRecordReadsIssued = 0
+--- By generator id, the number below which a read of that generator is out of date: the last one
+--- taken, or one sent after a command.
+--- @type table<string, integer>
+local gRecordReadFloor = {}
+
 --- Read one generator's record and hand it to its companion.
 --- @param identity KohlerIdentity
 --- @param refreshId integer
 --- @param generation integer
---- @return Deferred<boolean> read Resolves with whether the record was read and taken.
-local function readGenerator(identity, refreshId, generation)
+--- @param afterCommand? boolean Sent after a command: reads of the generator sent before it are out of date.
+--- @return Deferred<boolean> read Resolves with whether the record was read.
+local function readGenerator(identity, refreshId, generation, afterCommand)
   local key = tostring(identity.id)
+  gRecordReadsIssued = gRecordReadsIssued + 1
+  local readId = gRecordReadsIssued
+  if afterCommand then
+    gRecordReadFloor[key] = readId
+  end
   return client:getDevice(identity.id, identity.host):next(function(record)
     if stale(refreshId, generation) then
       return false
     end
+    if readId < (gRecordReadFloor[key] or 0) then
+      return true
+    end
+    gRecordReadFloor[key] = readId
     gState.records[key] = record
     handoff(key)
     if feedsDue(key, record) then
@@ -920,17 +937,15 @@ local function commandResult(idBinding, action, ok, message)
   SendToProxy(idBinding, CMD.COMMAND_RESULT, { ACTION = action, OK = tostring(ok), MESSAGE = message })
 end
 
---- Read one generator now, taking the next refresh so a read sent before it can't hand the
---- companion the state from before a command.
+--- Read one generator now, so a read of it sent before can't hand the companion the state from
+--- before a command. The poll's reads of the other generators are not touched.
 --- @param key string
 local function readNow(key)
   local identity = gState.generators[key]
   if not identity or not client:hasSession() then
     return
   end
-  gRefreshIssued = gRefreshIssued + 1
-  gRefreshAccepted = gRefreshIssued
-  readGenerator(identity, gRefreshIssued, gLoginGeneration)
+  readGenerator(identity, gRefreshAccepted, gLoginGeneration, true)
 end
 
 --- What a failed command tells the companion.

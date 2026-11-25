@@ -676,4 +676,26 @@ T.eq("its record is read", sent("/devices/58001%?"), 1)
 T.eq("nothing else", #requests, 1)
 deviceAnswers["58001"] = fixture("state-standby.json")
 
+
+T.section("a command's read of one generator leaves the poll's reads of the others")
+EC.Refresh_Generators()
+now = now + 10
+held = {}
+requests, toProxy = {}, {}
+EC.Refresh_Generators()
+table.remove(held, 1)()
+local pollReads = {}
+while #held > 0 do
+  pollReads[#pollReads + 1] = table.remove(held, 1)
+end
+held = nil
+command(58001, { action = "refresh" })
+toProxy = {}
+for _, answer in ipairs(pollReads) do
+  answer()
+end
+local handed = proxySends(constants.CMD.UPDATE_GENERATOR)
+T.eq("58002 is handed its record", handed[bindingOf(58002)] ~= nil, true)
+T.eq("58003 is handed its record", handed[bindingOf(58003)] ~= nil, true)
+
 T.finish()
