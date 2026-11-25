@@ -676,7 +676,6 @@ T.eq("its record is read", sent("/devices/58001%?"), 1)
 T.eq("nothing else", #requests, 1)
 deviceAnswers["58001"] = fixture("state-standby.json")
 
-
 T.section("a command's read of one generator leaves the poll's reads of the others")
 EC.Refresh_Generators()
 now = now + 10
@@ -697,5 +696,38 @@ end
 local handed = proxySends(constants.CMD.UPDATE_GENERATOR)
 T.eq("58002 is handed its record", handed[bindingOf(58002)] ~= nil, true)
 T.eq("58003 is handed its record", handed[bindingOf(58003)] ~= nil, true)
+
+T.section("a second command waits for the read after the first")
+deviceAnswers["58001"] = fixture("state-standby.json")
+EC.Refresh_Generators()
+held = {}
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+deviceAnswers["58001"] = fixture("state-exercise.json")
+table.remove(held, 1)()
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "refused before the read lands",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "Another command is still on its way"
+)
+T.eq("one POST", sentMethod("POST"), 1)
+while #held > 0 do
+  table.remove(held, 1)()
+end
+held = nil
+toProxy = {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "then checked against the state it left",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "The generator is already running"
+)
+
+T.section("a command that fails is followed by a read too")
+requests, toProxy = {}, {}
+writeAnswers = { { 503, { message = "Service Unavailable" } } }
+command(58001, { action = "stop" })
+T.eq("the generator is read", sent("/devices/58001%?"), 1)
 
 T.finish()

@@ -940,12 +940,13 @@ end
 --- Read one generator now, so a read of it sent before can't hand the companion the state from
 --- before a command. The poll's reads of the other generators are not touched.
 --- @param key string
+--- @return Deferred<boolean>|nil read Nil when none was sent.
 local function readNow(key)
   local identity = gState.generators[key]
   if not identity or not client:hasSession() then
-    return
+    return nil
   end
-  readGenerator(identity, gRefreshAccepted, gLoginGeneration, true)
+  return readGenerator(identity, gRefreshAccepted, gLoginGeneration, true)
 end
 
 --- What a failed command tells the companion.
@@ -963,8 +964,9 @@ local function commandFailure(err)
 end
 
 --- A companion's command for its generator: checked against the generator's last record, sent
---- once, answered with commandResult, then the generator is read again. One at a time per
---- generator; a command that arrives while one is on its way is refused.
+--- once, answered with commandResult, then the generator is read again, whether it worked or not.
+--- One at a time per generator, until that read settles, so the next is checked against the state
+--- the command left; a command that arrives before then is refused.
 --- @param idBinding integer
 --- @param _strCommand string
 --- @param tParams table { JSON = a KohlerCommand }
@@ -999,16 +1001,24 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
   log:info("Sending %s to generator %s", action, key)
   gCommandInFlight[key] = true
   local generation = gLoginGeneration
-  client:send(request, identity and identity.host or "Oncue"):next(function()
-    gCommandInFlight[key] = nil
-    commandResult(idBinding, action, true, "Sent")
-    if generation == gLoginGeneration then
-      readNow(key)
+  local function readAgain()
+    local read = generation == gLoginGeneration and readNow(key) or nil
+    if read == nil then
+      gCommandInFlight[key] = nil
+      return
     end
+    local function settled()
+      gCommandInFlight[key] = nil
+    end
+    read:next(settled, settled)
+  end
+  client:send(request, identity and identity.host or "Oncue"):next(function()
+    commandResult(idBinding, action, true, "Sent")
+    readAgain()
   end, function(err)
-    gCommandInFlight[key] = nil
     log:warn("%s for generator %s failed: %s", action, key, err.message)
     commandResult(idBinding, action, false, commandFailure(err))
+    readAgain()
   end)
 end
 
