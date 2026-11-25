@@ -30,3 +30,6 @@ jobs:
 
       - name: Test the mock
         run: make test-mock-kohler
+
+      - name: Check the Lua tests' fixtures
+        run: make check-kohler-fixtures
