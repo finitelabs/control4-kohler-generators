@@ -1148,6 +1148,17 @@ function EC.Reconnect()
   login()
 end
 
+--- Settable properties a reset returns to their defaults; the sign-in and update settings are kept.
+--- @type table<string, string>
+local RESET_PROPERTY_VALUES = {
+  ["Poll Interval"] = "60 seconds",
+  ["Log Level"] = "3 - Info",
+  ["Log Mode"] = "Off",
+  --#ifdef DRIVERCENTRAL
+  ["Cloud Monitoring"] = "Enabled",
+  --#endif
+}
+
 function EC.Reset_Driver(tParams)
   log:trace("EC.Reset_Driver()")
   if (tParams or {})["Are You Sure?"] == "Yes" then
@@ -1155,12 +1166,15 @@ function EC.Reset_Driver(tParams)
     bindings:reset()
     companions:reset()
     persist:set(ADDED_KEY, nil)
+    Status.reset()
     gAutoTried = {}
     client:setServer(nil)
-    C4:UpdateProperty("Login Status", "")
-    --#ifdef DRIVERCENTRAL
-    UpdateProperty("Cloud Monitoring", "Enabled", true)
-    --#endif
+    for name, value in pairs(RESET_PROPERTY_VALUES) do
+      UpdateProperty(name, value, true)
+    end
+    for name, value in pairs(GetPropertyResetValues({ "Driver Version" })) do
+      UpdateProperty(name, value, true)
+    end
     login()
   end
 end

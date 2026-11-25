@@ -222,6 +222,11 @@ function M.fromRecord(record, now, scale)
   }
 end
 
+--- Forgets which generators sense utility voltage, as on a fresh install.
+function M.reset()
+  persist:set(SENSED_KEY, nil)
+end
+
 --- Whether the generator needs the fast poll: its engine runs or the utility is out.
 --- @param record any
 --- @return boolean
