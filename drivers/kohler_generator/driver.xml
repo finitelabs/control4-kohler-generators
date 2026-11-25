@@ -191,6 +191,58 @@
         <default>On</default>
       </property>
       <property>
+        <name>Driver</name>
+        <type>LABEL</type>
+        <default>Driver Settings</default>
+      </property>
+      <property>
+        <name>Driver Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Driver Version</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Log Level</name>
+        <type>DYNAMIC_LIST</type>
+        <default>3 - Info</default>
+      </property>
+      <property>
+        <name>Log Mode</name>
+        <type>LIST</type>
+        <default>Off</default>
+        <items>
+          <item>Off</item>
+          <item>Print</item>
+          <item>Log</item>
+          <item>Print and Log</item>
+        </items>
+      </property>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <property>
+        <name>Support Code</name>
+        <type>STRING</type>
+        <default/>
+        <description>Enter only a code from Finite Labs support. It opens the Lua window for an hour.</description>
+        <password>true</password>
+      </property>
+      <property>
+        <name>Cloud Monitoring</name>
+        <type>LIST</type>
+        <default>Enabled</default>
+        <items>
+          <item>Disabled</item>
+          <item>Enabled</item>
+        </items>
+        <description>Sends memory and error reports to Finite Labs so we can fix driver problems.</description>
+      </property>
+      <!-- #endif -->
+      <property>
         <name>Generator</name>
         <type>LABEL</type>
         <default>Generator</default>
@@ -281,58 +333,6 @@
         <default/>
         <readonly>true</readonly>
       </property>
-      <property>
-        <name>Driver</name>
-        <type>LABEL</type>
-        <default>Driver Settings</default>
-      </property>
-      <property>
-        <name>Driver Status</name>
-        <type>STRING</type>
-        <default/>
-        <readonly>true</readonly>
-      </property>
-      <property>
-        <name>Driver Version</name>
-        <type>STRING</type>
-        <default/>
-        <readonly>true</readonly>
-      </property>
-      <property>
-        <name>Log Level</name>
-        <type>DYNAMIC_LIST</type>
-        <default>3 - Info</default>
-      </property>
-      <property>
-        <name>Log Mode</name>
-        <type>LIST</type>
-        <default>Off</default>
-        <items>
-          <item>Off</item>
-          <item>Print</item>
-          <item>Log</item>
-          <item>Print and Log</item>
-        </items>
-      </property>
-      <!-- #ifdef DRIVERCENTRAL -->
-      <property>
-        <name>Support Code</name>
-        <type>STRING</type>
-        <default/>
-        <description>Enter only a code from Finite Labs support. It opens the Lua window for an hour.</description>
-        <password>true</password>
-      </property>
-      <property>
-        <name>Cloud Monitoring</name>
-        <type>LIST</type>
-        <default>Enabled</default>
-        <items>
-          <item>Disabled</item>
-          <item>Enabled</item>
-        </items>
-        <description>Sends memory and error reports to Finite Labs so we can fix driver problems.</description>
-      </property>
-      <!-- #endif -->
     </properties>
     <actions>
       <!-- #ifdef DRIVERCENTRAL -->

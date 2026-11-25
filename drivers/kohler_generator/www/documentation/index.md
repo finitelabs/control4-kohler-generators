@@ -44,8 +44,8 @@ exercise schedule and switch the generator's load-shed loads.
   - [Adding the Driver](#adding-the-driver)
   - [Driver Properties](#driver-properties)
     - [Cloud Settings](#cloud-settings)
-    - [Generator](#generator)
     - [Driver Settings](#driver-settings)
+    - [Generator](#generator)
   - [Connections](#connections)
 - [Status and Readings](#status-and-readings)
 - [The Generator Page](#the-generator-page)
@@ -86,6 +86,53 @@ Displays the DriverCentral cloud license status.
 
 Enables or disables automatic driver updates. Changing it here changes it on the
 Kohler Generators driver and every Kohler Generator driver.
+
+### Driver Settings
+
+#### Driver Status (read-only)
+
+Displays `Online` while the generator is reaching the KOHLER cloud,
+`Generator offline` while it is not, and `Offline` while the account driver is
+signed out or the generator is no longer on the account.
+
+#### Driver Version (read-only)
+
+Displays the current version of the driver.
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug \]
+
+Sets the logging level. Default is `3 - Info`. While a Support Code has
+Composer's Lua tab open, it also offers `5 - Trace` and `6 - Ultra`.
+
+<!-- #else -->
+
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
+
+Sets the logging level. Default is `3 - Info`.
+
+<!-- #endif -->
+
+#### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
+
+Sets the logging mode. Default is `Off`.
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+#### Support Code
+
+Leave it blank unless Finite Labs support gives you a code: for an hour, it
+opens Composer's Lua tab to this driver and adds `5 - Trace` and `6 - Ultra` to
+Log Level.
+
+#### Cloud Monitoring \[ Disabled | **_Enabled_** \]
+
+When Enabled, the driver sends Finite Labs a short report once an hour, and a
+report of each error it hits, at most 10 a minute. Set it to Disabled to send
+nothing. The Kohler Generators driver's documentation lists what a report holds.
+
+<!-- #endif -->
 
 ### Generator
 
@@ -149,53 +196,6 @@ When the generator was last serviced.
 #### Next Maintenance (read-only)
 
 When the generator is next due for service.
-
-### Driver Settings
-
-#### Driver Status (read-only)
-
-Displays `Online` while the generator is reaching the KOHLER cloud,
-`Generator offline` while it is not, and `Offline` while the account driver is
-signed out or the generator is no longer on the account.
-
-#### Driver Version (read-only)
-
-Displays the current version of the driver.
-
-<!-- #ifdef DRIVERCENTRAL -->
-
-#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug \]
-
-Sets the logging level. Default is `3 - Info`. While a Support Code has
-Composer's Lua tab open, it also offers `5 - Trace` and `6 - Ultra`.
-
-<!-- #else -->
-
-#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
-
-Sets the logging level. Default is `3 - Info`.
-
-<!-- #endif -->
-
-#### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
-
-Sets the logging mode. Default is `Off`.
-
-<!-- #ifdef DRIVERCENTRAL -->
-
-#### Support Code
-
-Leave it blank unless Finite Labs support gives you a code: for an hour, it
-opens Composer's Lua tab to this driver and adds `5 - Trace` and `6 - Ultra` to
-Log Level.
-
-#### Cloud Monitoring \[ Disabled | **_Enabled_** \]
-
-When Enabled, the driver sends Finite Labs a short report once an hour, and a
-report of each error it hits, at most 10 a minute. Set it to Disabled to send
-nothing. The Kohler Generators driver's documentation lists what a report holds.
-
-<!-- #endif -->
 
 ## Connections
 
