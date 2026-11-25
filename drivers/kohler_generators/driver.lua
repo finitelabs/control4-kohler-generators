@@ -69,6 +69,8 @@ local DEFAULT_POLL_S = 60
 local BUSY_POLL_S = 15
 --- How often each generator's alerts and event log are read, unless its record shows a change.
 local FEED_INTERVAL_S = 120
+--- The longest wait before reading a generator's alerts and event log again after the reads fail.
+local FEED_RETRY_MAX_S = 900
 --- The wait before signing in again after a sign-in that may work later, and its ceiling.
 local LOGIN_RETRY_S = 5
 local LOGIN_RETRY_MAX_S = 300
@@ -90,8 +92,9 @@ local gState = {
   generators = {},
   --- @type table<string, { alerts: table, events: table }> generator id -> its latest alerts and events
   feeds = {},
-  --- @type table<string, { at: integer, alertCount: any, status: any, id: integer }> generator id ->
-  --- when, on what record and by which read its feeds were last read
+  --- @type table<string, { at: integer, alertCount: any, status: any, id: integer, wait?: integer, retryAt?: integer }>
+  --- generator id -> when, on what record and by which read its feeds were last read, and after a
+  --- failed read, the wait and when to read again
   feedReads = {},
 }
 
@@ -282,14 +285,20 @@ local gFeedReadsIssued = 0
 --- not outdate them; a newer read of the same generator or an ended sign-in does.
 --- @param identity KohlerIdentity
 --- @param record table The record that asked for them.
---- @param refreshId integer
 --- @param generation integer gLoginGeneration when it was sent.
-local function readFeeds(identity, record, refreshId, generation)
+local function readFeeds(identity, record, generation)
   local key = tostring(identity.id)
   local device = type(record.device) == "table" and record.device or {}
   gFeedReadsIssued = gFeedReadsIssued + 1
   local readId = gFeedReadsIssued
-  gState.feedReads[key] = { at = os.time(), alertCount = device.alertCount, status = device.status, id = readId }
+  local prior = gState.feedReads[key]
+  gState.feedReads[key] = {
+    at = os.time(),
+    alertCount = device.alertCount,
+    status = device.status,
+    id = readId,
+    wait = prior and prior.wait,
+  }
   local function current()
     return generation == gLoginGeneration and Select(gState.feedReads, key, "id") == readId
   end
@@ -300,20 +309,24 @@ local function readFeeds(identity, record, refreshId, generation)
         if not current() or gState.generators[key] == nil then
           return
         end
+        gState.feedReads[key].wait = nil
         gState.feeds[key] = { alerts = alerts, events = events }
         handoffFeeds(key)
       end)
     end)
     :next(nil, function(err)
       if current() then
-        gState.feedReads[key] = nil
-        readFailed(err, identity.name .. "'s alerts", refreshId)
+        local entry = gState.feedReads[key]
+        local wait = entry.wait and math.min(entry.wait * 2, FEED_RETRY_MAX_S) or FEED_INTERVAL_S
+        wait = math.max(wait, err.retryAfter or 0)
+        entry.wait, entry.retryAt = wait, os.time() + wait
+        log:warn("Reading %s's alerts and events failed: %s; trying again in %ds", identity.name, err.message, wait)
       end
     end)
 end
 
 --- Whether a generator's alerts and event log are due a read: every FEED_INTERVAL_S, and at once
---- when its alert count or status changes.
+--- when its alert count or status changes; after a failed read, once its wait is over.
 --- @param key string
 --- @param record table
 --- @return boolean
@@ -321,6 +334,9 @@ local function feedsDue(key, record)
   local last = gState.feedReads[key]
   if last == nil then
     return true
+  end
+  if last.retryAt then
+    return os.time() >= last.retryAt
   end
   local device = type(record.device) == "table" and record.device or {}
   return os.time() - last.at >= FEED_INTERVAL_S or device.alertCount ~= last.alertCount or device.status ~= last.status
@@ -340,7 +356,7 @@ local function readGenerator(identity, refreshId, generation)
     gState.records[key] = record
     handoff(key)
     if feedsDue(key, record) then
-      readFeeds(identity, record, refreshId, generation)
+      readFeeds(identity, record, generation)
     end
     adjustPolling()
     return true

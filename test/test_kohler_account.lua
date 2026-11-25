@@ -56,6 +56,8 @@ local issued = 0
 local apiAlways = nil
 --- When set, the answer every generator record read gets.
 local deviceAlways = nil
+--- When set, the answer every alerts read gets.
+local alertsAlways = nil
 --- When set, every answer waits in it, to be released by calling it.
 --- @type function[]|nil
 local held = nil
@@ -78,7 +80,10 @@ urlDo = function(method, url, data, _headers, callback, context)
       code, body = 200, { access_token = "access-" .. issued, refresh_token = "refresh-" .. issued, expires_in = 3600 }
     end
   else
-    local answer = apiAlways or (url:find("/devices/%d+%?") and deviceAlways) or table.remove(apiAnswers, 1)
+    local answer = apiAlways
+      or (url:find("/devices/%d+%?") and deviceAlways)
+      or (url:find("/alerts%?") and alertsAlways)
+      or table.remove(apiAnswers, 1)
     if answer then
       code, body, responseHeaders = answer[1], answer[2], answer[3] or {}
     elseif url:find("/homeowner/homes$") then
@@ -529,5 +534,30 @@ T.eq("and stays there", #repeating, count)
 deviceAnswers["58001"] = fixture("state-standby.json")
 ShimFireTimers()
 T.eq("back to the Poll Interval when it stops", repeating[#repeating], 60000)
+
+T.section("alerts reads that fail wait longer each time, and leave the account's status alone")
+now = now + 120
+alertsAlways = { 503, { message = "Service Unavailable" } }
+ShimFireTimers()
+T.eq("the account still reads as connected", props["Driver Status"], "Connected (3 generators)")
+for _, wait in ipairs({ 120, 240 }) do
+  requests = {}
+  now = now + wait - 60
+  ShimFireTimers()
+  T.eq(string.format("no alerts read before %ds", wait), sent("/alerts%?"), 0)
+  T.eq("though the generators are", sent("/devices/%d+%?"), 3)
+  now = now + 60
+  ShimFireTimers()
+  T.eq(string.format("read again at %ds", wait), sent("/alerts%?"), 3)
+end
+alertsAlways = nil
+requests = {}
+now = now + 480
+ShimFireTimers()
+T.eq("read once they work", sent("/alerts%?"), 3)
+requests = {}
+now = now + 120
+ShimFireTimers()
+T.eq("then every 2 minutes again", sent("/alerts%?"), 3)
 
 T.finish()
