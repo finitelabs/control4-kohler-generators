@@ -10,10 +10,12 @@ local T = require("testlib")
 local JSON = require("JSON")
 local Generator = require("kohler.generator")
 
+local FIXTURES = (debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "fixtures/kohler/"
+
 --- @param name string
 --- @return table
 local function fixture(name)
-  local file = assert(io.open("fixtures/kohler/" .. name, "r"))
+  local file = assert(io.open(FIXTURES .. name, "r"))
   local body = file:read("*a")
   file:close()
   return JSON:decode(body)
