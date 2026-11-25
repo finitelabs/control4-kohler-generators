@@ -17,6 +17,7 @@ require("drivers-common-public.global.lib")
 require("drivers-common-public.global.timer")
 
 JSON = require("JSON")
+local deferred = require("deferred")
 
 local log = require("lib.logging")
 local bindings = require("lib.bindings")
@@ -345,12 +346,9 @@ end
 
 -- ─── Reading the account ───────────────────────────────────────────────────
 
---- Signs in; defined under Sign-in.
---- @type fun(retryBackoffS?: number)
-local login
---- Stops and signs in again after a wait; defined under Sign-in.
---- @type fun(delay: number, loginStatus: string)
-local loginLater
+--- A failed read can sign in again and a sign-in reads the account, so the two call each other and
+--- both live on this table.
+local Account = {}
 
 --- The refresh whose failed reads last grew the 5xx backoff, so one poll grows it once.
 local gUnavailableRefreshId = nil
@@ -365,7 +363,7 @@ local gUnauthorizedBackoffS = nil
 --- @param err KohlerError
 --- @param what string
 --- @param refreshId integer The refresh the read belonged to.
-local function readFailed(err, what, refreshId)
+function Account.readFailed(err, what, refreshId)
   log:warn("Reading %s failed: %s", what, err.message)
   if err.kind == "rateLimited" then
     gPausedUntil = os.time() + err.retryAfter
@@ -382,9 +380,9 @@ local function readFailed(err, what, refreshId)
   elseif err.kind == "unauthorized" then
     local wait = gUnauthorizedBackoffS or LOGIN_RETRY_S
     gUnauthorizedBackoffS = math.min(wait * 2, LOGIN_RETRY_MAX_S)
-    loginLater(wait, "KOHLER refused access")
+    Account.login(nil, wait, "KOHLER refused access")
   elseif err.kind == "credentials" or err.kind == "refused" then
-    login()
+    Account.login()
   else
     C4:UpdateProperty("Driver Status", "Error reading generators: " .. tostring(err.message))
   end
@@ -398,10 +396,6 @@ end
 local function stale(refreshId, generation)
   return refreshId < gRefreshAccepted or generation ~= gLoginGeneration
 end
-
---- Moves the poll to the rate the generators need; defined under Polling.
---- @type fun()
-local adjustPolling
 
 --- The alerts and event log reads sent so far, numbering each so only a generator's latest is taken.
 local gFeedReadsIssued = 0
@@ -513,11 +507,10 @@ local function readGenerator(identity, refreshId, generation, afterCommand)
     if feedsDue(key, record) then
       readFeeds(identity, record, generation)
     end
-    adjustPolling()
     return true
   end, function(err)
     if not outdated() then
-      readFailed(err, identity.name, refreshId)
+      Account.readFailed(err, identity.name, refreshId)
     end
     return false
   end)
@@ -525,7 +518,7 @@ end
 
 --- Read the account's generators and each one's record. Responses are accepted in issue order
 --- only, and a generator the account no longer lists is taken offline.
---- @return Deferred|nil refresh Settles when the homes read does; nil when none was sent.
+--- @return Deferred|nil refresh Settles once the homes read and its record reads do; nil when none was sent.
 local function refreshGenerators()
   if not client:hasSession() or not licensed() then
     return nil
@@ -557,13 +550,14 @@ local function refreshGenerators()
     if unread == 0 then
       settled(true)
     end
+    local reads = {}
     for _, identity in ipairs(list) do
       local key = tostring(identity.id)
       listed[key] = true
       gState.generators[key] = identity
       ensureBinding(identity)
       if not stale(refreshId, generation) then
-        readGenerator(identity, refreshId, generation):next(settled)
+        reads[#reads + 1] = readGenerator(identity, refreshId, generation):next(settled)
       end
     end
     for key in pairs(gState.generators) do
@@ -580,37 +574,20 @@ local function refreshGenerators()
       C4:UpdateProperty("Driver Status", connectedStatus(#list))
       autoAddGenerators()
     end
+    return deferred.all(reads)
   end, function(err)
     if not stale(refreshId, generation) then
-      readFailed(err, "the account's generators", refreshId)
+      Account.readFailed(err, "the account's generators", refreshId)
     end
   end)
 end
 
---- Whether a scheduled poll is still waiting on KOHLER.
-local gPollInFlight = false
-
---- A scheduled poll, skipped while the last one is outstanding so a slow cloud does not collect
---- requests. Refresh Generators is not held back by this.
-local function pollTick()
-  if gPollInFlight then
-    log:debug("Skipping a poll: the last one has not finished")
-    return
-  end
-  local refresh = refreshGenerators()
-  if refresh == nil then
-    return
-  end
-  gPollInFlight = true
-  local function done()
-    gPollInFlight = false
-  end
-  refresh:next(done, done)
-end
-
---- The interval the poll timer runs at; nil while it is stopped.
+--- The interval the next poll was set for; nil while polling is stopped.
 --- @type integer|nil
 local gPollingS = nil
+
+--- Counts the polls started, so a poll that settles after polling stopped or restarted sets no next one.
+local gPollGeneration = 0
 
 --- The Poll Interval property, in seconds.
 --- @return integer
@@ -630,22 +607,38 @@ local function pollIntervalS()
   return configuredPollS()
 end
 
+--- Sets the next poll at the rate the generators need. Each poll sets the one after it once its
+--- reads settle, so polls never pile up behind a slow cloud and a new rate applies from the next one.
+--- Refresh Generators is not held back by this.
 local function startPolling()
   if not licensed() then
     return
   end
+  gPollGeneration = gPollGeneration + 1
+  local generation = gPollGeneration
   gPollingS = pollIntervalS()
-  SetTimer("KohlerPoll", gPollingS * ONE_SECOND, pollTick, true)
+  SetTimer("KohlerPoll", gPollingS * ONE_SECOND, function()
+    local function again()
+      if generation == gPollGeneration then
+        startPolling()
+      end
+    end
+    local refresh = refreshGenerators()
+    if refresh == nil then
+      return again()
+    end
+    refresh:next(again, again)
+  end)
 end
 
 local function stopPolling()
   CancelTimer("KohlerPoll")
-  gPollInFlight = false
+  gPollGeneration = gPollGeneration + 1
   gPollingS = nil
 end
 
---- Move the running poll to the rate the generators now need.
-adjustPolling = function()
+--- Move the next poll to the rate the generators now need, after a read outside the poll.
+local function adjustPolling()
   if gPollingS ~= nil and gPollingS ~= pollIntervalS() then
     log:debug("Polling every %ds", pollIntervalS())
     startPolling()
@@ -691,13 +684,29 @@ end
 
 --- Sign in with the Email and Password properties, then read the account and poll. A wrong
 --- email or password, or a sign-in the service refuses, stops until they change or Reconnect;
---- anything else tries again with a growing wait.
+--- anything else tries again with a growing wait. With a wait, the generators go offline and the
+--- sign-in comes after it.
 --- @param retryBackoffS? number The wait before the next try, when this one is a retry.
-login = function(retryBackoffS)
+--- @param waitS? number Seconds to wait before signing in.
+--- @param waitStatus? string The Login Status while waiting.
+function Account.login(retryBackoffS, waitS, waitStatus)
   gLoginGeneration = gLoginGeneration + 1
   local generation = gLoginGeneration
   CancelTimer("KohlerLoginRetry")
   stopPolling()
+  if waitS ~= nil then
+    C4:UpdateProperty("Login Status", waitStatus)
+    C4:UpdateProperty("Driver Status", string.format("Not connected; retrying in %ds", waitS))
+    for key in pairs(gState.generators) do
+      goOffline(key)
+    end
+    SetTimer("KohlerLoginRetry", waitS * ONE_SECOND, function()
+      if generation == gLoginGeneration then
+        Account.login(math.min(waitS * 2, LOGIN_RETRY_MAX_S))
+      end
+    end)
+    return
+  end
   if not licensed() then
     return
   end
@@ -725,8 +734,11 @@ login = function(retryBackoffS)
     C4:UpdateProperty("Login Status", "Logged In")
     setConnected(true)
     gPausedUntil, gUnavailableBackoffS = 0, nil
-    refreshGenerators()
+    local refresh = refreshGenerators()
     startPolling()
+    if refresh ~= nil then
+      refresh:next(adjustPolling)
+    end
   end, function(err)
     if generation ~= gLoginGeneration then
       return
@@ -745,23 +757,7 @@ login = function(retryBackoffS)
       dropGenerators()
       return
     end
-    loginLater(err.retryAfter or retryBackoffS or LOGIN_RETRY_S, "Login failed")
-  end)
-end
-
-loginLater = function(delay, loginStatus)
-  gLoginGeneration = gLoginGeneration + 1
-  local generation = gLoginGeneration
-  stopPolling()
-  C4:UpdateProperty("Login Status", loginStatus)
-  C4:UpdateProperty("Driver Status", string.format("Not connected; retrying in %ds", delay))
-  for key in pairs(gState.generators) do
-    goOffline(key)
-  end
-  SetTimer("KohlerLoginRetry", delay * ONE_SECOND, function()
-    if generation == gLoginGeneration then
-      login(math.min(delay * 2, LOGIN_RETRY_MAX_S))
-    end
+    Account.login(nil, err.retryAfter or retryBackoffS or LOGIN_RETRY_S, "Login failed")
   end)
 end
 
@@ -795,7 +791,7 @@ function UseTestCloud(server, clientId, clientSecret, apiKey)
   client:setServer(server, clientId, clientSecret, apiKey)
   dropGenerators()
   log:info(client:usesTestCloud() and "Using a test cloud" or "Using KOHLER's cloud")
-  login()
+  Account.login()
 end
 
 --#ifndef DRIVERCENTRAL
@@ -872,7 +868,7 @@ function OnDriverLateInit()
   --#ifdef DRIVERCENTRAL
   drivercentral:startGate(function(isLicensed)
     if isLicensed then
-      login()
+      Account.login()
     else
       stopAccount()
     end
@@ -881,7 +877,7 @@ function OnDriverLateInit()
     return
   end
   --#endif
-  login()
+  Account.login()
 end
 
 --#ifdef DRIVERCENTRAL
@@ -926,14 +922,14 @@ end
 
 function OPC.Email(_v)
   if gInitialized then
-    login()
+    Account.login()
   end
 end
 
 --- Not logged: the value is the password.
 function OPC.Password(_v)
   if gInitialized then
-    login()
+    Account.login()
   end
 end
 
@@ -1006,7 +1002,10 @@ local function readNow(key, afterCommand)
   if not identity or not client:hasSession() then
     return nil
   end
-  return readGenerator(identity, gRefreshAccepted, gLoginGeneration, afterCommand)
+  return readGenerator(identity, gRefreshAccepted, gLoginGeneration, afterCommand):next(function(read)
+    adjustPolling()
+    return read
+  end)
 end
 
 --- Why a generator's last record can't be trusted to check a command against, or nil: reads are
@@ -1136,7 +1135,10 @@ function EC.Refresh_Generators()
   end
   gPausedUntil = 0
   gState.feedReads = {}
-  refreshGenerators()
+  local refresh = refreshGenerators()
+  if refresh ~= nil then
+    refresh:next(adjustPolling)
+  end
 end
 
 function EC.Reconnect()
@@ -1145,7 +1147,7 @@ function EC.Reconnect()
     return
   end
   client:signOut()
-  login()
+  Account.login()
 end
 
 --- Settable properties a reset returns to their defaults; the sign-in and update settings are kept.
@@ -1181,7 +1183,7 @@ function EC.Reset_Driver(tParams)
       return
     end
     --#endif
-    login()
+    Account.login()
   end
 end
 
