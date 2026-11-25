@@ -108,9 +108,6 @@
   }
 
   function renderTop(v) {
-    var head = el("header", "top");
-    if (v.top.reported) head.appendChild(el("p", "top-reported", v.top.reported));
-    page.appendChild(head);
     var c = card();
     c.classList.add("power");
     var line = el("div", "power-line tone-" + v.top.power.tone);
@@ -124,6 +121,7 @@
     if (v.top.engineState && v.top.engineState !== v.top.engine.text) {
       c.appendChild(el("p", "muted", "Engine: " + v.top.engineState));
     }
+    if (v.top.reported) c.appendChild(el("p", "muted", v.top.reported));
   }
 
   function renderNote(parent) {

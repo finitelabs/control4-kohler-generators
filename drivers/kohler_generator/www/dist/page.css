@@ -115,11 +115,6 @@ input:focus-visible {
   text-align: center;
 }
 
-.top {
-  padding: 8px 4px 0;
-}
-
-.top-reported,
 .muted {
   color: var(--text-2);
   font-size: 13px;
