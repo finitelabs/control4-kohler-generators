@@ -231,7 +231,7 @@ end
 --- only, and a generator the account no longer lists is taken offline.
 --- @return Deferred|nil refresh Settles when the homes read does; nil when none was sent.
 local function refreshGenerators()
-  if not client:isAuthenticated() or not licensed() then
+  if not client:hasSession() or not licensed() then
     return nil
   end
   if os.time() < gPausedUntil then
@@ -347,7 +347,7 @@ local function addGenerators()
     log:info("Add Generators is already running")
     return
   end
-  if not client:isAuthenticated() or not gListed then
+  if not client:hasSession() or not gListed then
     C4:UpdateProperty("Driver Status", "Sign in before adding generators")
     return
   end
@@ -687,7 +687,7 @@ function OPC.Password(_v)
 end
 
 function OPC.Poll_Interval(_v)
-  if gInitialized and client:isAuthenticated() then
+  if gInitialized and client:hasSession() then
     startPolling()
   end
 end
@@ -718,7 +718,7 @@ function RFP.REFRESH_STATE(idBinding)
   end
   if gState.records[key] then
     handoff(key)
-  elseif not client:isAuthenticated() then
+  elseif not client:hasSession() then
     SendToProxy(idBinding, CMD.GO_OFFLINE, {})
   end
 end

@@ -135,6 +135,13 @@ function Client:isAuthenticated()
   return self._access ~= nil and os.time() < self._expiresAt
 end
 
+--- Whether the client holds a sign-in to use: an access token, even one that has run out, or a
+--- refresh token. A call refreshes or signs in again as it needs to.
+--- @return boolean
+function Client:hasSession()
+  return self._access ~= nil or self._refresh ~= nil
+end
+
 --- Forgets the tokens. A sign-in in flight keeps nothing when it settles.
 function Client:signOut()
   self._generation = self._generation + 1

@@ -308,4 +308,19 @@ ShimFireTimers()
 T.eq("then signs in", props["Login Status"], "Logged In")
 T.eq("Account Connected fires again", events[#events], "Account Connected")
 
+T.section("an access token that runs out is refreshed by the next poll")
+requests = {}
+now = now + 3600
+ShimFireTimers()
+local grants = {}
+for _, r in ipairs(requests) do
+  if r.url:sub(-#constants.TOKEN_PATH) == constants.TOKEN_PATH then
+    grants[#grants + 1] = r.data:match("grant_type=([%w_]+)")
+  end
+end
+T.eq("one refresh grant", grants, { "refresh_token" })
+T.eq("then the account is read", sent("/homeowner/homes$"), 1)
+T.eq("and every generator", sent("/devices/%d+%?"), 3)
+T.eq("still logged in", props["Login Status"], "Logged In")
+
 T.finish()

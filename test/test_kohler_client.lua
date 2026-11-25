@@ -147,6 +147,7 @@ T.section("an expired token is refreshed, and the new refresh token kept")
 reset()
 now = now + 3600
 T.falsy("the token ran out", client:isAuthenticated())
+T.truthy("but the session is held", client:hasSession())
 settled(client:getHomes())
 local refresh = tokenRequests()[1]
 T.eq("a refresh grant", refresh.form.grant_type, "refresh_token")
@@ -226,6 +227,7 @@ T.section("a wrong password stops at credentials")
 reset()
 client:setCredentials("demo@example.com", "wrong")
 T.falsy("changing the password signs out", client:isAuthenticated())
+T.falsy("and drops the session", client:hasSession())
 tokenAnswers = { { 400, { error = "invalid_grant", error_description = "The credentials provided were invalid." } } }
 ok, err = settled(client:signIn())
 T.eq("fails", ok, false)
