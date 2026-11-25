@@ -73,6 +73,8 @@ T.eq(
 )
 T.eq("a leap day", Generator.time("2028-02-29T00:00:00Z"), 1835395200)
 T.eq("not a time", Generator.time("yesterday"), nil)
+T.eq("a clock that was never set", Generator.time("2011-01-01T00:01:41"), nil)
+T.truthy("2012 is a time", Generator.time("2012-01-01T00:00:00Z"))
 T.eq("a bad offset", Generator.time("2026-09-26T15:00:00+5"), nil)
 T.eq("nothing", Generator.time(nil), nil)
 

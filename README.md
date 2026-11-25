@@ -59,8 +59,8 @@ in and the only driver that reaches the KOHLER cloud.
 
 - Sign-in with the KOHLER account's email and password
 - Automatic discovery of every generator on the account
-- One companion generator driver per generator, added, bound, and named by the
-  Add Generators action
+- One companion generator driver per generator, added, bound and named on its
+  own after sign-in
 - Account Connected and Account Disconnected events for programming
 - Generators read on a configurable poll interval
 
@@ -82,7 +82,7 @@ generator is reaching the KOHLER cloud.
 # <span style="color:#336EE5">Installer Setup</span>
 
 > ⚠️ Only a **_single_** Kohler Generators driver is required per KOHLER
-> account. Add Generators adds one **Kohler Generator** driver per generator.
+> account. It adds one **Kohler Generator** driver per generator.
 
 ## Driver Installation
 
@@ -104,9 +104,9 @@ generator is reaching the KOHLER cloud.
    [`Log Mode`](#log-mode--off--print--log--print-and-log-) property to `Print`,
    run [Reconnect](#reconnect), and check the Lua output window for details.
 
-1. Run the [Add Generators](#add-generators) action. It adds a "Kohler
-   Generator" driver for each generator on the account, binds it, and names it
-   after the generator.
+1. The driver then adds a "Kohler Generator" driver for each generator on the
+   account in its own room, binds it, and names it after the generator. A
+   generator added to the account later gets its driver the same way.
 
 You can also add the "Kohler Generator" drivers yourself and bind each one to a
 generator connection on the "Kohler Generators" driver in the "Connections" tab;
@@ -193,15 +193,16 @@ the current version.
 #### Add Generators
 
 Adds a **Kohler Generator** driver for every generator on the account that
-doesn't have one, and binds it. Any Kohler Generator drivers in this driver's
-room that aren't bound are used first. Each driver is named after its generator,
-and follows it when it is renamed in the KOHLER app unless that driver's **Auto
-Rename Driver** property is Off.
+doesn't have one, and binds it. The driver does this on its own after sign-in
+and for each generator added to the account later, so run it only to bring back
+a Kohler Generator driver you removed. Any Kohler Generator drivers in this
+driver's room that aren't bound are used first. Each driver is named after its
+generator, and follows it when it is renamed in the KOHLER app unless that
+driver's **Auto Rename Driver** property is Off.
 
-Run it again after adding a generator to the account. A driver whose generator
-is no longer on the account is renamed with ` - REMOVED FROM KOHLER`; copy any
-programming from it and delete it. If the generator comes back to the account,
-the next Add Generators restores the name.
+A driver whose generator is no longer on the account is renamed with
+` - REMOVED FROM KOHLER`; copy any programming from it and delete it. If the
+generator comes back to the account, the next Add Generators restores the name.
 
 #### Refresh Generators
 

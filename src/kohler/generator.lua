@@ -66,7 +66,8 @@ end
 
 --- A timestamp as epoch seconds. The cloud writes them three ways: with Z, with an offset, or
 --- with neither, which is the generator's local time; the controller's clock stands in for it.
---- Fractions of a second, of any length, are dropped.
+--- Fractions of a second, of any length, are dropped. A generator whose clock was never set counts from
+--- 2011-01-01, so a time before 2012 is no time at all.
 --- @param value any
 --- @return integer|nil epoch Nil for anything else.
 function M.time(value)
@@ -74,7 +75,7 @@ function M.time(value)
     return nil
   end
   local y, mo, d, h, mi, s, rest = value:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)T(%d%d):(%d%d):(%d%d)(.*)$")
-  if not y then
+  if not y or tonumber(y) < 2012 then
     return nil
   end
   rest = rest:gsub("^%.%d+", "")

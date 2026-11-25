@@ -214,6 +214,8 @@ local function setProperty(name, value)
 end
 
 dofile(DRIVER)
+-- Without luasocket the shim's TCP client can't refresh Navigators.
+function RefreshNavs() end
 OnDriverInit()
 ShimLateInit()
 
@@ -229,7 +231,7 @@ T.eq("an email alone sends nothing", #requests, 0)
 setProperty("Password", "demo-password")
 T.eq("one sign-in", sent(constants.TOKEN_PATH .. "$"), 1)
 T.eq("Login Status", props["Login Status"], "Logged In")
-T.eq("Driver Status", props["Driver Status"], "Connected (3 generators)")
+T.eq("Driver Status starts adding the generators", props["Driver Status"], "Adding generator 1 of 3...")
 T.eq("Account Connected fires", events, { "Account Connected" })
 T.eq("Account Connected is true", require("lib.values"):getValue("Account Connected").value, true)
 T.eq("each generator's record is read, from its host", sent("/devices/%d+%?sourceDeviceHost=Oncue$"), 3)
@@ -237,10 +239,9 @@ T.truthy("a binding for 58001", bindingOf(58001))
 T.truthy("for 58002", bindingOf(58002))
 T.truthy("for 58003", bindingOf(58003))
 
-T.section("Add Generators gives every generator a companion")
---- Runs Add Generators to its end, answering every add and firing every timer as it goes.
-local function addGenerators()
-  EC.Add_Generators()
+T.section("signing in gives every generator a companion")
+--- Runs a companion setup under way to its end, answering every add and firing every timer as it goes.
+local function finishAdds()
   for _ = 1, 20 do
     if ShimPendingAdds() == 0 and not require("lib.companions").running then
       break
@@ -250,8 +251,14 @@ local function addGenerators()
   end
 end
 
+--- Runs Add Generators to its end.
+local function addGenerators()
+  EC.Add_Generators()
+  finishAdds()
+end
+
 toProxy = {}
-addGenerators()
+finishAdds()
 local companionOf = {}
 for _, id in ipairs({ 58001, 58002, 58003 }) do
   companionOf[id] = next(C4:GetBoundConsumerDevices(ME, bindingOf(id)) or {})
@@ -298,6 +305,26 @@ T.eq("it comes back", props["Driver Status"], "Connected (3 generators)")
 addGenerators()
 T.eq("the next Add Generators restores its name", C4:GetDeviceDisplayName(cabinProxy), "Demo Cabin Generator")
 T.eq("and adds no companion", TableLength(C4:GetDevicesByC4iName("kohler_generator.c4z") or {}), 3)
+
+T.section("a companion the integrator takes away isn't added again until Add Generators runs")
+C4:Unbind(companionOf[58001], constants.GENERATOR_BINDING)
+EC.Refresh_Generators()
+finishAdds()
+T.eq("the refresh leaves it", next(C4:GetBoundConsumerDevices(ME, bindingOf(58001)) or {}), nil)
+addGenerators()
+T.truthy("Add Generators gives it one", next(C4:GetBoundConsumerDevices(ME, bindingOf(58001)) or {}))
+
+T.section("a generator new to the account gets a companion on its own")
+local newcomer = JSON:decode(JSON:encode(cabin))
+newcomer.id = 58004
+newcomer.displayName = "Demo Shop Generator"
+table.insert(homes[2].devices, newcomer)
+EC.Refresh_Generators()
+finishAdds()
+T.truthy("58004 has one", next(C4:GetBoundConsumerDevices(ME, bindingOf(58004)) or {}))
+T.eq("and only it was added", TableLength(C4:GetDevicesByC4iName("kohler_generator.c4z") or {}), 4)
+table.remove(homes[2].devices)
+EC.Refresh_Generators()
 
 T.section("a 429 pauses the poll for the wait it names")
 apiAnswers = { { 429, { message = "Too Many Requests" }, { ["Retry-After"] = "120" } } }
