@@ -321,6 +321,14 @@ told = {}
 ReceivedFromProxy(2, "GET_STATE", {})
 T.eq("as STATE_, which fires nothing", told, { "2 STATE_CLOSED" })
 
+T.section("a reading the generator stops reporting loses its value")
+handOver("standby")
+T.eq("Battery Voltage", var("Battery Voltage"), 13.6)
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", {
+  JSON = (fixture("state-standby.json"):gsub('"batteryVoltageV": *[%d.]+', '"batteryVoltageV": null')),
+})
+T.eq("no value", var("Battery Voltage"), nil)
+
 T.section("an unreadable feed is ignored")
 events = {}
 RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", { ALERTS = "{", EVENTS = "[]" })

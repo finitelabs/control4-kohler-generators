@@ -60,6 +60,13 @@ T.eq("in Auto", standby.inAuto, true)
 T.eq("the switch position", standby.switchPosition, "Auto")
 T.eq("not shut down", standby.shutDown, false)
 T.eq("the utility voltage", standby.readings["Utility Voltage"], 241.6)
+local listed = {}
+for _, name in ipairs(Status.READINGS) do
+  listed[name] = true
+end
+for name in pairs(standby.readings) do
+  T.truthy("a listed reading: " .. name, listed[name])
+end
 T.eq("the battery", standby.readings["Battery Voltage"], 13.6)
 T.eq("oil pressure OK", standby.oilPressureOk, true)
 T.eq("no load at standby", standby.readings["Load Watts"], 0)

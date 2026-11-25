@@ -374,8 +374,8 @@ local function applyRecord(record)
   values:update("Running", s.running, "BOOL")
   values:update("Switch Position", s.switchPosition, "STRING")
   values:update("In Auto", s.inAuto, "BOOL")
-  for name, reading in pairs(s.readings) do
-    values:update(name, reading, "NUMBER")
+  for _, name in ipairs(Status.READINGS) do
+    values:update(name, s.readings[name], "NUMBER")
   end
   values:update("Oil Pressure OK", s.oilPressureOk, "BOOL")
   values:update("Last Ran", s.lastRan, "STRING")
