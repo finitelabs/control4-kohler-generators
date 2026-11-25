@@ -939,6 +939,15 @@ restart()
 T.eq("Login Status", props["Login Status"], "Invalid email or password")
 T.truthy("goOffline to the companions", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
 
+T.section("after a restart, a sign-in that fails for now takes the companions offline while it waits")
+toProxy = {}
+tokenAnswers = { { 503, "Service Unavailable" } }
+restart()
+T.eq("Login Status", props["Login Status"], "Login failed")
+T.truthy("goOffline to the companions", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+ShimFireTimers()
+T.eq("then signs in", props["Login Status"], "Logged In")
+
 T.section("after a restart, a generator the account no longer lists goes offline")
 T.truthy("58003 has its binding", bindingOf(58003))
 local gone = table.remove(homes[2].devices)
