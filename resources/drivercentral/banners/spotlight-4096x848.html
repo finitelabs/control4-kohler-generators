@@ -21,18 +21,21 @@
   .sub { position: absolute; left: 104px; top: 334px; color: #c3c8d2; font-size: 34px; font-weight: 400; letter-spacing: -0.005em; white-space: nowrap; }
   .sub em { font-style: normal; color: #fff; font-weight: 600; }
   .note { position: absolute; left: 104px; bottom: 14px; color: #7d8494; font-size: 15px; letter-spacing: 0; white-space: nowrap; }
+  .status { position: absolute; display: flex; align-items: center; gap: 12px; box-sizing: border-box; border-radius: 999px; background: rgba(245,166,35,0.12); border: 1.5px solid rgba(245,166,35,0.55); color: #fff; font-weight: 600; white-space: nowrap; right: 58px; top: 44px; height: 46px; padding: 0 20px 0 14px; font-size: 19px; }
+  .status::before { content: ""; border-radius: 50%; background: #f5a623; box-shadow: 0 0 0 6px rgba(245,166,35,0.25); width: 16px; height: 16px; }
 </style></head>
 <body>
 <div class="dots"></div>
-<svg class="scene" data-style="mesh" data-logo="../assets/brand-mark.png" data-hub="circle" data-icons="bulb,plug,thermo,lock,remote,motion" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg class="scene" data-style="hero" data-img="../assets/power-path.svg" xmlns="http://www.w3.org/2000/svg"></svg>
+<div class="status">On generator power</div>
 <img class="fl" src="../assets/finite-labs-logo.png" alt="">
-<h1>Driver Name in Control4.</h1>
+<h1>KOHLER Generators in Control4.</h1>
 <div class="row">
-  <div class="chip solid">What it controls</div>
+  <div class="chip solid">Home standby generators</div>
   <div class="chip line">Control4 OS 3.3+</div>
-  <div class="chip line">Local network</div>
+  <div class="chip line">KOHLER account</div>
 </div>
-<div class="sub">The devices it covers, with <em>one feature</em> and <em>another</em>.</div>
-<div class="note">Brand Name and Control4 are trademarks of their owners, which are not affiliated with, and do not endorse, this product.</div>
+<div class="sub">Power, readings and alerts for each generator, with <em>exercise control</em> and <em>load switching</em>.</div>
+<div class="note">KOHLER and Control4 are trademarks of their owners, which are not affiliated with, and do not endorse, this product.</div>
 <script src="../assets/scene.js"></script>
 </body></html>
