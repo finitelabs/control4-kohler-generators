@@ -254,6 +254,16 @@
         <readonly>true</readonly>
       </property>
       <property>
+        <name>Load Control</name>
+        <type>LIST</type>
+        <items>
+          <item>Off</item>
+          <item>On</item>
+        </items>
+        <default>On</default>
+        <description>Shows the load-shed loads and lets programming switch them. Set from the generator's first reading.</description>
+      </property>
+      <property>
         <name>Exercise Schedule</name>
         <type>STRING</type>
         <default/>
@@ -332,6 +342,99 @@
       </action>
       <!-- #endif -->
     </actions>
+    <commands>
+      <command>
+        <name>Start Exercise</name>
+        <description>Start a PARAM1 exercise on NAME</description>
+        <params>
+          <param>
+            <name>Mode</name>
+            <type>LIST</type>
+            <items>
+              <item>Unloaded</item>
+              <item>Unloaded Full Speed</item>
+              <item>Loaded Full Speed</item>
+            </items>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Stop Exercise</name>
+        <description>Stop the exercise on NAME</description>
+      </command>
+      <command>
+        <name>Set Exercise Schedule</name>
+        <description>Exercise NAME PARAM1 on PARAM2 at PARAM3, PARAM4 for PARAM5 minutes</description>
+        <params>
+          <param>
+            <name>Frequency</name>
+            <type>LIST</type>
+            <items>
+              <item>Weekly</item>
+              <item>Every Other Week</item>
+              <item>Monthly</item>
+            </items>
+          </param>
+          <param>
+            <name>Day</name>
+            <type>LIST</type>
+            <items>
+              <item>Sunday</item>
+              <item>Monday</item>
+              <item>Tuesday</item>
+              <item>Wednesday</item>
+              <item>Thursday</item>
+              <item>Friday</item>
+              <item>Saturday</item>
+            </items>
+          </param>
+          <param>
+            <name>Time</name>
+            <type>STRING</type>
+            <default>10:00 AM</default>
+          </param>
+          <param>
+            <name>Mode</name>
+            <type>LIST</type>
+            <items>
+              <item>Unloaded</item>
+              <item>Unloaded Full Speed</item>
+              <item>Loaded Full Speed</item>
+            </items>
+          </param>
+          <param>
+            <name>Minutes</name>
+            <type>RANGED_INTEGER</type>
+            <minimum>5</minimum>
+            <maximum>60</maximum>
+            <default>20</default>
+          </param>
+        </params>
+      </command>
+      <!-- Load lists this generator's load-shed loads while Load Control is on (GCPL.Set_Load). -->
+      <command>
+        <name>Set Load</name>
+        <description>Turn NAME load PARAM1 PARAM2</description>
+        <params>
+          <param>
+            <name>Load</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>State</name>
+            <type>LIST</type>
+            <items>
+              <item>On</item>
+              <item>Off</item>
+            </items>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Refresh</name>
+        <description>Read NAME from KOHLER now</description>
+      </command>
+    </commands>
   </config>
   <proxies qty="1">
     <proxy proxybindingid="5001" primary="True" name="Kohler Generator" image_source="c4z" large_image="icons/device_lg.png" small_image="icons/device_sm.png">uibutton</proxy>

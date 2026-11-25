@@ -3,7 +3,9 @@
 -- Has no network of its own: the account hands it the generator's full record over binding 5002
 -- (updateGenerator) on every read, its alerts and event log (updateFeeds) every few minutes, and
 -- goOffline when the generator leaves the account or the account is signed out. It turns them into
--- variables, events, conditionals and four contact outputs. Its UI Button proxy puts the generator in the Navigator; a tap on it
+-- variables, events, conditionals and four contact outputs. Its commands (start or stop an
+-- exercise, the exercise schedule, a load-shed load, Refresh) go to the account as generatorCommand,
+-- which answers commandResult. Its UI Button proxy puts the generator in the Navigator; a tap on it
 -- never runs the generator.
 
 require("lib.utils")
@@ -23,6 +25,7 @@ local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 
+local Controls = require("kohler.controls")
 local Generator = require("kohler.generator")
 local Status = require("kohler.status")
 local constants = require("constants")
@@ -104,6 +107,18 @@ local ALERT_COUNT_KEY = "AlertCount"
 --- Persisted: each contact output's state as last told, by connection id as text.
 local CONTACTS_KEY = "ContactStates"
 
+--- Persisted: set once the driver has chosen Load Control from the first record, after which the
+--- property is the integrator's.
+local LOAD_CONTROL_SET_KEY = "LoadControlSet"
+
+--- What each command is called in the Driver Status.
+local COMMAND_NAMES = {
+  start = "Start Exercise",
+  stop = "Stop Exercise",
+  schedule = "Set Exercise Schedule",
+  load = "Set Load",
+}
+
 --- The identity properties, filled from each record.
 local IDENTITY_PROPERTIES = {
   { "Generator Name", "name" },
@@ -150,6 +165,14 @@ local gTold = {}
 --- Each contact output's state as last told before start-up, by connection id as text.
 --- @type table<string, boolean>
 local gToldBefore = {}
+
+--- The load variables the driver has made, by variable name.
+--- @type table<string, boolean>
+local gLoadVariables = {}
+
+--- The generator's last record; nil until the first since start-up.
+--- @type table|nil
+local gRecord = nil
 
 -- ─── Programming ───────────────────────────────────────────────────────────
 
@@ -240,6 +263,59 @@ local function scale()
   return TemperatureScaleLetter(C4:GetTemperatureScale()) or "F"
 end
 
+--- Whether Load Control is on.
+--- @return boolean
+local function loadControlOn()
+  return Properties["Load Control"] == "On"
+end
+
+--- A load's variable name: "Load HVAC A", "Load A".
+--- @param loadName string
+--- @return string
+local function loadVariable(loadName)
+  return loadName:find("^Load ") and loadName or ("Load " .. loadName)
+end
+
+--- Remove the load variables, while Load Control is off: those made since start-up, and those the
+--- record's loads would have, which a restart restored.
+--- @param loads KohlerLoad[]
+local function removeLoadVariables(loads)
+  for _, load in ipairs(loads) do
+    gLoadVariables[loadVariable(load.name)] = true
+  end
+  for name in pairs(gLoadVariables) do
+    local existing = values:getValue(name)
+    if existing ~= nil and not existing.deleted then
+      values:delete(name)
+    end
+  end
+  gLoadVariables = {}
+end
+
+--- Keep a variable per load-shed load while Load Control is on. The first record chooses Load
+--- Control: on when the generator has a load control module.
+--- @param record table
+--- @param loads KohlerLoad[]
+local function updateLoads(record, loads)
+  gRecord = record
+  if not persist:get(LOAD_CONTROL_SET_KEY) then
+    persist:set(LOAD_CONTROL_SET_KEY, true)
+    local choice = Controls.hasLoadControl(record) and "On" or "Off"
+    if Properties["Load Control"] ~= choice then
+      UpdateProperty("Load Control", choice, false)
+    end
+  end
+  if not loadControlOn() then
+    removeLoadVariables(loads)
+    return
+  end
+  for _, load in ipairs(loads) do
+    local name = loadVariable(load.name)
+    values:update(name, load.on, "BOOL")
+    gLoadVariables[name] = true
+  end
+end
+
 --- Turn a record into variables, properties and events.
 --- @param record table
 local function applyRecord(record)
@@ -260,10 +336,7 @@ local function applyRecord(record)
   values:update("Next Exercise", s.nextExercise, "STRING")
   values:update("Next Maintenance", s.nextMaintenance, "STRING", nil, nil, { property = false })
   values:update("Maintenance Due", s.maintenanceDue, "BOOL")
-  for _, load in ipairs(s.loads) do
-    local name = load.name:find("^Load ") and load.name or ("Load " .. load.name)
-    values:update(name, load.on, "BOOL")
-  end
+  updateLoads(record, s.loads)
   C4:UpdateProperty("Exercise Schedule", s.exerciseSchedule)
   C4:UpdateProperty("Last Maintenance", s.lastMaintenance)
   C4:UpdateProperty("Next Maintenance", s.nextMaintenance)
@@ -460,6 +533,94 @@ function RFP.SELECT(idBinding)
   log:trace("RFP.SELECT(%s)", idBinding)
 end
 
+-- ─── Commands (EC dispatch) ───────────────────────────────────────────────
+
+--- Send a command to the account, which checks it, sends it to KOHLER and answers commandResult.
+--- @param command KohlerCommand|table
+local function sendCommand(command)
+  if command.action ~= "refresh" then
+    C4:UpdateProperty("Driver Status", "Sending " .. COMMAND_NAMES[command.action] .. "...")
+  end
+  SendToProxy(ACCOUNT_BINDING, constants.CMD.GENERATOR_COMMAND, { JSON = JSON:encode(command) })
+end
+
+--- Starts an exercise now: the engine starts and runs for the scheduled length. Loaded Full Speed
+--- also moves the house onto generator power for the exercise.
+--- @param tParams table Mode.
+function EC.Start_Exercise(tParams)
+  log:trace("EC.Start_Exercise(%s)", tParams)
+  sendCommand({ action = "start", mode = Select(tParams, "Mode") })
+end
+
+--- Stops the exercise that is running: the engine cools down and stops.
+function EC.Stop_Exercise()
+  log:trace("EC.Stop_Exercise()")
+  sendCommand({ action = "stop" })
+end
+
+--- Changes when and how the generator exercises.
+--- @param tParams table Frequency, Day, Time, Mode and Minutes.
+function EC.Set_Exercise_Schedule(tParams)
+  log:trace("EC.Set_Exercise_Schedule(%s)", tParams)
+  sendCommand({
+    action = "schedule",
+    frequency = Select(tParams, "Frequency"),
+    day = Select(tParams, "Day"),
+    time = Select(tParams, "Time"),
+    mode = Select(tParams, "Mode"),
+    minutes = Select(tParams, "Minutes"),
+  })
+end
+
+--- Switches a load-shed load on or off.
+--- @param tParams table Load and State.
+function EC.Set_Load(tParams)
+  log:trace("EC.Set_Load(%s)", tParams)
+  if not loadControlOn() then
+    C4:UpdateProperty("Driver Status", "Load Control is off")
+    return
+  end
+  sendCommand({ action = "load", load = Select(tParams, "Load"), on = Select(tParams, "State") == "On" })
+end
+
+--- The loads Set Load offers: this generator's, while Load Control is on.
+--- @param paramName string
+--- @return string[]
+function GCPL.Set_Load(paramName)
+  log:trace("GCPL.Set_Load(%s)", paramName)
+  if paramName ~= "Load" or not loadControlOn() then
+    return {}
+  end
+  local names = {}
+  for _, load in ipairs(Controls.loads(gRecord)) do
+    names[#names + 1] = load.name
+  end
+  return names
+end
+
+--- Reads the generator from KOHLER now.
+function EC.Refresh()
+  log:trace("EC.Refresh()")
+  sendCommand({ action = "refresh" })
+end
+
+--- The account answers a command.
+--- @param idBinding integer
+--- @param _strCommand string
+--- @param tParams table ACTION, OK and MESSAGE.
+function RFP.commandResult(idBinding, _strCommand, tParams)
+  log:trace("RFP.commandResult(%s, %s)", idBinding, tParams)
+  local name = COMMAND_NAMES[Select(tParams, "ACTION") or ""] or "Command"
+  local message = Select(tParams, "MESSAGE") or ""
+  if Select(tParams, "OK") == "true" then
+    log:info("%s sent", name)
+    C4:UpdateProperty("Driver Status", name .. " sent")
+  else
+    log:warn("%s not sent: %s", name, message)
+    C4:UpdateProperty("Driver Status", name .. " not sent: " .. message)
+  end
+end
+
 -- ─── Property handlers (OPC dispatch) ──────────────────────────────────────
 
 function OPC.Log_Level(propertyValue)
@@ -480,6 +641,15 @@ end
 function OPC.Driver_Status(_v)
   if not gInitialized then
     UpdateProperty("Driver Status", "Initializing", false)
+  end
+end
+
+function OPC.Load_Control(_v)
+  if gInitialized then
+    persist:set(LOAD_CONTROL_SET_KEY, true)
+  end
+  if gRecord ~= nil then
+    updateLoads(gRecord, Controls.loads(gRecord))
   end
 end
 
