@@ -40,6 +40,8 @@ exercise schedule and switch the generator's load-shed loads.
 <div style="font-size: small">
 
 - [System Requirements](#system-requirements)
+- [Features](#features)
+- [Compatibility](#compatibility)
 - [Installer Setup](#installer-setup)
   - [Adding the Driver](#adding-the-driver)
   - [Driver Properties](#driver-properties)
@@ -50,6 +52,13 @@ exercise schedule and switch the generator's load-shed loads.
 - [Status and Readings](#status-and-readings)
 - [The Generator Page](#the-generator-page)
 - [Programming Reference](#programming-reference)
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+- [Developer Information](#developer-information)
+
+<!-- #endif -->
+
 - [Support](#support)
 - [Changelog](#changelog)
 
@@ -60,6 +69,34 @@ exercise schedule and switch the generator's load-shed loads.
 - Control4 OS 3.3.0 or later
 - The **Kohler Generators** account driver, signed in to the KOHLER account the
   generator is on
+
+# <span style="color:#336EE5">Features</span>
+
+- The generator's status, power source and readings, with its model, serial
+  number, controller, firmware, fuel and dealer
+- An icon in the Control4 app that shows the generator's state
+- Events and conditionals for utility outages, the engine running, exercises,
+  faults and warnings, the switch leaving Auto and maintenance falling due
+- Contact outputs that follow the generator's power, running, fault and switch
+  state
+- Commands to start and stop an exercise, change the exercise schedule and
+  switch load-shed loads
+- A generator page in the Control4 app
+
+# <span style="color:#336EE5">Compatibility</span>
+
+Any KOHLER home standby generator set up in the KOHLER Energy Management app
+works. The driver reads the generator through KOHLER's cloud, so a reading can
+be a few minutes old, and a reading the generator's controller does not report
+has no value.
+
+<!-- #ifndef DRIVERCENTRAL -->
+
+If a generator doesn't work as described here, please
+[open an issue](https://github.com/finitelabs/control4-kohler-generators/issues/new)
+with its model and controller.
+
+<!-- #endif -->
 
 # <span style="color:#336EE5">Installer Setup</span>
 
@@ -131,7 +168,9 @@ Log Level.
 When Enabled, the driver sends Finite Labs a short report once an hour, and a
 report of each error it hits, at most 10 a minute, so problems in the driver can
 be found and fixed. Set it to Disabled to send nothing. The Kohler Generators
-driver's documentation lists what a report holds.
+driver's documentation lists what a report holds. The Diagnostics Snapshot
+action prints a report in the Lua output, and sends it to Finite Labs only while
+Cloud Monitoring is Enabled.
 
 <!-- #endif -->
 
@@ -256,7 +295,7 @@ says what happens: the engine starts and, for a Loaded Full Speed exercise, the
 house moves to generator power until the exercise ends. The page's commands are
 the driver's own Start Exercise, Stop Exercise, Set Exercise Schedule and Set
 Load commands, so they are refused for the same reasons. A button that would be
-refused is greyed out with the reason under it.
+refused is grayed out with the reason under it.
 
 When the account driver is not signed in, or the generator is offline, the page
 says so and offers Try again where a new read can help.
@@ -357,6 +396,26 @@ The driver refuses a command the KOHLER app would refuse, and sends nothing:
 - **Stop Exercise** when no exercise is running.
 
 Selecting the generator in the Control4 app never starts the engine.
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+# <span style="color:#336EE5">Developer Information</span>
+
+<p align="center">
+<img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
+</p>
+
+Copyright © 2026 Finite Labs LLC
+
+All information contained herein is, and remains the property of Finite Labs LLC
+and its suppliers, if any. The intellectual and technical concepts contained
+herein are proprietary to Finite Labs LLC and its suppliers and may be covered
+by U.S. and Foreign Patents, patents in process, and are protected by trade
+secret or copyright law. Dissemination of this information or reproduction of
+this material is strictly forbidden unless prior written permission is obtained
+from Finite Labs LLC.
+
+<!-- #endif -->
 
 # <span style="color:#336EE5">Support</span>
 

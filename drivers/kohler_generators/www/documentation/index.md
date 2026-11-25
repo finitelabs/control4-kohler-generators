@@ -36,6 +36,7 @@ its room in the Control4 app.
   - [Kohler Generators](#kohler-generators)
   - [Kohler Generator](#kohler-generator)
     - [Generator Page](#generator-page)
+- [Compatibility](#compatibility)
 - [Installer Setup](#installer-setup)
   <!-- #ifdef DRIVERCENTRAL -->
   - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
@@ -121,6 +122,21 @@ its page.
 1. **Service** - maintenance dates, the dealer and the generator's details.
 
 The Kohler Generator driver's documentation covers the page in full.
+
+# <span style="color:#336EE5">Compatibility</span>
+
+Any KOHLER home standby generator set up in the KOHLER Energy Management app
+works. The driver reads the generator through KOHLER's cloud, so a reading can
+be a few minutes old, and a reading the generator's controller does not report
+has no value.
+
+<!-- #ifndef DRIVERCENTRAL -->
+
+If a generator doesn't work as described here, please
+[open an issue](https://github.com/finitelabs/control4-kohler-generators/issues/new)
+with its model and controller.
+
+<!-- #endif -->
 
 # <span style="color:#336EE5">Installer Setup</span>
 
