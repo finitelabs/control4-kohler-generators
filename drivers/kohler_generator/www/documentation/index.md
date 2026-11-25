@@ -26,7 +26,8 @@ This driver represents a single KOHLER home standby generator in Control4. It
 does not reach the cloud itself. It binds to the **Kohler Generators** account
 driver, which hands it the generator's details, status and alerts on every read.
 It shows the generator in its room in the Control4 app, where selecting it opens
-the generator page. Opening the page does not run the generator.
+the generator page. Opening the page does not run the generator. The generator's
+icon in the Control4 app shows its state.
 
 Programming can react to a utility outage, the engine starting and stopping, an
 exercise, a fault or warning, the switch leaving Auto and maintenance falling

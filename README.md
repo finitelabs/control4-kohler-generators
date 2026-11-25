@@ -295,7 +295,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 - Added the Kohler Generators and Kohler Generator drivers for KOHLER home
   standby generators
-- Added each generator's status, power source and readings in Control4
+- Added each generator's status, power source and readings in Control4, and its
+  state on its icon in the Control4 app
 - Added programming for utility outages, the engine running, exercises, faults
   and maintenance
 - Added contact outputs, so any driver with a contact input can follow the
