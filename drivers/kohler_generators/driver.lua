@@ -109,7 +109,8 @@ local gConnected = false
 --- @type boolean|nil
 local gWasConnected = nil
 
---- Bumped on every sign-in, so a retry armed by an earlier one retires itself.
+--- Bumped on every sign-in and stop, so a retry armed, or a read sent, under an earlier one
+--- retires itself.
 local gLoginGeneration = 0
 
 --- All Kohler Generators instances on this controller, sorted by device id. Used for leader
@@ -221,20 +222,30 @@ local function readFailed(err, what)
   end
 end
 
+--- Whether a read sent under a refresh is out of date: a newer refresh was taken, or the
+--- sign-in it was sent under has ended.
+--- @param refreshId integer
+--- @param generation integer gLoginGeneration when it was sent.
+--- @return boolean
+local function stale(refreshId, generation)
+  return refreshId < gRefreshAccepted or generation ~= gLoginGeneration
+end
+
 --- Read one generator's record and hand it to its companion.
 --- @param identity KohlerIdentity
 --- @param refreshId integer
+--- @param generation integer
 --- @return Deferred
-local function readGenerator(identity, refreshId)
+local function readGenerator(identity, refreshId, generation)
   local key = tostring(identity.id)
   return client:getDevice(identity.id, identity.host):next(function(record)
-    if refreshId < gRefreshAccepted then
+    if stale(refreshId, generation) then
       return
     end
     gState.records[key] = record
     handoff(key)
   end, function(err)
-    if refreshId >= gRefreshAccepted then
+    if not stale(refreshId, generation) then
       readFailed(err, identity.name)
     end
   end)
@@ -252,9 +263,9 @@ local function refreshGenerators()
     return nil
   end
   gRefreshIssued = gRefreshIssued + 1
-  local refreshId = gRefreshIssued
+  local refreshId, generation = gRefreshIssued, gLoginGeneration
   return client:getHomes():next(function(homes)
-    if refreshId < gRefreshAccepted then
+    if stale(refreshId, generation) then
       log:trace("Discarding stale refresh %d (accepted %d)", refreshId, gRefreshAccepted)
       return
     end
@@ -268,7 +279,7 @@ local function refreshGenerators()
       listed[key] = true
       gState.generators[key] = identity
       ensureBinding(identity)
-      readGenerator(identity, refreshId)
+      readGenerator(identity, refreshId, generation)
     end
     for key in pairs(gState.generators) do
       if not listed[key] then
@@ -280,7 +291,7 @@ local function refreshGenerators()
     end
     C4:UpdateProperty("Driver Status", connectedStatus(#list))
   end, function(err)
-    if refreshId >= gRefreshAccepted then
+    if not stale(refreshId, generation) then
       readFailed(err, "the account's generators")
     end
   end)

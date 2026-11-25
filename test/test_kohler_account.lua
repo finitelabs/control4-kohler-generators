@@ -54,6 +54,9 @@ local apiAnswers = {}
 local issued = 0
 --- When set, the answer every API call gets.
 local apiAlways = nil
+--- When set, every answer waits in it, to be released by calling it.
+--- @type function[]|nil
+local held = nil
 
 urlDo = function(method, url, data, _headers, callback, context)
   requests[#requests + 1] = { method = method, url = url, data = data }
@@ -82,6 +85,12 @@ urlDo = function(method, url, data, _headers, callback, context)
         code, body = 200, fixture("device-" .. id .. ".json")
       end
     end
+  end
+  if held then
+    held[#held + 1] = function()
+      callback(nil, code, responseHeaders, body, context, url)
+    end
+    return
   end
   callback(nil, code, responseHeaders, body, context, url)
 end
@@ -155,6 +164,7 @@ Properties["Poll Interval"] = "60 seconds"
 Properties["Automatic Updates"] = "Off"
 Properties["Log Level"] = "3 - Info"
 Properties["Log Mode"] = "Off"
+Properties["Cloud Monitoring"] = "Enabled"
 package.preload["cloud-client-byte"] = function()
   return {}
 end
@@ -344,5 +354,30 @@ apiAlways = nil
 ShimFireTimers()
 T.eq("once reads work again", props["Login Status"], "Logged In")
 T.eq("the generators are read", props["Driver Status"], "Connected (3 generators)")
+
+T.section("a read answered after Reset Driver is not taken")
+held = {}
+EC.Refresh_Generators()
+EC.Reset_Driver({ ["Are You Sure?"] = "Yes" })
+local stale = table.remove(held, 1)
+local signIn = held
+held = nil
+stale()
+T.falsy("no binding comes back from it", bindingOf(58001))
+T.eq("nor a count", props["Driver Status"], "Connecting")
+for _, release in ipairs(signIn) do
+  release()
+end
+T.eq("the new sign-in reads the account", props["Driver Status"], "Connected (3 generators)")
+T.truthy("and binds it", bindingOf(58001))
+
+T.section("a read answered after the email changes is not taken")
+held = {}
+EC.Refresh_Generators()
+setProperty("Email", "other@example.com")
+stale = table.remove(held, 1)
+held = nil
+stale()
+T.eq("the old account's generators are not shown", props["Driver Status"], "Connecting")
 
 T.finish()
