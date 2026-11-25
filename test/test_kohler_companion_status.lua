@@ -70,8 +70,12 @@ C4.FireEventByID = function(_, id)
 end
 
 local told = {}
+local icons = {}
 local realSendToProxy = C4.SendToProxy
 C4.SendToProxy = function(self, idBinding, command, tParams, ...)
+  if command == "ICON_CHANGED" then
+    icons[#icons + 1] = tParams.icon
+  end
   if idBinding >= 1 and idBinding <= 4 then
     told[#told + 1] = idBinding .. " " .. command
   end
@@ -270,6 +274,15 @@ T.eq("contacts told their state without firing", told, {
 events = {}
 handOver("restored", true)
 T.eq("the next change fires", events, { "Utility Power Restored", "Engine Stopped" })
+
+T.section("a restart while the generator is online shows it offline until the first record")
+ShimRestartDirector()
+icons = {}
+start()
+T.eq("Online is kept", var("Online"), true)
+T.eq("the icon at start-up", icons, { "offline" })
+handOver("outage", true)
+T.eq("then the record's", icons, { "offline", "utility_out" })
 
 T.section("alerts that clear while the driver is stopped fire Alerts Cleared once")
 handOver("fault", true)
