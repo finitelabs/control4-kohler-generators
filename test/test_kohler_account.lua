@@ -670,6 +670,7 @@ T.eq(
 T.eq("the poll is not paused by it", props["Driver Status"]:find("not answering"), nil)
 
 T.section("Refresh reads the generator now")
+now = now + 5
 requests = {}
 command(58001, { action = "refresh" })
 T.eq("its record is read", sent("/devices/58001%?"), 1)
@@ -767,5 +768,25 @@ T.eq(
 T.eq("nothing sent", sentMethod("POST"), 0)
 ShimFireTimers()
 T.eq("signed in again", props["Login Status"], "Logged In")
+
+T.section("Refresh skips a generator read in the last 5 seconds, or while reads are paused")
+EC.Refresh_Generators()
+requests = {}
+now = now + 4
+command(58001, { action = "refresh" })
+T.eq("not read 4 seconds after the last", #requests, 0)
+deviceAlways = { 503, { message = "Service Unavailable" } }
+now = now + 1
+EC.Refresh_Generators()
+deviceAlways = nil
+now = now + 10
+requests = {}
+command(58001, { action = "refresh" })
+T.eq("nor while paused", #requests, 0)
+EC.Refresh_Generators()
+now = now + 5
+requests = {}
+command(58001, { action = "refresh" })
+T.eq("read 5 seconds after", sent("/devices/58001%?"), 1)
 
 T.finish()

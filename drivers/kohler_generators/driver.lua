@@ -932,6 +932,9 @@ end
 --- @type table<string, boolean>
 local gCommandInFlight = {}
 
+--- The least time between a generator's last read and a Refresh that reads it again, in seconds.
+local REFRESH_MIN_S = 5
+
 --- Tell a companion how its command went.
 --- @param idBinding integer
 --- @param action string
@@ -1009,7 +1012,14 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
     return commandResult(idBinding, action, false, "The Kohler Generators driver is not signed in")
   end
   if action == "refresh" then
-    readNow(key)
+    local readAt = gRecordReadAt[key]
+    if os.time() < gPausedUntil then
+      log:info("Not refreshing generator %s: reads are paused for %ds more", key, gPausedUntil - os.time())
+    elseif readAt ~= nil and os.time() - readAt < REFRESH_MIN_S then
+      log:info("Not refreshing generator %s: read %ds ago", key, os.time() - readAt)
+    else
+      readNow(key)
+    end
     return
   end
   if gCommandInFlight[key] then
