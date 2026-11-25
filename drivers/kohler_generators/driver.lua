@@ -3,7 +3,9 @@
 -- Signs in with the homeowner's email and password, reads the account's generators on the poll
 -- interval, and exposes a dynamic PROXY binding per generator that the kohler_generator companion
 -- drivers bind to. Each companion receives its generator's full record over the binding
--- (updateGenerator). Add Generators gives every generator a companion.
+-- (updateGenerator) and sends its commands back over it (generatorCommand), which this driver
+-- checks, sends to KOHLER and answers (commandResult). Add Generators gives every generator a
+-- companion.
 
 --#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-kohler-generators"
@@ -32,6 +34,7 @@ local githubUpdater = require("lib.github-updater")
 --#endif
 
 local Client = require("kohler.client")
+local Controls = require("kohler.controls")
 local Generator = require("kohler.generator")
 local Status = require("kohler.status")
 local constants = require("constants")
@@ -902,6 +905,96 @@ function RFP.REFRESH_STATE(idBinding)
   elseif not client:hasSession() then
     SendToProxy(idBinding, CMD.GO_OFFLINE, {})
   end
+end
+
+--- Generators with a command on its way to KOHLER, by generator id.
+--- @type table<string, boolean>
+local gCommandInFlight = {}
+
+--- Tell a companion how its command went.
+--- @param idBinding integer
+--- @param action string
+--- @param ok boolean
+--- @param message string
+local function commandResult(idBinding, action, ok, message)
+  SendToProxy(idBinding, CMD.COMMAND_RESULT, { ACTION = action, OK = tostring(ok), MESSAGE = message })
+end
+
+--- Read one generator now, taking the next refresh so a read sent before it can't hand the
+--- companion the state from before a command.
+--- @param key string
+local function readNow(key)
+  local identity = gState.generators[key]
+  if not identity or not client:hasSession() then
+    return
+  end
+  gRefreshIssued = gRefreshIssued + 1
+  gRefreshAccepted = gRefreshIssued
+  readGenerator(identity, gRefreshIssued, gLoginGeneration)
+end
+
+--- What a failed command tells the companion.
+--- @param err KohlerError
+--- @return string
+local function commandFailure(err)
+  if err.kind == "rateLimited" then
+    return string.format("KOHLER is busy; try again in %ds", err.retryAfter)
+  elseif err.kind == "unavailable" then
+    return "KOHLER did not answer; check the generator before trying again"
+  elseif err.kind == "unauthorized" or err.kind == "credentials" or err.kind == "refused" then
+    return "KOHLER refused the command: sign-in problem"
+  end
+  return "KOHLER refused the command: " .. tostring(err.message)
+end
+
+--- A companion's command for its generator: checked against the generator's last record, sent
+--- once, answered with commandResult, then the generator is read again. One at a time per
+--- generator; a command that arrives while one is on its way is refused.
+--- @param idBinding integer
+--- @param _strCommand string
+--- @param tParams table { JSON = a KohlerCommand }
+function RFP.generatorCommand(idBinding, _strCommand, tParams)
+  log:trace("RFP.generatorCommand(%s, %s)", idBinding, tParams)
+  local key = keyForBinding(idBinding)
+  local ok, command = pcall(JSON.decode, JSON, (tParams or {}).JSON or "")
+  if not key or not ok or type(command) ~= "table" or type(command.action) ~= "string" then
+    return
+  end
+  local action = command.action
+  if not licensed() then
+    return commandResult(idBinding, action, false, "No active license")
+  end
+  if not client:hasSession() then
+    return commandResult(idBinding, action, false, "The Kohler Generators driver is not signed in")
+  end
+  if action == "refresh" then
+    readNow(key)
+    return
+  end
+  if gCommandInFlight[key] then
+    return commandResult(idBinding, action, false, "Another command is still on its way")
+  end
+  local record = gState.records[key]
+  local request, refusal = Controls.request(command, record, os.time())
+  if not request then
+    log:info("Not sending %s to generator %s: %s", action, key, refusal)
+    return commandResult(idBinding, action, false, refusal)
+  end
+  local identity = gState.generators[key] or Generator.identity(record)
+  log:info("Sending %s to generator %s", action, key)
+  gCommandInFlight[key] = true
+  local generation = gLoginGeneration
+  client:send(request, identity and identity.host or "Oncue"):next(function()
+    gCommandInFlight[key] = nil
+    commandResult(idBinding, action, true, "Sent")
+    if generation == gLoginGeneration then
+      readNow(key)
+    end
+  end, function(err)
+    gCommandInFlight[key] = nil
+    log:warn("%s for generator %s failed: %s", action, key, err.message)
+    commandResult(idBinding, action, false, commandFailure(err))
+  end)
 end
 
 -- ─── Actions (EC dispatch) ─────────────────────────────────────────────────
