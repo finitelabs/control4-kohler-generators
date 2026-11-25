@@ -1,0 +1,229 @@
+[
+  {
+    "address": {
+      "address1": "100 Example Street",
+      "address2": null,
+      "city": "Demo City",
+      "country": "US",
+      "lat": 40.0001,
+      "long": -100.0001,
+      "postalCode": "00000",
+      "state": "ZZ"
+    },
+    "devices": [
+      {
+        "address": {
+          "address1": "100 Example Street",
+          "address2": null,
+          "city": "Demo City",
+          "country": "US",
+          "lat": 40.0001,
+          "long": -100.0001,
+          "postalCode": "00000",
+          "state": "ZZ"
+        },
+        "alertCount": 0,
+        "controllerType": "RDC2 (Blue Board)",
+        "currentFirmware": "RDC2.4 3.9.2",
+        "dealerOrgs": [
+          {
+            "address": {
+              "address1": "1 Example Way",
+              "address2": null,
+              "city": "Demo City",
+              "country": "US",
+              "lat": null,
+              "long": null,
+              "postalCode": "00000",
+              "state": "ZZ"
+            },
+            "adminEmails": [
+              "service@example.com"
+            ],
+            "businessPartnerNo": "DEMO-9001",
+            "deviceCount": 3,
+            "displayPhoneNumber": "(555) 555-0142",
+            "e164PhoneNumber": "+15555550142",
+            "id": 9001,
+            "name": "Example Power Co.",
+            "technicianCount": 1,
+            "userCount": 2,
+            "wizardComplete": true,
+            "wizardStep": "OnboardingComplete"
+          }
+        ],
+        "deviceHost": "Oncue",
+        "deviceIpAddress": "192.0.2.11:2402",
+        "displayName": "Demo Generator",
+        "firmwareVersion": "3.9.2",
+        "hasAcceptedPrivacyPolicy": true,
+        "hasServiceAgreement": null,
+        "id": 58001,
+        "isConnected": true,
+        "lastConnectedTimestamp": "2026-09-21T14:13:00+00:00",
+        "lastMaintenanceTimestamp": "2026-05-04T14:13:20+00:00",
+        "macAddress": "01:A1:00:00:00:02",
+        "maintenancePeriodDays": 365,
+        "model": "Model20KW",
+        "modelDisplayName": "20 KW",
+        "nextMaintenanceTimestamp": "2027-05-04T14:13:20+00:00",
+        "product": "Rdc2v4",
+        "productDisplayName": "RDC 2.4",
+        "serialNumber": "DEMO000001",
+        "status": "ReadyToRun",
+        "statusUpdateTimestamp": "2026-09-21T13:13:20.0000000+00:00",
+        "totalRuntimeHours": 84.3
+      },
+      {
+        "address": {
+          "address1": "100 Example Street",
+          "address2": null,
+          "city": "Demo City",
+          "country": "US",
+          "lat": 40.0001,
+          "long": -100.0001,
+          "postalCode": "00000",
+          "state": "ZZ"
+        },
+        "alertCount": 0,
+        "controllerType": "RDC2 (Blue Board)",
+        "currentFirmware": "RDC2.4 3.9.2",
+        "dealerOrgs": [
+          {
+            "address": {
+              "address1": "1 Example Way",
+              "address2": null,
+              "city": "Demo City",
+              "country": "US",
+              "lat": null,
+              "long": null,
+              "postalCode": "00000",
+              "state": "ZZ"
+            },
+            "adminEmails": [
+              "service@example.com"
+            ],
+            "businessPartnerNo": "DEMO-9001",
+            "deviceCount": 3,
+            "displayPhoneNumber": "(555) 555-0142",
+            "e164PhoneNumber": "+15555550142",
+            "id": 9001,
+            "name": "Example Power Co.",
+            "technicianCount": 1,
+            "userCount": 2,
+            "wizardComplete": true,
+            "wizardStep": "OnboardingComplete"
+          }
+        ],
+        "deviceHost": "Oncue",
+        "deviceIpAddress": "192.0.2.12:2402",
+        "displayName": "Demo Standby 48",
+        "firmwareVersion": "3.9.2",
+        "hasAcceptedPrivacyPolicy": true,
+        "hasServiceAgreement": true,
+        "id": 58002,
+        "isConnected": true,
+        "lastConnectedTimestamp": "2026-09-21T14:13:00+00:00",
+        "lastMaintenanceTimestamp": "2026-08-22T14:13:20+00:00",
+        "macAddress": "02:A1:00:00:00:02",
+        "maintenancePeriodDays": 180,
+        "model": "Model48KW",
+        "modelDisplayName": "48 KW",
+        "nextMaintenanceTimestamp": "2027-02-18T14:13:20+00:00",
+        "product": "Rdc2v4",
+        "productDisplayName": "RDC 2.4",
+        "serialNumber": "DEMO000002",
+        "status": "ReadyToRun",
+        "statusUpdateTimestamp": "2026-09-21T13:13:20+00:00",
+        "totalRuntimeHours": 402.5
+      }
+    ],
+    "id": 72001,
+    "name": "Demo Home",
+    "weatherCondition": "Clear",
+    "weatherTempF": 51.8,
+    "weatherTimePeriod": "Day"
+  },
+  {
+    "address": {
+      "address1": "200 Sample Road",
+      "address2": null,
+      "city": "Demo Lake",
+      "country": "US",
+      "lat": 40.0001,
+      "long": -100.0001,
+      "postalCode": "00000",
+      "state": "ZZ"
+    },
+    "devices": [
+      {
+        "address": {
+          "address1": "200 Sample Road",
+          "address2": null,
+          "city": "Demo Lake",
+          "country": "US",
+          "lat": 40.0001,
+          "long": -100.0001,
+          "postalCode": "00000",
+          "state": "ZZ"
+        },
+        "alertCount": 0,
+        "controllerType": "RDC2 (Red or Green Board)",
+        "currentFirmware": "RDC2 6.14.0",
+        "dealerOrgs": [
+          {
+            "address": {
+              "address1": "1 Example Way",
+              "address2": null,
+              "city": "Demo City",
+              "country": "US",
+              "lat": null,
+              "long": null,
+              "postalCode": "00000",
+              "state": "ZZ"
+            },
+            "adminEmails": [
+              "service@example.com"
+            ],
+            "businessPartnerNo": "DEMO-9001",
+            "deviceCount": 3,
+            "displayPhoneNumber": "(555) 555-0142",
+            "e164PhoneNumber": "+15555550142",
+            "id": 9001,
+            "name": "Example Power Co.",
+            "technicianCount": 1,
+            "userCount": 2,
+            "wizardComplete": true,
+            "wizardStep": "OnboardingComplete"
+          }
+        ],
+        "deviceHost": "Oncue",
+        "deviceIpAddress": "192.0.2.13:2402",
+        "displayName": "Demo Cabin Generator",
+        "firmwareVersion": "6.14.0",
+        "hasAcceptedPrivacyPolicy": true,
+        "hasServiceAgreement": null,
+        "id": 58003,
+        "isConnected": true,
+        "lastConnectedTimestamp": "2026-09-21T14:13:00+00:00",
+        "lastMaintenanceTimestamp": "2025-11-25T07:13:20",
+        "macAddress": "03:A1:00:00:00:02",
+        "maintenancePeriodDays": 365,
+        "model": "Model14KW",
+        "modelDisplayName": "14 KW",
+        "nextMaintenanceTimestamp": "2026-11-25T07:13:20",
+        "product": "Rdc2",
+        "productDisplayName": "RDC 2",
+        "serialNumber": "DEMO000003",
+        "status": "ReadyToRun",
+        "statusUpdateTimestamp": "2026-09-21T13:13:20+00:00",
+        "totalRuntimeHours": 212.7
+      }
+    ],
+    "id": 72002,
+    "name": "Demo Cabin",
+    "weatherCondition": "Clear",
+    "weatherTempF": 51.8,
+    "weatherTimePeriod": "Day"
+  }
+]

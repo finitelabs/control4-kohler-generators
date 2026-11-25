@@ -15,7 +15,8 @@ $(MOCK_STAMP): $(MOCK_DIR)/requirements.txt
 	cd $(MOCK_DIR) && .venv/bin/pip-sync requirements.txt
 	@touch $@
 
-.PHONY: mock-kohler-deps mock-kohler test-mock-kohler fmt-mock-kohler check-mock-kohler-fmt
+.PHONY: mock-kohler-deps mock-kohler test-mock-kohler fmt-mock-kohler check-mock-kohler-fmt \
+	kohler-fixtures check-kohler-fixtures
 
 mock-kohler-deps: ## Recompile the mock's requirements.txt (UPGRADE=1 to upgrade)
 	@test -x $(MOCK_PY) || python3 -m venv $(MOCK_VENV)
@@ -28,6 +29,15 @@ mock-kohler: $(MOCK_STAMP) ## Run the mock KOHLER cloud (MOCK_CONFIG=, MOCK_ARGS
 
 test-mock-kohler: $(MOCK_STAMP) ## Run the mock's own tests
 	cd $(MOCK_DIR) && .venv/bin/python3 -m pytest -q
+
+# The replies the Lua tests read, written by the mock so the two cannot drift apart.
+KOHLER_FIXTURES := test/fixtures/kohler
+
+kohler-fixtures: $(MOCK_STAMP) ## Write the Lua tests' KOHLER replies from the mock
+	cd $(MOCK_DIR) && .venv/bin/python3 -m mock_kohler.fixtures $(CURDIR)/$(KOHLER_FIXTURES)
+
+check-kohler-fixtures: $(MOCK_STAMP) ## Assert the Lua tests' KOHLER replies match the mock
+	cd $(MOCK_DIR) && .venv/bin/python3 -m mock_kohler.fixtures $(CURDIR)/$(KOHLER_FIXTURES) --check
 
 MOCK_BLACK := $(MOCK_VENV)/bin/black
 MOCK_PY_FILES := $(MOCK_DIR)/mock_kohler $(MOCK_DIR)/tests

@@ -1,0 +1,84 @@
+[
+  {
+    "address": {
+      "address1": "100 Example Street",
+      "address2": null,
+      "city": "Demo City",
+      "country": "US",
+      "lat": 40.0001,
+      "long": -100.0001,
+      "postalCode": "00000",
+      "state": "ZZ"
+    },
+    "devices": [
+      {
+        "address": {
+          "address1": "100 Example Street",
+          "address2": null,
+          "city": "Demo City",
+          "country": "US",
+          "lat": 40.0001,
+          "long": -100.0001,
+          "postalCode": "00000",
+          "state": "ZZ"
+        },
+        "alertCount": 1,
+        "controllerType": "RDC2 (Red or Green Board)",
+        "currentFirmware": "RDC2 6.14.0",
+        "dealerOrgs": [
+          {
+            "address": {
+              "address1": "1 Example Way",
+              "address2": null,
+              "city": "Demo City",
+              "country": "US",
+              "lat": null,
+              "long": null,
+              "postalCode": "00000",
+              "state": "ZZ"
+            },
+            "adminEmails": [
+              "service@example.com"
+            ],
+            "businessPartnerNo": "DEMO-9001",
+            "deviceCount": 3,
+            "displayPhoneNumber": "(555) 555-0142",
+            "e164PhoneNumber": "+15555550142",
+            "id": 9001,
+            "name": "Example Power Co.",
+            "technicianCount": 1,
+            "userCount": 2,
+            "wizardComplete": true,
+            "wizardStep": "OnboardingComplete"
+          }
+        ],
+        "deviceHost": "Oncue",
+        "deviceIpAddress": "192.0.2.14:2402",
+        "displayName": "Demo Offline Generator",
+        "firmwareVersion": "6.14.0",
+        "hasAcceptedPrivacyPolicy": true,
+        "hasServiceAgreement": null,
+        "id": 58004,
+        "isConnected": false,
+        "lastConnectedTimestamp": "2026-09-18T14:13:20+00:00",
+        "lastMaintenanceTimestamp": "2025-08-17T08:13:20",
+        "macAddress": "04:A1:00:00:00:02",
+        "maintenancePeriodDays": 365,
+        "model": "Model26KW",
+        "modelDisplayName": "26 KW",
+        "nextMaintenanceTimestamp": "2026-08-17T08:13:20",
+        "product": "Rdc2",
+        "productDisplayName": "RDC 2",
+        "serialNumber": "DEMO000004",
+        "status": "Offline",
+        "statusUpdateTimestamp": "2026-09-18T14:13:20+00:00",
+        "totalRuntimeHours": 51.0
+      }
+    ],
+    "id": 72001,
+    "name": "Demo Home",
+    "weatherCondition": "Clear",
+    "weatherTempF": 51.8,
+    "weatherTimePeriod": "Day"
+  }
+]
