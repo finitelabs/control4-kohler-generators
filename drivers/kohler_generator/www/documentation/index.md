@@ -31,7 +31,8 @@ not run the generator.
 Programming can react to a utility outage, the engine starting and stopping, an
 exercise, a fault or warning, the switch leaving Auto and maintenance falling
 due, and four contact outputs follow the generator's power, running, fault and
-switch state.
+switch state. Programming can also start and stop an exercise, change the
+exercise schedule and switch the generator's load-shed loads.
 
 # <span style="color:#336EE5">Index</span>
 
@@ -125,6 +126,14 @@ How the generator reaches the KOHLER cloud.
 #### Dealer (read-only)
 
 The dealer on the account for this generator, with their phone number.
+
+#### Load Control \[ Off | **_On_** \]
+
+Shows the generator's load-shed loads as variables and lets programming switch
+them. The driver sets it from the generator's first reading: `On` when the
+generator has a load control module, `Off` when it has none. Your choice holds
+after that. While it is `Off`, the load variables are removed and **Set Load**
+does nothing.
 
 #### Exercise Schedule (read-only)
 
@@ -256,7 +265,7 @@ the last 5 minutes still fires.
 | Next Exercise           | String  | When the next exercise starts.                                        |
 | Next Maintenance        | String  | When the next service is due.                                         |
 | Maintenance Due         | Boolean | Whether the service is due.                                           |
-| Load _name_             | Boolean | One per load-shed load, such as `Load HVAC A`, whether it is on.      |
+| Load _name_             | Boolean | One per load-shed load while Load Control is on, whether it is on.    |
 
 ### Events
 
@@ -292,6 +301,30 @@ the last 5 minutes still fires.
 
 The number variables can be compared in programming too, such as the battery
 voltage or the load.
+
+### Commands
+
+Each command goes to KOHLER through the account driver, and the generator is
+read again right after. **Driver Status** shows whether KOHLER took the command,
+or why it was not sent. A command is sent once: if KOHLER does not answer, check
+the generator before sending it again.
+
+| Command               | What it does                                                                                                                                                                                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start Exercise        | Starts the engine now for an exercise of the scheduled length. `Unloaded` and `Unloaded Full Speed` run the engine with the house left on utility power. `Loaded Full Speed` also moves the house onto generator power for the exercise. |
+| Stop Exercise         | Ends the exercise that is running and stops the engine.                                                                                                                                                                                  |
+| Set Exercise Schedule | Sets how often the generator exercises (`Weekly`, `Every Other Week` or `Monthly`), the day and time of the next one, the mode, and how long it runs, from 5 to 60 minutes. Enter the time as `14:30` or `2:30 PM`.                      |
+| Set Load              | Turns a load-shed load on or off, as the switch for it in the KOHLER app does. Needs Load Control on.                                                                                                                                    |
+| Refresh               | Reads the generator from KOHLER now.                                                                                                                                                                                                     |
+
+The driver refuses a command the KOHLER app would refuse, and sends nothing:
+
+- Any command while the generator is offline.
+- **Start Exercise** while utility power is out, the engine already runs, the
+  switch is not in Auto, or the generator is not ready to run.
+- **Stop Exercise** when no exercise is running.
+
+Selecting the generator in the Control4 app never starts the engine.
 
 # <span style="color:#336EE5">Support</span>
 

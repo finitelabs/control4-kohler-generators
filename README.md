@@ -305,3 +305,7 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   switch, so outage programming works with any contact input.
 - Account Connected and Account Disconnected events, and Generator Online and
   Generator Offline events, for programming.
+- Commands to start and stop an exercise, change the exercise schedule and
+  switch load-shed loads, refused when the KOHLER app would refuse them.
+- A Load Control property that shows the load-shed loads, on by default when the
+  generator has a load control module.
