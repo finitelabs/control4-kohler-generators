@@ -489,6 +489,35 @@ T.eq("nothing handed from it", next(proxySends(constants.CMD.UPDATE_FEEDS)), nil
 ShimFireTimers()
 T.eq("signed in again", props["Login Status"], "Logged In")
 
+T.section("an older alerts read answered after a newer one is not handed on")
+now = now + 120
+held = {}
+EC.Refresh_Generators()
+table.remove(held, 1)()
+table.remove(held, 1)()
+local older = table.remove(held)
+while #held > 0 do
+  table.remove(held, 1)()
+end
+local raised = fixture("device-58001.json")
+raised.device.alertCount = raised.device.alertCount + 1
+deviceAnswers["58001"] = raised
+EC.Refresh_Generators()
+while #held > 0 do
+  table.remove(held, 1)()
+end
+held = nil
+deviceAnswers["58001"] = nil
+toProxy = {}
+older()
+local handed = 0
+for _, s in ipairs(toProxy) do
+  if s.command == constants.CMD.UPDATE_FEEDS then
+    handed = handed + 1
+  end
+end
+T.eq("nothing handed from the older read", handed, 0)
+
 T.section("a generator that runs is polled every 15 seconds, until it stops")
 T.eq("polling at the Poll Interval", repeating[#repeating], 60000)
 deviceAnswers["58001"] = fixture("state-outage.json")

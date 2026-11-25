@@ -90,8 +90,8 @@ local gState = {
   generators = {},
   --- @type table<string, { alerts: table, events: table }> generator id -> its latest alerts and events
   feeds = {},
-  --- @type table<string, { at: integer, alertCount: any, status: any }> generator id -> when and on
-  --- what record its feeds were last read
+  --- @type table<string, { at: integer, alertCount: any, status: any, id: integer }> generator id ->
+  --- when, on what record and by which read its feeds were last read
   feedReads = {},
 }
 
@@ -275,8 +275,11 @@ end
 --- @type fun()
 local adjustPolling
 
+--- The alerts and event log reads sent so far, numbering each so only a generator's latest is taken.
+local gFeedReadsIssued = 0
+
 --- Read a generator's alerts and event log and hand them to its companion. A newer refresh does
---- not outdate them; an ended sign-in does.
+--- not outdate them; a newer read of the same generator or an ended sign-in does.
 --- @param identity KohlerIdentity
 --- @param record table The record that asked for them.
 --- @param refreshId integer
@@ -284,12 +287,17 @@ local adjustPolling
 local function readFeeds(identity, record, refreshId, generation)
   local key = tostring(identity.id)
   local device = type(record.device) == "table" and record.device or {}
-  gState.feedReads[key] = { at = os.time(), alertCount = device.alertCount, status = device.status }
+  gFeedReadsIssued = gFeedReadsIssued + 1
+  local readId = gFeedReadsIssued
+  gState.feedReads[key] = { at = os.time(), alertCount = device.alertCount, status = device.status, id = readId }
+  local function current()
+    return generation == gLoginGeneration and Select(gState.feedReads, key, "id") == readId
+  end
   client
     :getAlerts(identity.id, identity.host)
     :next(function(alerts)
       return client:getEvents(identity.id, identity.host):next(function(events)
-        if generation ~= gLoginGeneration or gState.generators[key] == nil then
+        if not current() or gState.generators[key] == nil then
           return
         end
         gState.feeds[key] = { alerts = alerts, events = events }
@@ -297,8 +305,8 @@ local function readFeeds(identity, record, refreshId, generation)
       end)
     end)
     :next(nil, function(err)
-      gState.feedReads[key] = nil
-      if generation == gLoginGeneration then
+      if current() then
+        gState.feedReads[key] = nil
         readFailed(err, identity.name .. "'s alerts", refreshId)
       end
     end)
