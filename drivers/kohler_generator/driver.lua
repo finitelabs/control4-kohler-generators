@@ -124,7 +124,7 @@ local COMMAND_NAMES = {
 
 --- The identity properties, filled from each record.
 local IDENTITY_PROPERTIES = {
-  { "Generator Name", "name" },
+  { "Generator Name", "kohlerName" },
   { "Model", "model" },
   { "Serial Number", "serial" },
   { "Controller", "controller" },
