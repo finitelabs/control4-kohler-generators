@@ -329,6 +329,29 @@ ships or uploads readable. Only `driver.lua` is encrypted, so any other file a
 driver loads from its `.c4z` stays readable. An `oss` build is encrypted only
 when it substitutes a build secret.
 
+### Embedded Drivers
+
+A driver update never adds a proxy item, whatever its `driver.xml` declares, so
+an installed driver can't gain one by updating. A host driver carries such an
+item as a small driver of its own instead. It puts that driver in the
+controller's driver store when it's missing, then adds it to the project and
+binds it.
+
+The `embedded_drivers` answer in `.copier-answers.yml` names each host and the
+drivers it carries, as `<host>:<driver>[,<driver>...]`. `make package` packages
+the other drivers first, then each host with their `.c4z` files under `c4z/` in
+its package. Each embedded driver also ships as its own `.c4z`, so
+`lib.driver-filenames` lists it and the OSS build's updater keeps an installed
+copy current.
+
+`InstallDrivers(packages)` in `lib.utils` installs drivers. The GitHub updater
+uses it to install downloads, and a host uses it to install the drivers it
+carries. To install a carried driver, pass a package with no body. It is
+installed only when the controller doesn't have it yet, or when the project's
+devices run an older version than the host. A host installs what it carries when
+it starts, so updating the host also updates those drivers. `lib.companions`
+installs each companion's driver file before adding any companions.
+
 ## Writing Tests
 
 A test is a plain Lua script in `test/`, named `test_*.lua`, run by `make test`

@@ -272,16 +272,29 @@ docs-pdf: $(VENV_STAMP)
 # squished .lua goes to source/ via the squishy Output path (see gen-squishy.lua),
 # so both subfolders are created up front. preprocess.py writes
 # build/<build>/.encrypted for a DriverCentral build or one it substituted a secret into.
+# A host in embedded_drivers is packaged after the rest, with the .c4z of each driver it names in its c4z/ folder.
 package: $(VENV_STAMP) $(PACKAGER) ## Create .c4z driver packages
 	@for build in $(DISTRIBUTIONS); do \
 		mkdir -p "dist/$$build/c4z" "dist/$$build/source"; \
 		for driver_dir in build/$$build/drivers/*/; do \
 			dir=$$(basename "$$driver_dir"); \
+			case "$$dir" in kohler_generators) continue ;; esac; \
 			pwd_saved="$$(pwd)"; \
 			cd "build/$$build/drivers/$$dir" && \
 			"$$pwd_saved/$(VENV_PY)" "$$pwd_saved/$(PACKAGER)" . "$$pwd_saved/dist/$$build/c4z" driver.c4zproj && \
 			cd "$$pwd_saved" || exit 1; \
 		done; \
+		host="build/$$build/drivers/kohler_generators"; \
+		[ -d "$$host" ] || { echo "embedded_drivers names kohler_generators, which $$build has no driver folder for"; exit 1; }; \
+		mkdir -p "$$host/c4z"; \
+		cp "dist/$$build/c4z/kohler_generator.c4z" "$$host/c4z/" || exit 1; \
+		sed 's#<Items>#<Items><Item type="dir" c4zDir="c4z" name="c4z" recurse="true" exclude="false"/>#' \
+			"$$host/driver.c4zproj" > "$$host/driver.embed.c4zproj"; \
+		grep -q 'c4zDir="c4z"' "$$host/driver.embed.c4zproj" || { echo "$$host/driver.c4zproj has no <Items> to add c4z/ to"; exit 1; }; \
+		pwd_saved="$$(pwd)"; \
+		cd "$$host" && \
+		"$$pwd_saved/$(VENV_PY)" "$$pwd_saved/$(PACKAGER)" . "$$pwd_saved/dist/$$build/c4z" driver.embed.c4zproj && \
+		cd "$$pwd_saved" || exit 1; \
 		if [ -e "build/$$build/.encrypted" ]; then \
 			rm -rf "dist/$$build/source"; \
 			echo "$$build: encrypted; removed the plain-text dist/$$build/source"; \

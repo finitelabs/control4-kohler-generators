@@ -813,6 +813,7 @@ function OnDriverLateInit()
   if not CheckMinimumVersion("Driver Status") then
     return
   end
+  InstallDrivers({ { name = COMPANION_DRIVER } })
 
   -- The router runs each handler in its own xpcall and reports its error, so the rest still run.
   for p, _ in pairs(Properties) do
