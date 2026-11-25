@@ -65,12 +65,14 @@ local function daysFromCivil(y, m, d)
 end
 
 --- A timestamp as epoch seconds. The cloud writes them three ways: with Z, with an offset, or
---- with neither, which is the generator's local time; the controller's clock stands in for it.
---- Fractions of a second, of any length, are dropped. A generator whose clock was never set counts from
---- 2011-01-01, so a time before 2012 is no time at all.
+--- with neither, which is the generator's local time. The generator's clock offset reads that one;
+--- without it the controller's time zone stands in. Fractions of a second, of any length, are
+--- dropped. A generator whose clock was never set counts from 2011-01-01, so a time before 2012 is
+--- no time at all.
 --- @param value any
+--- @param clockOffset? integer The generator's clock offset from UTC in seconds, from M.clockOffset.
 --- @return integer|nil epoch Nil for anything else.
-function M.time(value)
+function M.time(value, clockOffset)
   if type(value) ~= "string" then
     return nil
   end
@@ -80,7 +82,7 @@ function M.time(value)
   end
   rest = rest:gsub("^%.%d+", "")
   local fields = { tonumber(y), tonumber(mo), tonumber(d), tonumber(h), tonumber(mi), tonumber(s) }
-  if rest == "" then
+  if rest == "" and clockOffset == nil then
     return os.time({
       year = fields[1],
       month = fields[2],
@@ -90,8 +92,8 @@ function M.time(value)
       sec = fields[6],
     })
   end
-  local offset = 0
-  if rest ~= "Z" then
+  local offset = rest == "" and clockOffset or 0
+  if rest ~= "" and rest ~= "Z" then
     local sign, oh, om = rest:match("^([%+%-])(%d%d):?(%d%d)$")
     if not sign then
       return nil
@@ -100,6 +102,33 @@ function M.time(value)
   end
   local days = daysFromCivil(fields[1], fields[2], fields[3])
   return days * 86400 + fields[4] * 3600 + fields[5] * 60 + fields[6] - offset
+end
+
+local MAX_CLOCK_OFFSET_S = 14 * 3600
+
+--- The generator's clock offset from UTC, in seconds. A generator keeps its own clock, which needn't
+--- follow the controller's time zone or its daylight saving, and writes its local times by it. The
+--- record carries a reading of that clock and the moment the record was taken; their difference,
+--- rounded to 15 minutes, is the offset.
+--- @param record any The full record (devices/{id}).
+--- @return integer|nil offset Nil when the record has no clock reading to tell.
+function M.clockOffset(record)
+  if type(record) ~= "table" or type(record.device) ~= "table" then
+    return nil
+  end
+  local taken = record.device.latestParameterUpdateTimestamp
+  if type(taken) ~= "string" or taken:match("T[%d:%.]+$") then
+    return nil
+  end
+  local clock, at = M.time(record.controllerClockTimestamp, 0), M.time(taken)
+  if clock == nil or at == nil then
+    return nil
+  end
+  local offset = math.floor((clock - at) / 900 + 0.5) * 900
+  if math.abs(offset) > MAX_CLOCK_OFFSET_S then
+    return nil
+  end
+  return offset
 end
 
 --- A reading as a number, or nil when the cloud has none.

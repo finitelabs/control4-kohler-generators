@@ -105,14 +105,19 @@ function M.nextStart(day, hour, minute, now)
 end
 
 --- A time in the form the generator's record last used for its next exercise: with Z, with an
---- offset, or local with neither. Local with neither when the record had none.
+--- offset, or local with neither. Local with neither when the record had none. Local is the
+--- generator's clock when its offset is known, and the controller's otherwise.
 --- @param epoch integer
 --- @param lastRead any The record's exercise.nextStartTimestamp.
+--- @param clockOffset? integer The generator's clock offset, from Generator.clockOffset.
 --- @return string
-function M.timestamp(epoch, lastRead)
+function M.timestamp(epoch, lastRead, clockOffset)
   local rest = type(lastRead) == "string" and lastRead:match("T%d%d:%d%d:%d%d%.?%d*(.*)$") or ""
   if rest == "Z" then
     return os.date("!%Y-%m-%dT%H:%M:%SZ", epoch)
+  end
+  if rest == "" and clockOffset ~= nil then
+    return os.date("!%Y-%m-%dT%H:%M:%S", epoch + clockOffset)
   end
   local localTime = os.date("%Y-%m-%dT%H:%M:%S", epoch)
   if rest == "" then
@@ -212,7 +217,7 @@ function M.request(command, record, now)
       path = "/devices/" .. id .. "/exercise",
       body = {
         frequency = frequency,
-        nextStartTimestamp = M.timestamp(start, exercise.nextStartTimestamp),
+        nextStartTimestamp = M.timestamp(start, exercise.nextStartTimestamp, Generator.clockOffset(record)),
         mode = mode,
         durationMinutes = math.floor(minutes),
       },

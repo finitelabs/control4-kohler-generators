@@ -555,7 +555,7 @@ class Cloud:
         self._gen(b).run_scheduled_now()
 
     def _do_fault(self, b):
-        self._gen(b).raise_fault(b.get("event", "Overcrank"))
+        self._gen(b).raise_fault(b.get("event", "Over Crank"))
 
     def _do_warning(self, b):
         self._gen(b).raise_warning(b.get("event", "Parameter Value Abnormal"))

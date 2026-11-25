@@ -83,9 +83,10 @@ end
 
 --- The schedule sheet's starting values, from the generator's exercise.
 --- @param exercise table
+--- @param clockOffset integer|nil The generator's clock offset, from Generator.clockOffset.
 --- @return table
-local function scheduleOf(exercise)
-  local at = Generator.time(exercise.nextStartTimestamp)
+local function scheduleOf(exercise, clockOffset)
+  local at = Generator.time(exercise.nextStartTimestamp, clockOffset)
   local t = at and os.date("*t", at) or nil
   return {
     frequency = FREQUENCY_NAMES[exercise.frequency] or "Weekly",
@@ -173,6 +174,7 @@ function M.state(ctx)
     end
   end
 
+  local clockOffset = Generator.clockOffset(record)
   return {
     connected = s.online,
     reason = not s.online and "offline" or nil,
@@ -195,19 +197,19 @@ function M.state(ctx)
     readings = readings,
     exercise = {
       schedule = s.exerciseSchedule,
-      nextAt = Generator.time(exercise.nextStartTimestamp),
-      lastAt = Generator.time(record.lastRanTimestamp),
+      nextAt = Generator.time(exercise.nextStartTimestamp, clockOffset),
+      lastAt = Generator.time(record.lastRanTimestamp, clockOffset),
       running = s.exercising,
       start = refusal({ action = "start", mode = "Unloaded" }, record, ctx.now),
       stop = refusal({ action = "stop" }, record, ctx.now),
-      sheet = scheduleOf(exercise),
+      sheet = scheduleOf(exercise, clockOffset),
     },
     loads = loads,
     alerts = alerts,
     history = history,
     service = {
-      lastMaintenanceAt = Generator.time(device.lastMaintenanceTimestamp),
-      nextMaintenanceAt = Generator.time(device.nextMaintenanceTimestamp),
+      lastMaintenanceAt = Generator.time(device.lastMaintenanceTimestamp, clockOffset),
+      nextMaintenanceAt = Generator.time(device.nextMaintenanceTimestamp, clockOffset),
       maintenanceDue = s.maintenanceDue,
       hoursSinceMaintenance = s.readings["Hours Since Maintenance"],
       dealer = identity.dealer,
