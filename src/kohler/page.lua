@@ -43,8 +43,6 @@ for name, cloud in pairs(Controls.MODES) do
   MODE_NAMES[cloud] = name
 end
 
---- @param list any
---- @return table[]
 --- When the generator last reported: the newer of its last reading and its last status change.
 --- @param record table
 --- @param device table
@@ -58,6 +56,8 @@ local function reportedAt(record, device)
   return status
 end
 
+--- @param list any
+--- @return table[]
 local function entries(list)
   local out = {}
   for _, item in ipairs(type(list) == "table" and list or {}) do

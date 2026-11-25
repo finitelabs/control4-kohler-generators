@@ -102,6 +102,16 @@ T.eq("on generator power", outage.onGeneratorPower, true)
 T.eq("running", outage.running, true)
 T.eq("not exercising", outage.exercising, false)
 
+T.truthy("load reads as a positive number", (outage.readings["Load Watts"] or 0) > 0, outage.readings["Load Watts"])
+T.truthy("as does its percentage", (outage.readings["Load Percent"] or 0) > 0, outage.readings["Load Percent"])
+T.eq("busy, so polled faster", Status.busy(fixture("state-outage.json")), true)
+T.eq("standby is not busy", Status.busy(fixture("state-standby.json")), false)
+T.eq(
+  "its transitions from standby",
+  Status.transitions(flags(standby), flags(outage)),
+  { "Utility Power Lost", "Engine Started" }
+)
+
 T.section("a generator that doesn't sense utility voltage reports 0 volts on utility power")
 local unsensed = fixture("device-58001.json")
 unsensed.device.id = 59001
@@ -118,15 +128,6 @@ unsensed.utilityVoltageV = 240.1
 T.eq("a live line", Status.fromRecord(unsensed, NOW, "F").utilityOut, false)
 unsensed.utilityVoltageV = 0
 T.eq("then 0 volts is out", Status.fromRecord(unsensed, NOW, "F").utilityOut, true)
-T.truthy("load reads as a positive number", (outage.readings["Load Watts"] or 0) > 0, outage.readings["Load Watts"])
-T.truthy("as does its percentage", (outage.readings["Load Percent"] or 0) > 0, outage.readings["Load Percent"])
-T.eq("busy, so polled faster", Status.busy(fixture("state-outage.json")), true)
-T.eq("standby is not busy", Status.busy(fixture("state-standby.json")), false)
-T.eq(
-  "its transitions from standby",
-  Status.transitions(flags(standby), flags(outage)),
-  { "Utility Power Lost", "Engine Started" }
-)
 
 T.section("power restored")
 local restored = state("restored")
