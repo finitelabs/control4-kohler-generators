@@ -95,9 +95,12 @@ generator is reaching the KOHLER cloud.
 
 **Key features:**
 
-- The generator's name, model, serial number, controller, firmware, fuel,
-  connection and dealer
-- Generator Online and Generator Offline events for programming
+- The generator's status, power source and readings, with its model, serial
+  number, firmware, fuel and dealer
+- Events, conditionals and contact outputs for outage programming
+- Commands to start and stop an exercise, change the exercise schedule and
+  switch load-shed loads
+- A generator page in the Control4 app
 
 # <span style="color:#336EE5">Installer Setup</span>
 

@@ -72,9 +72,12 @@ generator is reaching the KOHLER cloud.
 
 **Key features:**
 
-- The generator's name, model, serial number, controller, firmware, fuel,
-  connection and dealer
-- Generator Online and Generator Offline events for programming
+- The generator's status, power source and readings, with its model, serial
+  number, firmware, fuel and dealer
+- Events, conditionals and contact outputs for outage programming
+- Commands to start and stop an exercise, change the exercise schedule and
+  switch load-shed loads
+- A generator page in the Control4 app
 
 # <span style="color:#336EE5">Installer Setup</span>
 
@@ -289,26 +292,17 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- **Kohler Generators** account driver, which signs in to a KOHLER account with
-  its email and password, finds the generators on it and reads them on a poll
-  interval you choose, signing in again on its own when the sign-in lapses.
-- **Kohler Generator** companion, one per generator, added, bound and named by
-  the Add Generators action, which shows the generator in its room with its
-  model, serial number, controller, firmware, fuel, connection and dealer.
-- Generator status, power source and readings as variables: utility and
-  generator voltage, load, frequency, engine speed, battery, temperatures in the
-  project's scale, run hours, the exercise schedule and maintenance dates.
-- Events for a utility outage and its end, the engine starting and stopping, an
-  exercise, a fault or warning, alerts clearing, the switch leaving and
-  returning to Auto, maintenance falling due and a low battery.
-- Conditionals and contact outputs for generator power, running, fault and the
-  switch, so outage programming works with any contact input.
-- Account Connected and Account Disconnected events, and Generator Online and
-  Generator Offline events, for programming.
-- Commands to start and stop an exercise, change the exercise schedule and
-  switch load-shed loads, refused when the KOHLER app would refuse them.
-- A Load Control property that shows the load-shed loads, on by default when the
-  generator has a load control module.
-- A generator page in the Control4 app, opened by selecting the generator, with
-  its power source, state, readings, exercise schedule with Start and Stop,
-  load-shed loads, alerts, history and service details.
+- Added the Kohler Generators and Kohler Generator drivers, which sign in to a
+  KOHLER account and add a driver for each generator on it
+- Added each generator's status, power source and readings as variables, with
+  temperatures in the project's scale
+- Added events for a utility outage and its end, the engine starting and
+  stopping, an exercise, a fault or warning, the switch leaving Auto,
+  maintenance falling due and a low battery
+- Added conditionals and contact outputs for generator power, running, fault and
+  the switch, so outage programming works with any contact input
+- Added commands to start and stop an exercise, change the exercise schedule and
+  switch load-shed loads
+- Added a generator page in the Control4 app with the generator's power,
+  readings, exercise schedule, loads, alerts and service details
+- Added automatic driver updates
