@@ -1047,7 +1047,7 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
     log:info("Not sending %s to generator %s: %s", action, key, refusal)
     return commandResult(idBinding, action, false, refusal)
   end
-  local identity = gState.generators[key] or Generator.identity(record)
+  local identity = gState.generators[key]
   log:info("Sending %s to generator %s", action, key)
   local generation = gLoginGeneration
   gCommandInFlight[key] = generation
@@ -1068,7 +1068,7 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
       end
     end, release)
   end
-  client:send(request, identity and identity.host or "Oncue"):next(function()
+  client:send(request, identity.host):next(function()
     commandResult(idBinding, action, true, "Sent")
     readAgain()
   end, function(err)
