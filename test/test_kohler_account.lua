@@ -54,6 +54,8 @@ local apiAnswers = {}
 local issued = 0
 --- When set, the answer every API call gets.
 local apiAlways = nil
+--- When set, the answer every generator record read gets.
+local deviceAlways = nil
 --- When set, every answer waits in it, to be released by calling it.
 --- @type function[]|nil
 local held = nil
@@ -74,7 +76,7 @@ urlDo = function(method, url, data, _headers, callback, context)
       code, body = 200, { access_token = "access-" .. issued, refresh_token = "refresh-" .. issued, expires_in = 3600 }
     end
   else
-    local answer = apiAlways or table.remove(apiAnswers, 1)
+    local answer = apiAlways or (url:find("/devices/%d+%?") and deviceAlways) or table.remove(apiAnswers, 1)
     if answer then
       code, body, responseHeaders = answer[1], answer[2], answer[3] or {}
     elseif url:find("/homeowner/homes$") then
@@ -393,5 +395,37 @@ T.eq("the poll waits out the first step of the backoff", #requests, 0)
 now = now + 2
 ShimFireTimers()
 T.eq("and no more: it reads again after 30 seconds", sent("/homeowner/homes$"), 1)
+
+T.section("record reads that keep failing with 5xx pause longer each poll, though the account is read")
+deviceAlways = { 503, { message = "Service Unavailable" } }
+EC.Refresh_Generators()
+for _, wait in ipairs({ 30, 60, 120, 240 }) do
+  requests = {}
+  now = now + wait - 1
+  ShimFireTimers()
+  T.eq(string.format("no read before %ds", wait), #requests, 0)
+  now = now + 1
+  ShimFireTimers()
+  T.eq(string.format("a read at %ds", wait), sent("/homeowner/homes$"), 1)
+end
+deviceAlways = nil
+now = now + 300
+EC.Refresh_Generators()
+T.eq("a refresh that reads everything", props["Driver Status"], "Connected (3 generators)")
+
+T.section("record reads refused even after a fresh sign-in wait longer each time")
+deviceAlways = { 401, { message = "Unauthorized" } }
+requests = {}
+EC.Refresh_Generators()
+for _, wait in ipairs({ 5, 10, 20, 40 }) do
+  T.eq(string.format("waits %ds", wait), props["Driver Status"], string.format("Not connected; retrying in %ds", wait))
+  T.eq(string.format("one sign-in before the %ds wait", wait), sent(constants.TOKEN_PATH .. "$"), 1)
+  requests = {}
+  ShimFireTimers()
+end
+deviceAlways = nil
+ShimFireTimers()
+T.eq("signs in once reads work", props["Login Status"], "Logged In")
+T.eq("and reads the account", props["Driver Status"], "Connected (3 generators)")
 
 T.finish()

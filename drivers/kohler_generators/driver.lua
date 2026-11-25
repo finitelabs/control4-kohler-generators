@@ -243,19 +243,21 @@ end
 --- @param identity KohlerIdentity
 --- @param refreshId integer
 --- @param generation integer
---- @return Deferred
+--- @return Deferred<boolean> read Resolves with whether the record was read and taken.
 local function readGenerator(identity, refreshId, generation)
   local key = tostring(identity.id)
   return client:getDevice(identity.id, identity.host):next(function(record)
     if stale(refreshId, generation) then
-      return
+      return false
     end
     gState.records[key] = record
     handoff(key)
+    return true
   end, function(err)
     if not stale(refreshId, generation) then
       readFailed(err, identity.name, refreshId)
     end
+    return false
   end)
 end
 
@@ -279,15 +281,28 @@ local function refreshGenerators()
     end
     gRefreshAccepted = refreshId
     gListed = true
-    gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
     local listed = {}
     local list = Generator.fromHomes(homes)
+    -- The backoffs clear only once the homes read and every record read of a refresh work.
+    local unread, allRead = #list, true
+    local function settled(ok)
+      unread = unread - 1
+      allRead = allRead and ok
+      if unread <= 0 and allRead and not stale(refreshId, generation) then
+        gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
+      end
+    end
+    if unread == 0 then
+      settled(true)
+    end
     for _, identity in ipairs(list) do
       local key = tostring(identity.id)
       listed[key] = true
       gState.generators[key] = identity
       ensureBinding(identity)
-      readGenerator(identity, refreshId, generation)
+      if not stale(refreshId, generation) then
+        readGenerator(identity, refreshId, generation):next(settled)
+      end
     end
     for key in pairs(gState.generators) do
       if not listed[key] then
@@ -297,7 +312,9 @@ local function refreshGenerators()
         goOffline(key)
       end
     end
-    C4:UpdateProperty("Driver Status", connectedStatus(#list))
+    if not stale(refreshId, generation) then
+      C4:UpdateProperty("Driver Status", connectedStatus(#list))
+    end
   end, function(err)
     if not stale(refreshId, generation) then
       readFailed(err, "the account's generators", refreshId)
