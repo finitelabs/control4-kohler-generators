@@ -358,6 +358,19 @@ end
 
 -- ─── Reading the account ───────────────────────────────────────────────────
 
+--- Record whether the account is connected, firing its event on a change after start-up.
+--- @param connected boolean
+local function setConnected(connected)
+  gConnected = connected
+  values:update("Account Connected", connected, "BOOL")
+  if connected and gWasConnected == false then
+    C4:FireEventByID(EVENT.ACCOUNT_CONNECTED)
+  elseif not connected and gWasConnected == true then
+    C4:FireEventByID(EVENT.ACCOUNT_DISCONNECTED)
+  end
+  gWasConnected = connected
+end
+
 --- A failed read can sign in again and a sign-in reads the account, so the two call each other and
 --- both live on this table.
 local Account = {}
@@ -556,6 +569,9 @@ local function refreshGenerators()
       unread = unread - 1
       allRead = allRead and ok
       if unread <= 0 and allRead and not stale(refreshId, generation) then
+        if gUnauthorizedBackoffS ~= nil then
+          setConnected(true)
+        end
         gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
       end
     end
@@ -672,19 +688,6 @@ function TC.ACCOUNT_CONNECTED(strConditionName, tParams)
   return test == gConnected
 end
 
---- Record whether the account is connected, firing its event on a change after start-up.
---- @param connected boolean
-local function setConnected(connected)
-  gConnected = connected
-  values:update("Account Connected", connected, "BOOL")
-  if connected and gWasConnected == false then
-    C4:FireEventByID(EVENT.ACCOUNT_CONNECTED)
-  elseif not connected and gWasConnected == true then
-    C4:FireEventByID(EVENT.ACCOUNT_DISCONNECTED)
-  end
-  gWasConnected = connected
-end
-
 --- Take every generator offline and forget what was read.
 local function dropGenerators()
   for key in pairs(gState.generators) do
@@ -709,6 +712,7 @@ function Account.login(retryBackoffS, waitS, waitStatus)
   if waitS ~= nil then
     C4:UpdateProperty("Login Status", waitStatus)
     C4:UpdateProperty("Driver Status", string.format("Not connected; retrying in %ds", waitS))
+    setConnected(false)
     for key in pairs(gState.generators) do
       goOffline(key)
     end
@@ -744,7 +748,10 @@ function Account.login(retryBackoffS, waitS, waitStatus)
       return
     end
     C4:UpdateProperty("Login Status", "Logged In")
-    setConnected(true)
+    -- After reads were refused with a fresh sign-in, the account is connected again once a read works.
+    if gUnauthorizedBackoffS == nil then
+      setConnected(true)
+    end
     gPausedUntil, gUnavailableBackoffS = 0, nil
     local refresh = refreshGenerators()
     startPolling()

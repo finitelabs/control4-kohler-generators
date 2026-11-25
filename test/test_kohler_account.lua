@@ -405,13 +405,19 @@ EC.Refresh_Generators()
 T.eq("the read, a sign-in and the read again, then it stops", #requests, 3)
 T.eq("Login Status says so", props["Login Status"], "KOHLER refused access")
 T.contains("Driver Status names the wait", props["Driver Status"], "retrying in 5s")
+T.eq("Account Connected is false", require("lib.values"):getValue("Account Connected").value, false)
+T.eq("Account Disconnected fires", events[#events], "Account Disconnected")
+local firedBefore = #events
 requests = {}
 ShimFireTimers()
 T.eq("the retry reads, signs in and reads once more", #requests, 3)
 T.contains("and waits longer", props["Driver Status"], "retrying in 10s")
+T.eq("a retry that is refused again fires nothing", #events, firedBefore)
 apiAlways = nil
 ShimFireTimers()
 T.eq("once reads work again", props["Login Status"], "Logged In")
+T.eq("Account Connected fires once", { #events - firedBefore, events[#events] }, { 1, "Account Connected" })
+T.eq("Account Connected is true", require("lib.values"):getValue("Account Connected").value, true)
 T.eq("the generators are read", props["Driver Status"], "Connected (3 generators)")
 
 T.section("a read answered after Reset Driver is not taken")
