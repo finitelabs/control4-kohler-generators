@@ -268,3 +268,12 @@ async def test_reset_keeps_ids_moving(signed_in):
     await control(client, "warning", device=BLUE)
     second = (await api.get(f"/devices/{BLUE}/events"))[0]["id"]
     assert second > first
+
+
+async def test_readded_generator_joins_the_named_home(signed_in):
+    _, client, api = await signed_in()
+    await control(client, "account", email=EMAIL, op="remove", device=REDGREEN)
+    await control(client, "account", email=EMAIL, op="add", device=REDGREEN, home=0)
+    homes = await api.get("/homeowner/homes")
+    assert REDGREEN in [d["id"] for d in homes[0]["devices"]]
+    assert REDGREEN not in [d["id"] for d in homes[1]["devices"]]
