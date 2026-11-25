@@ -46,13 +46,21 @@ def make_cloud(aiohttp_client, clock):
 
 async def token_call(client, data, auth=None):
     return await client.post(
-        TOKEN_PATH, data=data, headers={"Authorization": auth if auth is not None else basic()}
+        TOKEN_PATH,
+        data=data,
+        headers={"Authorization": auth if auth is not None else basic()},
     )
 
 
 async def sign_in(client, email=EMAIL, password=PASSWORD, scope=SCOPE):
     resp = await token_call(
-        client, {"grant_type": "password", "username": email, "password": password, "scope": scope}
+        client,
+        {
+            "grant_type": "password",
+            "username": email,
+            "password": password,
+            "scope": scope,
+        },
     )
     assert resp.status == 200, await resp.text()
     return await resp.json()

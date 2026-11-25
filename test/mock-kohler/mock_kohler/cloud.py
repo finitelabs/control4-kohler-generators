@@ -27,8 +27,6 @@ CALL_LOG = 200
 
 DEFAULT_SETTINGS = {
     "access_ttl_s": 3600,
-    "revoke_on_password_change": True,
-    "public_url": None,
 }
 DEFAULT_CLIENT = {"id": "mock-client", "secret": "mock-client-secret"}
 DEFAULT_API_KEY = "mock-api-key"
@@ -89,7 +87,7 @@ class Cloud:
     def __init__(self, config, clock=None, speed=None):
         self.config = copy.deepcopy(config)
         self.base = clock or Clock()
-        speed = speed if speed is not None else self.config.get("speed", 1.0)
+        speed = 1.0 if speed is None else speed
         self.sim = SimClock(self.base, speed)
         client = {**DEFAULT_CLIENT, **self.config.get("client", {})}
         self.client_id, self.client_secret = client["id"], client["secret"]
@@ -121,9 +119,10 @@ class Cloud:
 
     def _make_generator(self, spec, home, acct):
         profile = (
-            load_profile(spec["profile"]) if isinstance(spec["profile"], str) else spec["profile"]
+            load_profile(spec["profile"])
+            if isinstance(spec["profile"], str)
+            else spec["profile"]
         )
-        profile = {**profile, **spec.get("overrides", {})}
         gen = Generator(spec, profile, home, acct, self.sim, self.ids)
         if gen.id in self.generators:
             raise ValueError(f"generator id {gen.id} is used twice")
@@ -217,20 +216,24 @@ class Cloud:
         return resp
 
     def _log(self, request, status):
-        self.calls.append({"method": request.method, "path": request.path_qs, "status": status})
+        self.calls.append(
+            {"method": request.method, "path": request.path_qs, "status": status}
+        )
         del self.calls[:-CALL_LOG]
 
     # ─── Tokens ───────────────────────────────────────────────────────────
 
     def origin(self, request):
-        if self.settings.get("public_url"):
-            return self.settings["public_url"].rstrip("/")
         return f"{request.scheme}://{request.host}"
 
     def _jwt(self, claims):
-        header = b64url(json.dumps({"alg": "HS256", "typ": "JWT", "kid": "mock"}).encode())
+        header = b64url(
+            json.dumps({"alg": "HS256", "typ": "JWT", "kid": "mock"}).encode()
+        )
         body = b64url(json.dumps(claims, separators=(",", ":")).encode())
-        sig = hmac.new(self.secret, f"{header}.{body}".encode(), hashlib.sha256).digest()
+        sig = hmac.new(
+            self.secret, f"{header}.{body}".encode(), hashlib.sha256
+        ).digest()
         return f"{header}.{body}.{b64url(sig)}"
 
     def _client_ok(self, request):
@@ -288,7 +291,9 @@ class Cloud:
             refresh = secrets.token_urlsafe(32)
             self.refresh[refresh] = {"sub": acct.sub, "scope": scope, "revoked": False}
             body["refresh_token"] = refresh
-        return json_response(body, headers={"Cache-Control": "no-store", "Pragma": "no-cache"})
+        return json_response(
+            body, headers={"Cache-Control": "no-store", "Pragma": "no-cache"}
+        )
 
     def _scope(self, text, allowed=SCOPES):
         scopes = (text or "").split()
@@ -300,47 +305,65 @@ class Cloud:
         if not self._client_ok(request):
             return oauth_error(401, "invalid_client", "Client authentication failed.")
         if request.content_type != "application/x-www-form-urlencoded":
-            return oauth_error(400, "invalid_request", "The request body must be form-encoded.")
+            return oauth_error(
+                400, "invalid_request", "The request body must be form-encoded."
+            )
         form = await request.post()
         grant = form.get("grant_type")
         if grant == "password":
             return self._password_grant(request, form)
         if grant == "refresh_token":
             return self._refresh_grant(request, form)
-        return oauth_error(400, "unsupported_grant_type", f"Unsupported grant_type {grant!r}.")
+        return oauth_error(
+            400, "unsupported_grant_type", f"Unsupported grant_type {grant!r}."
+        )
 
     def _password_grant(self, request, form):
         scope = self._scope(form.get("scope"))
         if scope is None:
-            return oauth_error(400, "invalid_scope", "The requested scope is not allowed.")
+            return oauth_error(
+                400, "invalid_scope", "The requested scope is not allowed."
+            )
         acct = self.account_by_email(form.get("username"))
         password = form.get("password") or ""
         if acct is None or not hmac.compare_digest(password, acct.password):
-            return oauth_error(400, "invalid_grant", "The credentials provided were invalid.")
+            return oauth_error(
+                400, "invalid_grant", "The credentials provided were invalid."
+            )
         if acct.refuse:
             status = REFUSALS.get(acct.refuse, 400)
-            return oauth_error(status, acct.refuse, "The sign-in was not allowed by policy.")
+            return oauth_error(
+                status, acct.refuse, "The sign-in was not allowed by policy."
+            )
         return self._issue(request, acct, scope)
 
     def _refresh_grant(self, request, form):
         rec = self.refresh.get(form.get("refresh_token") or "")
         if rec is None or rec["revoked"]:
-            return oauth_error(400, "invalid_grant", "The refresh token is invalid or expired.")
+            return oauth_error(
+                400, "invalid_grant", "The refresh token is invalid or expired."
+            )
         scope = rec["scope"]
         if form.get("scope"):
             scope = self._scope(form.get("scope"), set(rec["scope"].split()))
             if scope is None:
-                return oauth_error(400, "invalid_scope", "The requested scope is not allowed.")
+                return oauth_error(
+                    400, "invalid_scope", "The requested scope is not allowed."
+                )
         acct = self.account_by_sub(rec["sub"])
         if acct is None:
-            return oauth_error(400, "invalid_grant", "The refresh token is invalid or expired.")
+            return oauth_error(
+                400, "invalid_grant", "The refresh token is invalid or expired."
+            )
         rec["revoked"] = True
         return self._issue(request, acct, scope)
 
     # ─── API ──────────────────────────────────────────────────────────────
 
     def account_by_email(self, email):
-        return next((a for a in self.accounts if a.email.lower() == (email or "").lower()), None)
+        return next(
+            (a for a in self.accounts if a.email.lower() == (email or "").lower()), None
+        )
 
     def account_by_sub(self, sub):
         return next((a for a in self.accounts if a.sub == sub), None)
@@ -442,12 +465,16 @@ class Cloud:
     async def set_value(self, request):
         gen = self._generator(request)
         body = await self._body(request)
-        return await self._write(gen.set_value, self._param_id(request), body.get("value"))
+        return await self._write(
+            gen.set_value, self._param_id(request), body.get("value")
+        )
 
     async def rename(self, request):
         gen = self._generator(request)
         body = await self._body(request)
-        return await self._write(gen.rename, self._param_id(request), body.get("displayName"))
+        return await self._write(
+            gen.rename, self._param_id(request), body.get("displayName")
+        )
 
     # ─── Control API ──────────────────────────────────────────────────────
 
@@ -514,7 +541,7 @@ class Cloud:
         self.settle()
         try:
             result = handler(body or {})
-        except (KeyError, ValueError, TypeError) as e:
+        except (KeyError, IndexError, ValueError, TypeError) as e:
             return json_response({"error": str(e)}, 400)
         return json_response({"ok": True, **(result or {})})
 
@@ -580,7 +607,9 @@ class Cloud:
 
     def _do_slow(self, b):
         seconds = float(b.get("seconds", 0))
-        self.slow = {"seconds": seconds, "target": b.get("target", "all")} if seconds else None
+        self.slow = (
+            {"seconds": seconds, "target": b.get("target", "all")} if seconds else None
+        )
 
     def _do_fail(self, b):
         status = b.get("status")
@@ -617,8 +646,7 @@ class Cloud:
     def _do_password(self, b):
         acct = self._acct(b)
         acct.password = b["password"]
-        if self.settings["revoke_on_password_change"]:
-            self._do_revoke({"email": acct.email})
+        self._do_revoke({"email": acct.email})
 
     def _do_refuse(self, b):
         error = b.get("error")

@@ -25,7 +25,11 @@ async def test_index_and_state(signed_in):
     await api.get("/homeowner/me")
     state = await (await client.get("/_mock/state")).json()
     assert state["generators"][str(BLUE)]["engine"] == "Standby"
-    assert state["calls"][-1] == {"method": "GET", "path": f"{API}/homeowner/me", "status": 200}
+    assert state["calls"][-1] == {
+        "method": "GET",
+        "path": f"{API}/homeowner/me",
+        "status": 200,
+    }
     page = await client.get("/")
     assert "Demo Generator" in await page.text()
 
@@ -82,7 +86,9 @@ async def test_low_battery(signed_in):
     await control(client, "battery", device=BLUE, low=True)
     rec = await api.record(BLUE)
     assert rec["batteryVoltageV"] < 12
-    assert (await api.get(f"/devices/{BLUE}/alerts"))[0]["event"] == "Low Battery Voltage"
+    assert (await api.get(f"/devices/{BLUE}/alerts"))[0][
+        "event"
+    ] == "Low Battery Voltage"
     await control(client, "battery", device=BLUE, low=False)
     assert (await api.record(BLUE))["batteryVoltageV"] > 13
     assert await api.get(f"/devices/{BLUE}/alerts") == []
@@ -149,12 +155,20 @@ async def test_account_remove_and_add(signed_in):
     await control(client, "account", email=EMAIL, op="add", device=REDGREEN)
     assert (await api.record(REDGREEN))["device"]["id"] == REDGREEN
     await control(
-        client, "account", email=EMAIL, op="add", device=58010, profile="air-20kw-blue-ng", home=1
+        client,
+        "account",
+        email=EMAIL,
+        op="add",
+        device=58010,
+        profile="air-20kw-blue-ng",
+        home=1,
     )
     homes = await api.get("/homeowner/homes")
     assert [d["id"] for d in homes[1]["devices"]] == [REDGREEN, 58010]
     assert homes[1]["devices"][1]["serialNumber"] == "DEMO058010"
-    resp = await client.post("/_mock/account", json={"email": EMAIL, "op": "add", "device": BLUE})
+    resp = await client.post(
+        "/_mock/account", json={"email": EMAIL, "op": "add", "device": BLUE}
+    )
     assert resp.status == 400
 
 
@@ -185,7 +199,12 @@ async def test_server_errors_on_token_endpoint(signed_in):
     _, client, api = await signed_in()
     await control(client, "fail", status=503, count=1, target="token")
     assert (await api.call("GET", "/homeowner/me")).status == 200
-    data = {"grant_type": "password", "username": EMAIL, "password": PASSWORD, "scope": SCOPE}
+    data = {
+        "grant_type": "password",
+        "username": EMAIL,
+        "password": PASSWORD,
+        "scope": SCOPE,
+    }
     resp = await token_call(client, data)
     assert resp.status == 503
     assert (await resp.json())["error"] == "server_error"
@@ -214,7 +233,9 @@ async def test_revoke_and_expire(make_cloud):
     )
     assert resp.status == 400
     # The access token from before the revoke still works until it expires.
-    resp = await client.get(f"{API}/homeowner/me", headers=headers(fresh["access_token"]))
+    resp = await client.get(
+        f"{API}/homeowner/me", headers=headers(fresh["access_token"])
+    )
     assert resp.status == 200
 
 
@@ -222,7 +243,12 @@ async def test_password_change(make_cloud):
     _, client = await make_cloud()
     tok = await sign_in(client)
     await control(client, "password", email=EMAIL, password="new-demo-password")
-    data = {"grant_type": "password", "username": EMAIL, "password": PASSWORD, "scope": SCOPE}
+    data = {
+        "grant_type": "password",
+        "username": EMAIL,
+        "password": PASSWORD,
+        "scope": SCOPE,
+    }
     assert (await token_call(client, data)).status == 400
     resp = await token_call(
         client, {"grant_type": "refresh_token", "refresh_token": tok["refresh_token"]}
@@ -240,7 +266,10 @@ async def test_advance_and_exercise_now(signed_in):
     await control(client, "exercise_now", device=BLUE)
     rec = await api.record(BLUE)
     assert rec["exercise"]["runningMode"] == "Unloaded"
-    assert rec["exercise"]["nextStartTimestamp"] == before["exercise"]["nextStartTimestamp"]
+    assert (
+        rec["exercise"]["nextStartTimestamp"]
+        == before["exercise"]["nextStartTimestamp"]
+    )
     resp = await client.post("/_mock/exercise_now", json={"device": BLUE})
     assert resp.status == 400
 
@@ -293,4 +322,28 @@ async def test_offline_from_start_shows_the_time_it_went_offline(make_cloud):
     cloud, _ = await make_cloud(OFFLINE)
     gen = cloud.generators[OFFLINE_ID]
     dev = gen.record()
-    assert dev["controllerClockTimestamp"] == times.local_naive(gen.offline_since, gen.tz)
+    assert dev["controllerClockTimestamp"] == times.local_naive(
+        gen.offline_since, gen.tz
+    )
+
+
+async def test_low_battery_after_a_clear_raises_the_alert_again(signed_in):
+    _, client, api = await signed_in()
+    await control(client, "battery", device=BLUE, low=True)
+    await control(client, "clear", device=BLUE)
+    assert await api.get(f"/devices/{BLUE}/alerts") == []
+    await control(client, "battery", device=BLUE, low=True)
+    alerts = await api.get(f"/devices/{BLUE}/alerts")
+    assert [a["event"] for a in alerts] == ["Low Battery Voltage"]
+
+
+async def test_add_to_a_missing_home_is_refused(signed_in):
+    _, client, _ = await signed_in()
+    body = {
+        "email": EMAIL,
+        "op": "add",
+        "device": 58011,
+        "profile": "air-20kw-blue-ng",
+        "home": 9,
+    }
+    assert (await client.post("/_mock/account", json=body)).status == 400

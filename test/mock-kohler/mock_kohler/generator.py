@@ -123,7 +123,9 @@ class Generator:
         self.ex_last_start = self.ex_last_end = self.last_ran = None
         ex = profile.get("exercise")
         if ex:
-            nxt = times.next_weekly(now, self.tz, ex.get("weekday", 5), ex.get("time", "10:00"))
+            nxt = times.next_weekly(
+                now, self.tz, ex.get("weekday", 5), ex.get("time", "10:00")
+            )
             self.schedule = {
                 "frequency": ex["frequency"],
                 "mode": ex["mode"],
@@ -260,11 +262,14 @@ class Generator:
     def _on_started(self):
         if self.engine != "CrankOn":
             return
-        self.engine = EXERCISE_STATES[self.ex_mode] if self.kind == "exercise" else "Running"
+        self.engine = (
+            EXERCISE_STATES[self.ex_mode] if self.kind == "exercise" else "Running"
+        )
         self.started = True
         self._event("Engine Started", etype="runningNotice")
         self._notice(
-            "EngineStartedNotice", f'The engine on your generator "{self.name}" has started.'
+            "EngineStartedNotice",
+            f'The engine on your generator "{self.name}" has started.',
         )
         if self._wants_generator_power():
             self._after(self.timing["transfer_s"], "transfer")
@@ -296,7 +301,8 @@ class Generator:
         if was_running:
             self._event("Engine Stopped")
             self._notice(
-                "EngineStoppedNotice", f'The engine on your generator "{self.name}" has stopped.'
+                "EngineStoppedNotice",
+                f'The engine on your generator "{self.name}" has stopped.',
             )
             self.last_ran = self.run_start
         self.run_start = None
@@ -319,7 +325,8 @@ class Generator:
         self.ex_last_start = self.t
         self._event("Exercise Active")
         self._notice(
-            "ExerciseStartedNotice", f'An exercise has started on your generator "{self.name}".'
+            "ExerciseStartedNotice",
+            f'An exercise has started on your generator "{self.name}".',
         )
         self._crank()
         self._after(minutes * 60, "exercise_end")
@@ -331,7 +338,8 @@ class Generator:
         self.ex_last_end = self.t
         self._event("Exercise Ended")
         self._notice(
-            "ExerciseEndedNotice", f'An exercise has ended on your generator "{self.name}".'
+            "ExerciseEndedNotice",
+            f'An exercise has ended on your generator "{self.name}".',
         )
 
     def _on_exercise_end(self):
@@ -365,7 +373,9 @@ class Generator:
     def start_exercise(self, mode):
         self.settle()
         if mode not in self.modes:
-            raise Refused(400, f"Exercise mode {mode!r} is not supported by this generator")
+            raise Refused(
+                400, f"Exercise mode {mode!r} is not supported by this generator"
+            )
         if not self.online:
             raise Refused(409, "The generator is offline")
         if not self.utility:
@@ -398,10 +408,18 @@ class Generator:
         if frequency not in FREQUENCY_DAYS:
             raise Refused(400, f"Invalid exercise frequency {frequency!r}")
         if mode not in self.modes:
-            raise Refused(400, f"Exercise mode {mode!r} is not supported by this generator")
+            raise Refused(
+                400, f"Exercise mode {mode!r} is not supported by this generator"
+            )
         lo, hi = DURATION_RANGE
-        if not isinstance(minutes, int) or isinstance(minutes, bool) or not lo <= minutes <= hi:
-            raise Refused(400, f"durationMinutes must be a whole number from {lo} to {hi}")
+        if (
+            not isinstance(minutes, int)
+            or isinstance(minutes, bool)
+            or not lo <= minutes <= hi
+        ):
+            raise Refused(
+                400, f"durationMinutes must be a whole number from {lo} to {hi}"
+            )
         try:
             nxt = times.parse(start, self.tz)
         except (TypeError, ValueError, AttributeError):
@@ -566,12 +584,11 @@ class Generator:
 
     def set_battery(self, low):
         self.settle()
-        if low == self.battery_low:
-            return
         self.battery_low = low
-        if low:
+        open_alert = any(a["event"] == LOW_BATTERY_EVENT for a in self.alerts)
+        if low and not open_alert:
             self.raise_warning(LOW_BATTERY_EVENT)
-        else:
+        elif not low and open_alert:
             self.alerts = [a for a in self.alerts if a["event"] != LOW_BATTERY_EVENT]
             self._touch()
 
@@ -675,8 +692,12 @@ class Generator:
             "deviceIpAddress": self.ip,
             "macAddress": reverse_mac(self.mac),
             "status": self.status(),
-            "statusUpdateTimestamp": times.utc_iso(self.status_t, fraction=self.fraction),
-            "latestParameterUpdateTimestamp": times.utc_iso(self.param_t, fraction=self.fraction),
+            "statusUpdateTimestamp": times.utc_iso(
+                self.status_t, fraction=self.fraction
+            ),
+            "latestParameterUpdateTimestamp": times.utc_iso(
+                self.param_t, fraction=self.fraction
+            ),
             "dealerOrgs": copy.deepcopy(p.get("dealerOrgs", [])),
             "alertCount": len(self.alerts),
             "model": p["model"],
@@ -686,7 +707,9 @@ class Generator:
                 self.maint_last + self.maint_period * 86400
             ),
             "maintenancePeriodDays": self.maint_period,
-            "hasServiceAgreement": (p.get("serviceAgreement") or {}).get("hasServiceAgreement"),
+            "hasServiceAgreement": (p.get("serviceAgreement") or {}).get(
+                "hasServiceAgreement"
+            ),
             "totalRuntimeHours": round(self.runtime, 1),
         }
 
@@ -781,6 +804,8 @@ class Generator:
             "power": self.power,
             "fault": self.fault["event"] if self.fault else None,
             "battery_low": self.battery_low,
-            "schedule_next": times.utc_iso(self.schedule["next"]) if self.schedule else None,
+            "schedule_next": (
+                times.utc_iso(self.schedule["next"]) if self.schedule else None
+            ),
             "pending": [[round(q[0] - self.t, 1), q[2]] for q in sorted(self.queue)],
         }

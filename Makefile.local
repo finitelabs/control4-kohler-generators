@@ -29,8 +29,7 @@ mock-kohler: $(MOCK_STAMP) ## Run the mock KOHLER cloud (MOCK_CONFIG=, MOCK_ARGS
 test-mock-kohler: $(MOCK_STAMP) ## Run the mock's own tests
 	cd $(MOCK_DIR) && .venv/bin/python3 -m pytest -q
 
-# Formatter settings stay here, not in a config file.
-MOCK_BLACK := $(MOCK_VENV)/bin/black --line-length 100
+MOCK_BLACK := $(MOCK_VENV)/bin/black
 MOCK_PY_FILES := $(MOCK_DIR)/mock_kohler $(MOCK_DIR)/tests
 
 fmt-mock-kohler: $(MOCK_STAMP) ## Format the mock's Python

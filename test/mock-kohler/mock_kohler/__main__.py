@@ -36,11 +36,18 @@ def parse_args(argv):
         epilog="\n\n".join(__doc__.split("\n\n")[1:]),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("--config", help="JSON file naming the accounts, generators and settings")
-    ap.add_argument("--host", default=None, help="address to listen on (default 0.0.0.0)")
-    ap.add_argument("--port", type=int, default=None, help="port (default from the config)")
-    ap.add_argument("--speed", type=float, default=None, help="simulated seconds per second")
-    ap.add_argument("--public-url", help="origin clients reach the mock at")
+    ap.add_argument(
+        "--config", help="JSON file naming the accounts, generators and settings"
+    )
+    ap.add_argument(
+        "--host", default=None, help="address to listen on (default 0.0.0.0)"
+    )
+    ap.add_argument(
+        "--port", type=int, default=None, help="port (default from the config)"
+    )
+    ap.add_argument(
+        "--speed", type=float, default=None, help="simulated seconds per second"
+    )
     ap.add_argument("--tls", action="store_true", help="serve HTTPS")
     ap.add_argument("--cert", help="certificate file for --tls")
     ap.add_argument("--key", help="key file for --tls")
@@ -80,8 +87,6 @@ async def run(args):
         return 2
     with open(args.config, encoding="utf-8") as f:
         cfg = json.load(f)
-    if args.public_url:
-        cfg.setdefault("settings", {})["public_url"] = args.public_url
     host = args.host or cfg.get("host", "0.0.0.0")
     port = args.port or cfg.get("port", 18400)
     ctx = None
@@ -117,7 +122,9 @@ def main(argv=None):
     if args.list:
         for p in sorted(PROFILES.glob("*.json")):
             prof = load_profile(p)
-            print(f"{p.stem:24} {prof.get('modelDisplayName', ''):8} {prof.get('description', '')}")
+            print(
+                f"{p.stem:24} {prof.get('modelDisplayName', ''):8} {prof.get('description', '')}"
+            )
         return 0
     return asyncio.run(run(args))
 

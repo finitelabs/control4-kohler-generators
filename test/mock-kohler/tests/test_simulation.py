@@ -76,7 +76,9 @@ async def test_events_are_appended_once(signed_in, clock):
 
 async def test_loaded_exercise_moves_to_generator_power(signed_in, clock):
     _, _, api = await signed_in()
-    await api.call("POST", f"/devices/{BLUE}/exercise/start", {"mode": "LoadedFullSpeed"})
+    await api.call(
+        "POST", f"/devices/{BLUE}/exercise/start", {"mode": "LoadedFullSpeed"}
+    )
     clock.advance(5)
     rec = await api.record(BLUE)
     assert rec["engineState"] == "PerformingLoadedExercise"
@@ -222,7 +224,9 @@ async def test_no_exercise_during_an_outage(signed_in, clock):
     _, client, api = await signed_in()
     await control(client, "outage", device=BLUE)
     clock.advance(1)
-    resp = await api.call("POST", f"/devices/{BLUE}/exercise/start", {"mode": "Unloaded"})
+    resp = await api.call(
+        "POST", f"/devices/{BLUE}/exercise/start", {"mode": "Unloaded"}
+    )
     assert resp.status == 409
     assert "Utility power is out" in (await resp.json())["message"]
     clock.advance(60)

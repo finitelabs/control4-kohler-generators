@@ -77,7 +77,11 @@ async def test_refresh_rotates_and_old_token_stops_working(make_cloud):
     assert (await again.json())["error"] == "invalid_grant"
     newest = await token_call(
         client,
-        {"grant_type": "refresh_token", "refresh_token": second["refresh_token"], "scope": SCOPE},
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": second["refresh_token"],
+            "scope": SCOPE,
+        },
     )
     assert newest.status == 200
 
@@ -87,7 +91,11 @@ async def test_refresh_cannot_widen_scope(make_cloud):
     tok = await sign_in(client, scope="openid offline_access")
     resp = await token_call(
         client,
-        {"grant_type": "refresh_token", "refresh_token": tok["refresh_token"], "scope": SCOPE},
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": tok["refresh_token"],
+            "scope": SCOPE,
+        },
     )
     assert resp.status == 400
     assert (await resp.json())["error"] == "invalid_scope"
@@ -109,7 +117,13 @@ async def test_bad_password_and_unknown_user(make_cloud):
     _, client = await make_cloud()
     for user, pw in ((EMAIL, "wrong"), ("nobody@example.com", PASSWORD)):
         resp = await token_call(
-            client, {"grant_type": "password", "username": user, "password": pw, "scope": SCOPE}
+            client,
+            {
+                "grant_type": "password",
+                "username": user,
+                "password": pw,
+                "scope": SCOPE,
+            },
         )
         assert resp.status == 400
         body = await resp.json()
@@ -121,7 +135,12 @@ async def test_refused_sign_in(make_cloud):
     cfg = json.loads(json.dumps(OFFLINE))
     cfg["accounts"][0]["refuse"] = "mfa_required"
     _, client = await make_cloud(cfg)
-    data = {"grant_type": "password", "username": EMAIL, "password": PASSWORD, "scope": SCOPE}
+    data = {
+        "grant_type": "password",
+        "username": EMAIL,
+        "password": PASSWORD,
+        "scope": SCOPE,
+    }
     resp = await token_call(client, data)
     assert resp.status == 400
     assert (await resp.json())["error"] == "mfa_required"
@@ -138,8 +157,19 @@ async def test_refused_sign_in(make_cloud):
 
 async def test_client_authentication(make_cloud):
     _, client = await make_cloud()
-    data = {"grant_type": "password", "username": EMAIL, "password": PASSWORD, "scope": SCOPE}
-    for auth in ("", basic("other-client"), basic(secret="wrong"), "Bearer x", "Basic !!!"):
+    data = {
+        "grant_type": "password",
+        "username": EMAIL,
+        "password": PASSWORD,
+        "scope": SCOPE,
+    }
+    for auth in (
+        "",
+        basic("other-client"),
+        basic(secret="wrong"),
+        "Bearer x",
+        "Basic !!!",
+    ):
         resp = await token_call(client, data, auth=auth)
         assert resp.status == 401, auth
         assert (await resp.json())["error"] == "invalid_client"
@@ -158,7 +188,12 @@ async def test_token_request_shape(make_cloud):
     assert (await resp.json())["error"] == "unsupported_grant_type"
     resp = await token_call(
         client,
-        {"grant_type": "password", "username": EMAIL, "password": PASSWORD, "scope": "admin"},
+        {
+            "grant_type": "password",
+            "username": EMAIL,
+            "password": PASSWORD,
+            "scope": "admin",
+        },
     )
     assert (await resp.json())["error"] == "invalid_scope"
 
@@ -170,9 +205,16 @@ async def test_api_key_and_bearer_checks(make_cloud):
     assert await me_status(client, tok, key="wrong-key") == 403
     # Header names and the scheme are case-insensitive.
     resp = await client.get(
-        f"{API}/homeowner/me", headers={"authorization": f"BEARER {tok}", "apikey": API_KEY}
+        f"{API}/homeowner/me",
+        headers={"authorization": f"BEARER {tok}", "apikey": API_KEY},
     )
     assert resp.status == 200
-    for auth in ({}, {"Authorization": "bearer nonsense"}, {"Authorization": f"Basic {tok}"}):
-        resp = await client.get(f"{API}/homeowner/me", headers={"ApiKey": API_KEY, **auth})
+    for auth in (
+        {},
+        {"Authorization": "bearer nonsense"},
+        {"Authorization": f"Basic {tok}"},
+    ):
+        resp = await client.get(
+            f"{API}/homeowner/me", headers={"ApiKey": API_KEY, **auth}
+        )
         assert resp.status == 401, auth

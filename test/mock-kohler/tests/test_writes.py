@@ -64,7 +64,9 @@ async def test_exercise_start_guards(signed_in, clock):
 
 async def test_exercise_schedule_write(signed_in, clock):
     _, _, api = await signed_in()
-    start = datetime.fromtimestamp(clock.now() + 3 * 86400, timezone.utc).replace(microsecond=0)
+    start = datetime.fromtimestamp(clock.now() + 3 * 86400, timezone.utc).replace(
+        microsecond=0
+    )
     body = {
         "frequency": "Monthly",
         "nextStartTimestamp": start.isoformat().replace("+00:00", "Z"),
@@ -109,7 +111,9 @@ async def test_schedule_write_validation(signed_in, clock):
         {"nextStartTimestamp": None},
         {"nextStartTimestamp": past},
     ):
-        await write(api, "PUT", f"/devices/{BLUE}/exercise", {**good, **bad}, status=400)
+        await write(
+            api, "PUT", f"/devices/{BLUE}/exercise", {**good, **bad}, status=400
+        )
     await write(api, "PUT", f"/devices/{BLUE}/exercise", good)
 
 
@@ -128,11 +132,15 @@ async def test_schedule_delete(signed_in, clock):
 
 async def test_load_shed_set_value(signed_in):
     _, _, api = await signed_in()
-    await write(api, "POST", f"/devices/{BLUE}/peripherals/3/set_value", {"value": True})
+    await write(
+        api, "POST", f"/devices/{BLUE}/peripherals/3/set_value", {"value": True}
+    )
     rec = await api.record(BLUE)
     load_a = next(p for p in rec["loadShed"]["parameters"] if p["definitionId"] == 3)
     assert load_a["value"] is True
-    await write(api, "POST", f"/devices/{BLUE}/peripherals/3/set_value", {"value": False})
+    await write(
+        api, "POST", f"/devices/{BLUE}/peripherals/3/set_value", {"value": False}
+    )
     rec = await api.record(BLUE)
     assert not any(p["value"] for p in rec["loadShed"]["parameters"])
 
@@ -142,28 +150,54 @@ async def test_set_value_guards(signed_in):
     # PIM outputs are read only, whatever their isReadOnly flag says.
     for pid in (7, 9):
         body = await write(
-            api, "POST", f"/devices/{BLUE}/peripherals/{pid}/set_value", {"value": True}, 400
+            api,
+            "POST",
+            f"/devices/{BLUE}/peripherals/{pid}/set_value",
+            {"value": True},
+            400,
         )
         assert "read only" in body["message"]
-    await write(api, "POST", f"/devices/{BLUE}/peripherals/99/set_value", {"value": True}, 404)
-    await write(api, "POST", f"/devices/{BLUE}/peripherals/x/set_value", {"value": True}, 404)
-    await write(api, "POST", f"/devices/{BLUE}/peripherals/1/set_value", {"value": 1}, 400)
+    await write(
+        api, "POST", f"/devices/{BLUE}/peripherals/99/set_value", {"value": True}, 404
+    )
+    await write(
+        api, "POST", f"/devices/{BLUE}/peripherals/x/set_value", {"value": True}, 404
+    )
+    await write(
+        api, "POST", f"/devices/{BLUE}/peripherals/1/set_value", {"value": 1}, 400
+    )
     # No load module connected on this one.
-    await write(api, "POST", f"/devices/{REDGREEN}/peripherals/1/set_value", {"value": True}, 409)
+    await write(
+        api,
+        "POST",
+        f"/devices/{REDGREEN}/peripherals/1/set_value",
+        {"value": True},
+        409,
+    )
     await control(client, "online", device=BLUE, online=False)
-    await write(api, "POST", f"/devices/{BLUE}/peripherals/1/set_value", {"value": True}, 409)
+    await write(
+        api, "POST", f"/devices/{BLUE}/peripherals/1/set_value", {"value": True}, 409
+    )
 
 
 async def test_rename_peripheral(signed_in):
     _, _, api = await signed_in()
-    await write(api, "PUT", f"/devices/{LIQUID}/peripherals/1", {"displayName": " Pool Pump "})
-    await write(api, "PUT", f"/devices/{LIQUID}/peripherals/8", {"displayName": "Gate Light"})
+    await write(
+        api, "PUT", f"/devices/{LIQUID}/peripherals/1", {"displayName": " Pool Pump "}
+    )
+    await write(
+        api, "PUT", f"/devices/{LIQUID}/peripherals/8", {"displayName": "Gate Light"}
+    )
     rec = await api.record(LIQUID)
     assert rec["loadShed"]["parameters"][0]["displayName"] == "Pool Pump"
     assert rec["pim"]["parameters"][1]["displayName"] == "Gate Light"
     for bad in ("", "x" * 51, None, 5):
-        await write(api, "PUT", f"/devices/{LIQUID}/peripherals/1", {"displayName": bad}, 400)
-    await write(api, "PUT", f"/devices/{LIQUID}/peripherals/50", {"displayName": "A"}, 404)
+        await write(
+            api, "PUT", f"/devices/{LIQUID}/peripherals/1", {"displayName": bad}, 400
+        )
+    await write(
+        api, "PUT", f"/devices/{LIQUID}/peripherals/50", {"displayName": "A"}, 404
+    )
 
 
 async def test_writes_need_auth_and_own_device(signed_in):

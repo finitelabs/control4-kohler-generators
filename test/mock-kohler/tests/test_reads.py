@@ -22,7 +22,11 @@ async def test_me(signed_in):
     me = await api.get("/homeowner/me")
     assert me["email"] == "demo@example.com"
     assert me["id"] == 91001
-    assert sorted(me["deviceSerialNumbers"]) == ["DEMO000001", "DEMO000002", "DEMO000003"]
+    assert sorted(me["deviceSerialNumbers"]) == [
+        "DEMO000001",
+        "DEMO000002",
+        "DEMO000003",
+    ]
 
 
 async def test_homes_hold_their_generators(signed_in):
@@ -77,7 +81,11 @@ async def test_source_device_host(signed_in):
 
 async def test_unknown_devices(signed_in):
     _, client, api = await signed_in()
-    for path in (f"/devices/{OFFLINE_ID}", "/devices/abc", f"/devices/{OFFLINE_ID}/alerts"):
+    for path in (
+        f"/devices/{OFFLINE_ID}",
+        "/devices/abc",
+        f"/devices/{OFFLINE_ID}/alerts",
+    ):
         resp = await api.call("GET", path)
         assert resp.status == 404, path
 
