@@ -229,6 +229,9 @@ end
 C4.GetVersionInfo = function()
   return { version = "4.3.0" }
 end
+local xmlFile = assert(io.open(root .. "/drivers/kohler_generator/driver.xml", "rb"))
+require("c4_fixtures").seedProperties(xmlFile:read("*a"))
+xmlFile:close()
 Properties["Log Level"] = "3 - Info"
 Properties["Log Mode"] = "Off"
 Properties["Auto Rename Driver"] = "On"
