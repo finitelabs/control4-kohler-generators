@@ -19,9 +19,9 @@ JSON = require("JSON")
 local log = require("lib.logging")
 local values = require("lib.values")
 local persist = require("lib.persist")
-local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
 local drivercentral = require("lib.drivercentral")
+local updateSettings = require("lib.update-settings")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
@@ -807,6 +807,7 @@ function OPC.Driver_Version(_v)
   C4:UpdateProperty("Driver Version", C4:GetDriverConfigInfo("version"))
 end
 
+--#ifdef DRIVERCENTRAL
 function OPC.Automatic_Updates(propertyValue)
   if gInitialized then
     updateSettings:share("Automatic Updates", propertyValue)
@@ -819,7 +820,6 @@ function EC.SET_UPDATE_SETTING(params)
   updateSettings:take(params)
 end
 
---#ifdef DRIVERCENTRAL
 --- Not logged: the value is the code.
 function OPC.Support_Code(propertyValue)
   supportCode:enter(propertyValue)
