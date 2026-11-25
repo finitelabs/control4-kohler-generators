@@ -330,6 +330,12 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   controller restart, until its first reading.
 - Fixed a load-shed load named Watts or Percent taking over the Load Watts or
   Load Percent variable, and Load Control off deleting it.
+- Fixed a controller restart firing Generator Offline and Generator Online for a
+  generator that didn't change.
+
+### Changed
+
+- Changed Account Connected to fire after each driver or controller start too.
 
 ### Removed
 
