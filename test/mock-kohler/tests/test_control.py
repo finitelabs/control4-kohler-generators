@@ -48,13 +48,13 @@ async def test_fault_and_clear(signed_in, clock):
     _, client, api = await signed_in()
     await control(client, "outage", device=BLUE)
     clock.advance(20)
-    await control(client, "fault", device=BLUE, event="Overcrank")
+    await control(client, "fault", device=BLUE, event="Over Crank")
     rec = await api.record(BLUE)
     assert rec["device"]["status"] == "Shutdown"
     assert rec["engineState"] == "Shutdown"
     assert rec["device"]["alertCount"] == 1
     alerts = await api.get(f"/devices/{BLUE}/alerts")
-    assert alerts[0]["event"] == "Overcrank"
+    assert alerts[0]["event"] == "Over Crank"
     assert alerts[0]["level"] == "Shutdown"
     assert alerts[0]["isCriticalFault"] is True
     events = await api.get(f"/devices/{BLUE}/events")

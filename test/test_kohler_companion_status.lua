@@ -188,7 +188,7 @@ handOver("fault", true)
 T.eq("Fault fires once, from the event log", events, { "Fault" })
 T.eq("Fault", var("Fault"), true)
 T.eq("Active Alerts", var("Active Alerts"), 1)
-T.eq("Last Alert", var("Last Alert"), "Overcrank")
+T.eq("Last Alert", var("Last Alert"), "Over Crank")
 T.eq("Has Fault", test("GENERATOR_FAULT", "Faulted"), true)
 T.eq("the Fault contact closes", told, { "3 CLOSED" })
 

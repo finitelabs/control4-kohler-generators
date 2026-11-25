@@ -102,7 +102,7 @@ test("fault: alerts first, with tones", () => {
       s.top.inAuto = false;
       s.top.switchPosition = "Off";
       s.alerts = [
-        { id: 9, name: "Overcrank", level: "Shutdown", at: NOW - 600 },
+        { id: 9, name: "Over Crank", level: "Shutdown", at: NOW - 600 },
         { id: 8, name: "Low Battery", level: "Warning", at: NOW - 3600 },
       ];
     }),
@@ -113,7 +113,7 @@ test("fault: alerts first, with tones", () => {
   assert.deepEqual(
     v.alerts.map((a) => [a.name, a.tone]),
     [
-      ["Overcrank", "bad"],
+      ["Over Crank", "bad"],
       ["Low Battery", "warn"],
     ]
   );

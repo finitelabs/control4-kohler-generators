@@ -540,7 +540,7 @@ class Generator:
                 self._after(self.timing["start_delay_s"], "outage_start")
         self._touch()
 
-    def raise_fault(self, event="Overcrank"):
+    def raise_fault(self, event="Over Crank"):
         self.settle()
         if self.kind == "exercise":
             self._end_exercise()

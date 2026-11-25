@@ -119,7 +119,7 @@ local fault = stateOf(
 )
 T.eq("fault", fault.top.fault, true)
 T.eq("one alert", #fault.alerts, 1)
-T.eq("named by its event", fault.alerts[1].name, "Overcrank")
+T.eq("named by its event", fault.alerts[1].name, "Over Crank")
 T.eq("with its level", fault.alerts[1].level, "Shutdown")
 T.eq("history newest first", fault.history[1].id >= (fault.history[#fault.history].id or 0), true)
 local many = {}

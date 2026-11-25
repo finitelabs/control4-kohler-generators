@@ -26,7 +26,7 @@ SCENARIOS = {
     "outage": [("utility_lost",), ("wait", 30)],
     "restored": [("utility_lost",), ("wait", 30), ("utility_restored",), ("wait", 300)],
     "exercise": [("start_exercise", "Unloaded"), ("wait", 30)],
-    "fault": [("raise_fault", "Overcrank")],
+    "fault": [("raise_fault", "Over Crank")],
     "warning": [("raise_warning", "Parameter Value Abnormal")],
     "low-battery": [("set_battery", True)],
     "cleared": [("raise_warning", "Parameter Value Abnormal"), ("clear_alerts",)],

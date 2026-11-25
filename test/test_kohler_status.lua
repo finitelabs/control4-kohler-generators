@@ -159,7 +159,7 @@ T.eq("not running", fault.running, false)
 local faultAlerts = Status.alerts(fixture("state-fault-alerts.json"))
 T.eq("one alert", faultAlerts.count, 1)
 T.eq("a fault", faultAlerts.fault, true)
-T.eq("named", faultAlerts.last, "Overcrank")
+T.eq("named", faultAlerts.last, "Over Crank")
 
 T.section("a warning and its clearing")
 local warning = Status.alerts(fixture("state-warning-alerts.json"))
