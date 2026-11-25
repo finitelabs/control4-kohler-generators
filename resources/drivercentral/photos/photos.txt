@@ -1,4 +1,6 @@
 # <output name>|<query>: one listing photo per line, in upload order. README.md lists the fields.
-1-generator-page|img=app-page.png&end=850&t=The%20generator%20in%20the%20Control4%20app&s=Utility%20or%20generator%20power%2C%20the%20engine%2C%20the%20exercise%20schedule%20and%20live%20readings%20on%20the%20generator%27s%20page.
-2-exercise-schedule|img=app-schedule.png&fit=1&t=Exercise%20schedule&s=Set%20how%20often%2C%20the%20day%2C%20the%20time%2C%20the%20mode%20and%20the%20length%20from%20the%20Control4%20app.
-3-loads-and-service|img=app-page.png&crop=865&end=1112&t=Loads%20and%20service&s=Switch%20load-shed%20loads%2C%20and%20see%20maintenance%20dates%2C%20the%20dealer%20and%20the%20generator%27s%20details.
+1-programming|img=composer-programming.png&fit=1&t=Control4%20programming&s=Run%20programming%20when%20the%20utility%20power%20goes%20out%20or%20comes%20back%2C%20the%20engine%20starts%2C%20an%20exercise%20runs%20or%20the%20generator%20needs%20service.
+2-composer-properties|img=composer-properties.png&fit=1&t=Each%20generator%20in%20Composer&s=Each%20generator%20gets%20its%20own%20driver%20with%20its%20model%2C%20fuel%2C%20dealer%2C%20exercise%20schedule%20and%20maintenance%20dates.
+3-generator-page|img=app-page.png&end=790&t=The%20generator%20in%20the%20Control4%20app&s=Utility%20or%20generator%20power%2C%20the%20engine%2C%20the%20exercise%20schedule%20and%20live%20readings%20on%20the%20generator%27s%20page.
+4-exercise-schedule|img=app-schedule.png&fit=1&t=Exercise%20schedule&s=Set%20how%20often%2C%20the%20day%2C%20the%20time%2C%20the%20mode%20and%20the%20length%20from%20the%20Control4%20app.
+5-loads-and-service|img=app-page.png&crop=805&end=1112&t=Loads%20and%20service&s=Switch%20load-shed%20loads%2C%20and%20see%20maintenance%20dates%2C%20the%20dealer%20and%20the%20generator%27s%20details.
