@@ -426,6 +426,19 @@ function RFP.updateFeeds(idBinding, _strCommand, tParams)
   applyFeeds(alerts, events)
 end
 
+--- A contact output's proxy asks for its state.
+--- @param idBinding integer
+function RFP.GET_STATE(idBinding)
+  log:trace("RFP.GET_STATE(%s)", idBinding)
+  if CONTACTS[idBinding] == nil then
+    return
+  end
+  local closed = contactClosed(idBinding)
+  if closed ~= nil then
+    SendToProxy(idBinding, closed and "STATE_CLOSED" or "STATE_OPENED", {}, "NOTIFY")
+  end
+end
+
 --- The generator left the account, or the account is signed out.
 --- @param idBinding integer
 function RFP.goOffline(idBinding)

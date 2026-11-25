@@ -302,6 +302,11 @@ told = {}
 OBC[2](2, "CONTACT_SENSOR", true)
 T.eq("as STATE_, which fires nothing", told, { "2 STATE_CLOSED" })
 
+T.section("a contact that asks for its state is told it")
+told = {}
+ReceivedFromProxy(2, "GET_STATE", {})
+T.eq("as STATE_, which fires nothing", told, { "2 STATE_CLOSED" })
+
 T.section("an unreadable feed is ignored")
 events = {}
 RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", { ALERTS = "{", EVENTS = "[]" })
