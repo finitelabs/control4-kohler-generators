@@ -163,8 +163,9 @@ function M.fromRecord(record, now, scale)
   local exercising = device.status == "RunningExercise"
     or (type(runningMode) == "string" and runningMode ~= "None")
     or (type(engine) == "string" and engine:find("^Performing.*Exercise$") ~= nil)
+  local utilitySensed = utilityV ~= nil and sensesUtility(device.id, utilityV)
   local utilityOut
-  if utilityV ~= nil and sensesUtility(device.id, utilityV) then
+  if utilitySensed then
     utilityOut = utilityV < UTILITY_OUT_V
   else
     utilityOut = power == "Generator" and not exercising
@@ -199,7 +200,7 @@ function M.fromRecord(record, now, scale)
     inAuto = record.switchState == "Auto",
     shutDown = device.status == "Shutdown" or engine == "Shutdown",
     readings = {
-      ["Utility Voltage"] = utilityV,
+      ["Utility Voltage"] = utilitySensed and utilityV or nil,
       ["Generator Voltage"] = n(record.generatorVoltageAvgV),
       ["Load Watts"] = Generator.load(record.generatorLoadW),
       ["Load Percent"] = Generator.load(record.generatorLoadPercent),

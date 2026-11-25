@@ -119,11 +119,6 @@ input:focus-visible {
   padding: 8px 4px 0;
 }
 
-.top-name {
-  font-size: 24px;
-  font-weight: 300;
-}
-
 .top-reported,
 .muted {
   color: var(--text-2);

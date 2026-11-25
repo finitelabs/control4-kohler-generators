@@ -109,7 +109,6 @@
 
   function renderTop(v) {
     var head = el("header", "top");
-    head.appendChild(el("h1", "top-name", v.top.name));
     if (v.top.reported) head.appendChild(el("p", "top-reported", v.top.reported));
     page.appendChild(head);
     var c = card();

@@ -102,7 +102,6 @@
       ? { text: "Switch in Auto", tone: "quiet" }
       : { text: "Switch in " + (t.switchPosition || "Off"), tone: "warn" };
     return {
-      name: state.name || "Generator",
       power: power,
       engine: engine,
       engineState: t.engineState || "",

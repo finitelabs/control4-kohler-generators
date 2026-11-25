@@ -179,7 +179,6 @@ function M.state(ctx)
     connected = s.online,
     reason = not s.online and "offline" or nil,
     scale = ctx.scale,
-    name = identity.name,
     lastHeard = Generator.time(device.lastConnectedTimestamp),
     top = {
       powerSource = s.powerSource,
