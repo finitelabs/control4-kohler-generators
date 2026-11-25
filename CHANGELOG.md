@@ -24,7 +24,7 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Added the Kohler Generators and Kohler Generator drivers to DriverCentral
+- Added the Kohler Generators and Kohler Generator drivers to DriverCentral.
 
 <!-- #endif -->
 
