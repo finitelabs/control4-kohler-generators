@@ -44,5 +44,10 @@ return {
     GO_OFFLINE = "goOffline",
     --- companion to account: send the generator's record again
     REFRESH_STATE = "REFRESH_STATE",
+    --- companion to account: a command for the generator, as { JSON = a KohlerCommand }, or
+    --- { JSON = { action = "refresh" } } to read the generator now
+    GENERATOR_COMMAND = "generatorCommand",
+    --- account to companion: how a command went, as { ACTION, OK = "true"|"false", MESSAGE }
+    COMMAND_RESULT = "commandResult",
   },
 }

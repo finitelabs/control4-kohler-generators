@@ -63,6 +63,8 @@ local alertsAlways = nil
 local held = nil
 --- A record a generator answers with in place of its fixture, by id.
 local deviceAnswers = {}
+--- The answers the next commands (POST, PUT) get, in order; then 204.
+local writeAnswers = {}
 
 urlDo = function(method, url, data, _headers, callback, context)
   requests[#requests + 1] = { method = method, url = url, data = data }
@@ -79,6 +81,9 @@ urlDo = function(method, url, data, _headers, callback, context)
       issued = issued + 1
       code, body = 200, { access_token = "access-" .. issued, refresh_token = "refresh-" .. issued, expires_in = 3600 }
     end
+  elseif method ~= "GET" then
+    local answer = table.remove(writeAnswers, 1) or { 204, "" }
+    code, body, responseHeaders = answer[1], answer[2], answer[3] or {}
   else
     local answer = apiAlways
       or (url:find("/devices/%d+%?") and deviceAlways)
@@ -559,5 +564,254 @@ requests = {}
 now = now + 120
 ShimFireTimers()
 T.eq("then every 2 minutes again", sent("/alerts%?"), 3)
+
+T.section("a command a generator's last reading refuses is never sent")
+--- @param id integer
+--- @param command table
+local function command(id, command_)
+  RFP.generatorCommand(bindingOf(id), constants.CMD.GENERATOR_COMMAND, { JSON = JSON:encode(command_) })
+end
+--- @param command string
+--- @return integer
+local function sentMethod(method)
+  local n = 0
+  for _, r in ipairs(requests) do
+    if r.method == method then
+      n = n + 1
+    end
+  end
+  return n
+end
+deviceAnswers["58001"] = fixture("state-outage.json")
+EC.Refresh_Generators()
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq("nothing sent", #requests, 0)
+local result = proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)]
+T.eq("the companion is told why", result, { ACTION = "start", OK = "false", MESSAGE = "Utility power is out" })
+
+T.section("a command is sent once, answered, and the generator read again")
+deviceAnswers["58001"] = fixture("state-standby.json")
+EC.Refresh_Generators()
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq("one POST", sentMethod("POST"), 1)
+T.eq(
+  "to exercise/start",
+  requests[1].url,
+  constants.API_ORIGIN .. constants.API_PATH .. "/devices/58001/exercise/start?sourceDeviceHost=Oncue"
+)
+T.eq("with the mode", requests[1].data, { mode = "Unloaded" })
+T.eq(
+  "answered",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)],
+  { ACTION = "start", OK = "true", MESSAGE = "Sent" }
+)
+T.eq("then the generator is read", sent("/devices/58001%?"), 1)
+T.truthy("and handed to its companion", proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)])
+
+T.section("a read sent before a command can't hand the companion the state from before it")
+deviceAnswers["58001"] = fixture("state-exercise.json")
+EC.Refresh_Generators()
+held = {}
+EC.Refresh_Generators()
+table.remove(held, 1)()
+local before = {}
+while #held > 0 do
+  before[#before + 1] = table.remove(held, 1)
+end
+held = nil
+deviceAnswers["58001"] = fixture("state-standby.json")
+requests, toProxy = {}, {}
+command(58001, { action = "stop" })
+T.eq("the stop is sent", sentMethod("POST"), 1)
+local after = proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)]
+T.eq("the read after it hands the stopped generator", JSON:decode(after.JSON).engineState, "Standby")
+toProxy = {}
+for _, answer in ipairs(before) do
+  answer()
+end
+T.eq("the reads sent before it hand nothing", proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)], nil)
+
+T.section("one command at a time per generator")
+deviceAnswers["58001"] = fixture("state-exercise.json")
+EC.Refresh_Generators()
+held = {}
+requests, toProxy = {}, {}
+command(58001, { action = "stop" })
+command(58001, { action = "stop" })
+T.eq(
+  "the second is refused while the first is on its way",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)],
+  { ACTION = "stop", OK = "false", MESSAGE = "Another command is still on its way" }
+)
+T.eq("one POST", sentMethod("POST"), 1)
+while #held > 0 do
+  table.remove(held, 1)()
+end
+held = nil
+toProxy = {}
+command(58001, { action = "stop" })
+T.eq("and one is taken once it lands", proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].OK, "true")
+
+T.section("a command that fails with a 5xx is not sent again")
+deviceAnswers["58001"] = fixture("state-exercise.json")
+EC.Refresh_Generators()
+requests, toProxy = {}, {}
+writeAnswers = { { 503, { message = "Service Unavailable" } } }
+command(58001, { action = "stop" })
+ShimFireTimers()
+T.eq("one POST", sentMethod("POST"), 1)
+T.eq(
+  "the companion is told to check the generator",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)],
+  { ACTION = "stop", OK = "false", MESSAGE = "KOHLER did not answer; check the generator before trying again" }
+)
+T.eq("the poll is not paused by it", props["Driver Status"]:find("not answering"), nil)
+
+T.section("Refresh reads the generator now")
+now = now + 5
+requests = {}
+command(58001, { action = "refresh" })
+T.eq("its record is read", sent("/devices/58001%?"), 1)
+T.eq("nothing else", #requests, 1)
+deviceAnswers["58001"] = fixture("state-standby.json")
+
+T.section("a command's read of one generator leaves the poll's reads of the others")
+EC.Refresh_Generators()
+now = now + 10
+held = {}
+requests, toProxy = {}, {}
+EC.Refresh_Generators()
+table.remove(held, 1)()
+local pollReads = {}
+while #held > 0 do
+  pollReads[#pollReads + 1] = table.remove(held, 1)
+end
+held = nil
+command(58001, { action = "refresh" })
+toProxy = {}
+for _, answer in ipairs(pollReads) do
+  answer()
+end
+local handed = proxySends(constants.CMD.UPDATE_GENERATOR)
+T.eq("58002 is handed its record", handed[bindingOf(58002)] ~= nil, true)
+T.eq("58003 is handed its record", handed[bindingOf(58003)] ~= nil, true)
+
+T.section("a second command waits for the read after the first")
+deviceAnswers["58001"] = fixture("state-standby.json")
+EC.Refresh_Generators()
+held = {}
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+deviceAnswers["58001"] = fixture("state-exercise.json")
+table.remove(held, 1)()
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "refused before the read lands",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "Another command is still on its way"
+)
+T.eq("one POST", sentMethod("POST"), 1)
+while #held > 0 do
+  table.remove(held, 1)()
+end
+held = nil
+toProxy = {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "then checked against the state it left",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "The generator is already running"
+)
+
+T.section("a command that fails is followed by a read too")
+requests, toProxy = {}, {}
+writeAnswers = { { 503, { message = "Service Unavailable" } } }
+command(58001, { action = "stop" })
+T.eq("the generator is read", sent("/devices/58001%?"), 1)
+
+T.section("no command is checked against a reading that may be out of date")
+deviceAnswers["58001"] = fixture("state-standby.json")
+EC.Refresh_Generators()
+deviceAlways = { 503, { message = "Service Unavailable" } }
+EC.Refresh_Generators()
+deviceAlways = nil
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.contains(
+  "while reads are paused",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "Reads from KOHLER are paused"
+)
+T.eq("nothing sent", sentMethod("POST"), 0)
+EC.Refresh_Generators()
+now = now + 121
+toProxy = {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "when older than two Poll Intervals",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "The generator's last reading is out of date; try again after the next one"
+)
+T.eq("nothing sent", sentMethod("POST"), 0)
+apiAlways = { 401, { message = "Unauthorized" } }
+EC.Refresh_Generators()
+apiAlways = nil
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "while the sign-in retries",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "The Kohler Generators driver is reconnecting to KOHLER"
+)
+T.eq("nothing sent", sentMethod("POST"), 0)
+ShimFireTimers()
+T.eq("signed in again", props["Login Status"], "Logged In")
+
+T.section("Refresh skips a generator read in the last 5 seconds, or while reads are paused")
+EC.Refresh_Generators()
+requests = {}
+now = now + 4
+command(58001, { action = "refresh" })
+T.eq("not read 4 seconds after the last", #requests, 0)
+deviceAlways = { 503, { message = "Service Unavailable" } }
+now = now + 1
+EC.Refresh_Generators()
+deviceAlways = nil
+now = now + 10
+requests = {}
+command(58001, { action = "refresh" })
+T.eq("nor while paused", #requests, 0)
+EC.Refresh_Generators()
+now = now + 5
+requests = {}
+command(58001, { action = "refresh" })
+T.eq("read 5 seconds after", sent("/devices/58001%?"), 1)
+
+T.section("a command's read is taken though a poll's account read lands while the command is out")
+deviceAnswers["58001"] = fixture("state-standby.json")
+now = now + 5
+EC.Refresh_Generators()
+held = {}
+requests, toProxy = {}, {}
+EC.Refresh_Generators()
+command(58001, { action = "start", mode = "Unloaded" })
+deviceAnswers["58001"] = fixture("state-exercise.json")
+table.remove(held, 2)()
+table.remove(held, 1)()
+table.remove(held, 1)()
+toProxy = {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "the second Start is checked against the exercise",
+  (proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)] or {}).MESSAGE,
+  "The generator is already running"
+)
+T.eq("one POST", sentMethod("POST"), 1)
+while #held > 0 do
+  table.remove(held, 1)()
+end
+held = nil
 
 T.finish()

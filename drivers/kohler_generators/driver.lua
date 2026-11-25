@@ -3,7 +3,9 @@
 -- Signs in with the homeowner's email and password, reads the account's generators on the poll
 -- interval, and exposes a dynamic PROXY binding per generator that the kohler_generator companion
 -- drivers bind to. Each companion receives its generator's full record over the binding
--- (updateGenerator). Add Generators gives every generator a companion.
+-- (updateGenerator) and sends its commands back over it (generatorCommand), which this driver
+-- checks, sends to KOHLER and answers (commandResult). Add Generators gives every generator a
+-- companion.
 
 --#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-kohler-generators"
@@ -32,6 +34,7 @@ local githubUpdater = require("lib.github-updater")
 --#endif
 
 local Client = require("kohler.client")
+local Controls = require("kohler.controls")
 local Generator = require("kohler.generator")
 local Status = require("kohler.status")
 local constants = require("constants")
@@ -342,17 +345,47 @@ local function feedsDue(key, record)
   return os.time() - last.at >= FEED_INTERVAL_S or device.alertCount ~= last.alertCount or device.status ~= last.status
 end
 
+--- Record reads sent so far, numbering each.
+local gRecordReadsIssued = 0
+--- By generator id, the number below which a read of that generator is out of date: the last one
+--- taken, or one sent after a command.
+--- @type table<string, integer>
+local gRecordReadFloor = {}
+--- By generator id, when its record was last taken.
+--- @type table<string, integer>
+local gRecordReadAt = {}
+
 --- Read one generator's record and hand it to its companion.
 --- @param identity KohlerIdentity
 --- @param refreshId integer
 --- @param generation integer
---- @return Deferred<boolean> read Resolves with whether the record was read and taken.
-local function readGenerator(identity, refreshId, generation)
+--- @param afterCommand? boolean Sent after a command: reads of the generator sent before it are out
+--- of date, and a newer refresh does not outdate it; only an ended sign-in or the generator leaving
+--- the account does.
+--- @return Deferred<boolean|nil> read Resolves true when the record was read, false when the read
+--- failed, nil when it was out of date.
+local function readGenerator(identity, refreshId, generation, afterCommand)
   local key = tostring(identity.id)
-  return client:getDevice(identity.id, identity.host):next(function(record)
-    if stale(refreshId, generation) then
-      return false
+  gRecordReadsIssued = gRecordReadsIssued + 1
+  local readId = gRecordReadsIssued
+  if afterCommand then
+    gRecordReadFloor[key] = readId
+  end
+  local function outdated()
+    if afterCommand then
+      return generation ~= gLoginGeneration or gState.generators[key] == nil
     end
+    return stale(refreshId, generation)
+  end
+  return client:getDevice(identity.id, identity.host):next(function(record)
+    if outdated() then
+      return nil
+    end
+    if readId < (gRecordReadFloor[key] or 0) then
+      return true
+    end
+    gRecordReadFloor[key] = readId
+    gRecordReadAt[key] = os.time()
     gState.records[key] = record
     handoff(key)
     if feedsDue(key, record) then
@@ -361,7 +394,7 @@ local function readGenerator(identity, refreshId, generation)
     adjustPolling()
     return true
   end, function(err)
-    if not stale(refreshId, generation) then
+    if not outdated() then
       readFailed(err, identity.name, refreshId)
     end
     return false
@@ -456,6 +489,12 @@ end
 --- @type integer|nil
 local gPollingS = nil
 
+--- The Poll Interval property, in seconds.
+--- @return integer
+local function configuredPollS()
+  return tonumber((Properties["Poll Interval"] or ""):match("^(%d+)")) or DEFAULT_POLL_S
+end
+
 --- The poll interval in seconds: the Poll Interval property, or BUSY_POLL_S while a generator
 --- runs or the utility is out.
 --- @return integer
@@ -465,7 +504,7 @@ local function pollIntervalS()
       return BUSY_POLL_S
     end
   end
-  return tonumber((Properties["Poll Interval"] or ""):match("^(%d+)")) or DEFAULT_POLL_S
+  return configuredPollS()
 end
 
 local function startPolling()
@@ -902,6 +941,146 @@ function RFP.REFRESH_STATE(idBinding)
   elseif not client:hasSession() then
     SendToProxy(idBinding, CMD.GO_OFFLINE, {})
   end
+end
+
+--- Generators with a command on its way to KOHLER, by generator id: the sign-in it was sent under,
+--- so a lock from an earlier one is ignored.
+--- @type table<string, integer>
+local gCommandInFlight = {}
+
+--- The least time between a generator's last read and a Refresh that reads it again, in seconds.
+local REFRESH_MIN_S = 5
+
+--- Tell a companion how its command went.
+--- @param idBinding integer
+--- @param action string
+--- @param ok boolean
+--- @param message string
+local function commandResult(idBinding, action, ok, message)
+  SendToProxy(idBinding, CMD.COMMAND_RESULT, { ACTION = action, OK = tostring(ok), MESSAGE = message })
+end
+
+--- Read one generator now. After a command, a read of it sent before can't hand the companion the
+--- state from before the command. The poll's reads of the other generators are not touched.
+--- @param key string
+--- @param afterCommand boolean
+--- @return Deferred<boolean|nil>|nil read Nil when none was sent.
+local function readNow(key, afterCommand)
+  local identity = gState.generators[key]
+  if not identity or not client:hasSession() then
+    return nil
+  end
+  return readGenerator(identity, gRefreshAccepted, gLoginGeneration, afterCommand)
+end
+
+--- Why a generator's last record can't be trusted to check a command against, or nil: reads are
+--- stopped while the sign-in retries, paused after a 429 or 5xx, or the record is older than two
+--- Poll Intervals.
+--- @param key string
+--- @return string|nil
+local function recordUnfit(key)
+  if gPollingS == nil then
+    return "The Kohler Generators driver is reconnecting to KOHLER"
+  end
+  if os.time() < gPausedUntil then
+    return string.format("Reads from KOHLER are paused; try again in %ds", gPausedUntil - os.time())
+  end
+  local readAt = gRecordReadAt[key]
+  if readAt ~= nil and os.time() - readAt > 2 * configuredPollS() then
+    return "The generator's last reading is out of date; try again after the next one"
+  end
+  return nil
+end
+
+--- What a failed command tells the companion.
+--- @param err KohlerError
+--- @return string
+local function commandFailure(err)
+  if err.kind == "rateLimited" then
+    return string.format("KOHLER is busy; try again in %ds", err.retryAfter)
+  elseif err.kind == "unavailable" then
+    return "KOHLER did not answer; check the generator before trying again"
+  elseif err.kind == "unauthorized" or err.kind == "credentials" or err.kind == "refused" then
+    return "KOHLER refused the command: sign-in problem"
+  end
+  return "KOHLER refused the command: " .. tostring(err.message)
+end
+
+--- A companion's command for its generator: checked against the generator's last record, sent
+--- once, answered with commandResult, then the generator is read again, whether it worked or not.
+--- One at a time per generator, until that read settles, so the next is checked against the state
+--- the command left; a command that arrives before then is refused.
+--- @param idBinding integer
+--- @param _strCommand string
+--- @param tParams table { JSON = a KohlerCommand }
+function RFP.generatorCommand(idBinding, _strCommand, tParams)
+  log:trace("RFP.generatorCommand(%s, %s)", idBinding, tParams)
+  local key = keyForBinding(idBinding)
+  local ok, command = pcall(JSON.decode, JSON, (tParams or {}).JSON or "")
+  if not key or not ok or type(command) ~= "table" or type(command.action) ~= "string" then
+    return
+  end
+  local action = command.action
+  if not licensed() then
+    return commandResult(idBinding, action, false, "No active license")
+  end
+  if not client:hasSession() then
+    return commandResult(idBinding, action, false, "The Kohler Generators driver is not signed in")
+  end
+  if action == "refresh" then
+    local readAt = gRecordReadAt[key]
+    if os.time() < gPausedUntil then
+      log:info("Not refreshing generator %s: reads are paused for %ds more", key, gPausedUntil - os.time())
+    elseif readAt ~= nil and os.time() - readAt < REFRESH_MIN_S then
+      log:info("Not refreshing generator %s: read %ds ago", key, os.time() - readAt)
+    else
+      readNow(key, false)
+    end
+    return
+  end
+  if gCommandInFlight[key] == gLoginGeneration then
+    return commandResult(idBinding, action, false, "Another command is still on its way")
+  end
+  local unfit = recordUnfit(key)
+  if unfit then
+    log:info("Not sending %s to generator %s: %s", action, key, unfit)
+    return commandResult(idBinding, action, false, unfit)
+  end
+  local record = gState.records[key]
+  local request, refusal = Controls.request(command, record, os.time())
+  if not request then
+    log:info("Not sending %s to generator %s: %s", action, key, refusal)
+    return commandResult(idBinding, action, false, refusal)
+  end
+  local identity = gState.generators[key]
+  log:info("Sending %s to generator %s", action, key)
+  local generation = gLoginGeneration
+  gCommandInFlight[key] = generation
+  local function release()
+    if gCommandInFlight[key] == generation then
+      gCommandInFlight[key] = nil
+    end
+  end
+  local function readAgain()
+    local read = generation == gLoginGeneration and readNow(key, true) or nil
+    if read == nil then
+      return release()
+    end
+    -- A read out of date leaves the lock, unless the generator has left the account.
+    read:next(function(result)
+      if result ~= nil or gState.generators[key] == nil then
+        release()
+      end
+    end, release)
+  end
+  client:send(request, identity.host):next(function()
+    commandResult(idBinding, action, true, "Sent")
+    readAgain()
+  end, function(err)
+    log:warn("%s for generator %s failed: %s", action, key, err.message)
+    commandResult(idBinding, action, false, commandFailure(err))
+    readAgain()
+  end)
 end
 
 -- ─── Actions (EC dispatch) ─────────────────────────────────────────────────

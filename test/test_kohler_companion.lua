@@ -59,6 +59,7 @@ C4.GetVersionInfo = function()
   return { version = "4.3.0" }
 end
 Properties["Auto Rename Driver"] = "On"
+Properties["Load Control"] = "On"
 Properties["Automatic Updates"] = "On"
 Properties["Log Level"] = "3 - Info"
 Properties["Log Mode"] = "Off"

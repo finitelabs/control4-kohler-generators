@@ -33,6 +33,9 @@ end
 --- @return table<string, string>
 local function form(body)
   local out = {}
+  if type(body) ~= "string" then
+    return out
+  end
   for pair in (body or ""):gmatch("[^&]+") do
     local k, v = pair:match("^([^=]+)=(.*)$")
     out[k] = v and v:gsub("%%(%x%x)", function(h)
@@ -273,6 +276,73 @@ code, body = issue()
 held[1][5](nil, code, {}, body, nil, TOKEN_URL)
 T.eq("the sign-in fails", (settled(pending)), false)
 T.falsy("and holds no token", client:isAuthenticated())
+
+T.section("a command is sent once, with its JSON body, routed by the generator's host")
+--- @return table[]
+local function apiRequests()
+  local list = {}
+  for _, r in ipairs(requests) do
+    if r.url:sub(-#constants.TOKEN_PATH) ~= constants.TOKEN_PATH then
+      list[#list + 1] = r
+    end
+  end
+  return list
+end
+reset()
+ok = settled(
+  client:send({ method = "POST", path = "/devices/58001/exercise/start", body = { mode = "Unloaded" } }, "Oncue")
+)
+T.eq("sent", ok, true)
+local call = apiRequests()[1]
+T.eq("one call", #apiRequests(), 1)
+T.eq("a POST", call.method, "POST")
+T.eq("to the path, with the host", call.url, API .. "/devices/58001/exercise/start?sourceDeviceHost=Oncue")
+-- urlDo sends a table as JSON.
+T.eq("the body", call.data, { mode = "Unloaded" })
+T.eq("with the bearer token", call.headers.Authorization:match("^bearer "), "bearer ")
+T.eq("and the API key", call.headers.ApiKey, "test-api-key")
+
+reset()
+settled(client:send({ method = "POST", path = "/devices/58001/exercise/stop" }, "Oncue"))
+T.eq("a stop sends no body", apiRequests()[1].data, nil)
+
+reset()
+settled(client:send({ method = "PUT", path = "/devices/58001/exercise", body = { frequency = "Weekly" } }, "Oncue"))
+T.eq("a schedule is a PUT", apiRequests()[1].method, "PUT")
+
+T.section("a command KOHLER refused with a 401 is sent again once after a new sign-in")
+reset()
+apiAnswers = { { 401, { message = "Unauthorized" } } }
+ok = settled(client:send({ method = "POST", path = "/devices/58001/exercise/stop" }, "Oncue"))
+T.eq("goes through", ok, true)
+T.eq("sent twice", #apiRequests(), 2)
+T.eq("after a sign-in", #tokenRequests(), 1)
+
+T.section("a command that failed with a 5xx or no answer is never sent again")
+reset()
+apiAnswers = { { 503, { message = "Service Unavailable" } } }
+ok, err = settled(
+  client:send({ method = "POST", path = "/devices/58001/exercise/start", body = { mode = "Unloaded" } }, "Oncue")
+)
+T.eq("fails", ok, false)
+T.eq("as unavailable", err.kind, "unavailable")
+T.eq("sent once", #apiRequests(), 1)
+reset()
+local realDo = urlDo
+urlDo = function(method, url, data, headers, callback, context)
+  if url:sub(-#constants.TOKEN_PATH) == constants.TOKEN_PATH then
+    return realDo(method, url, data, headers, callback, context)
+  end
+  table.insert(requests, { method = method, url = url, data = data, headers = headers })
+  callback("Operation timed out", nil, {}, nil, context, url)
+end
+ok, err = settled(
+  client:send({ method = "POST", path = "/devices/58001/exercise/start", body = { mode = "Unloaded" } }, "Oncue")
+)
+urlDo = realDo
+T.eq("a timeout fails", ok, false)
+T.eq("as unavailable", err.kind, "unavailable")
+T.eq("and is sent once", #apiRequests(), 1)
 
 T.section("a test cloud replaces both origins and the keys")
 reset()
