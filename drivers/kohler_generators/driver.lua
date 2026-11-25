@@ -72,6 +72,8 @@ local UNAVAILABLE_BACKOFF_S = 30
 local UNAVAILABLE_BACKOFF_MAX_S = 300
 
 local COMPANION_DRIVER = "kohler_generator.c4z"
+--- Added to the name of a companion whose generator is no longer on the account.
+local REMOVED_SUFFIX = " - REMOVED FROM KOHLER"
 
 local client = Client:new({ allowed = licensed })
 
@@ -312,6 +314,32 @@ end
 
 -- ─── Companions ────────────────────────────────────────────────────────────
 
+--- @param deviceId integer
+--- @return integer|nil
+local function proxyOf(deviceId)
+  return tonumber((tostring(C4:GetProxyDevicesById(deviceId) or "")):match("^(%d+)"))
+end
+
+--- Rename the companions of generators that are no longer on the account, so the integrator can
+--- find and remove them, and restore the name of one whose generator is back.
+local function markRemovedCompanions()
+  for key, binding in pairs(bindings:getDynamicBindings(NS)) do
+    local listed = gState.generators[key] ~= nil
+    for deviceId in pairs(C4:GetBoundConsumerDevices(C4:GetDeviceID(), binding.bindingId) or {}) do
+      local proxyId = proxyOf(tonumber(deviceId))
+      local name = proxyId and C4:GetDeviceDisplayName(proxyId)
+      local marked = name and name:find(REMOVED_SUFFIX, 1, true) ~= nil
+      if name and not listed and not marked then
+        log:info("Generator %s left the account; renaming %s", key, name)
+        C4:RenameDevice(proxyId, name .. REMOVED_SUFFIX)
+      elseif name and listed and marked then
+        log:info("Generator %s is back on the account; renaming %s", key, name)
+        C4:RenameDevice(proxyId, (name:gsub(REMOVED_SUFFIX:gsub("%p", "%%%0"), "")))
+      end
+    end
+  end
+end
+
 --- Give every generator on the account a companion driver: the one it had, a spare in this
 --- driver's room, or a new one named after the generator.
 local function addGenerators()
@@ -323,6 +351,7 @@ local function addGenerators()
     C4:UpdateProperty("Driver Status", "Sign in before adding generators")
     return
   end
+  markRemovedCompanions()
   local needs = {}
   for key, identity in pairs(gState.generators) do
     local binding = ensureBinding(identity)

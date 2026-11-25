@@ -191,7 +191,10 @@ room that aren't bound are used first. Each driver is named after its generator,
 and follows it when it is renamed in the KOHLER app unless that driver's **Auto
 Rename Driver** property is Off.
 
-Run it again after adding a generator to the account.
+Run it again after adding a generator to the account. A driver whose generator
+is no longer on the account is renamed with ` - REMOVED FROM KOHLER`; copy any
+programming from it and delete it. If the generator comes back to the account,
+the next Add Generators restores the name.
 
 #### Refresh Generators
 

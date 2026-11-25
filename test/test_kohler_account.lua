@@ -1,7 +1,7 @@
 -- The Kohler Generators account driver against a scripted KOHLER cloud answering with the mock's
 -- replies: sign-in from the Email and Password properties and its Login Status, Account Connected
 -- and Account Disconnected on real changes only, a binding and a record handed off per generator,
--- Add Generators, a generator that leaves the account, a 429 that pauses the poll, and a wrong
+-- Add Generators, a generator that leaves the account and its companion marked, a 429 that pauses the poll, and a wrong
 -- password that stops.
 --
 -- Run from the driver root:
@@ -196,15 +196,20 @@ T.truthy("for 58002", bindingOf(58002))
 T.truthy("for 58003", bindingOf(58003))
 
 T.section("Add Generators gives every generator a companion")
-toProxy = {}
-EC.Add_Generators()
-for _ = 1, 20 do
-  if ShimPendingAdds() == 0 and not require("lib.companions").running then
-    break
+--- Runs Add Generators to its end, answering every add and firing every timer as it goes.
+local function addGenerators()
+  EC.Add_Generators()
+  for _ = 1, 20 do
+    if ShimPendingAdds() == 0 and not require("lib.companions").running then
+      break
+    end
+    ShimAnswerAdds()
+    ShimFireTimers()
   end
-  ShimAnswerAdds()
-  ShimFireTimers()
 end
+
+toProxy = {}
+addGenerators()
 local companionOf = {}
 for _, id in ipairs({ 58001, 58002, 58003 }) do
   companionOf[id] = next(C4:GetBoundConsumerDevices(ME, bindingOf(id)) or {})
@@ -235,9 +240,22 @@ EC.Refresh_Generators()
 T.truthy("goOffline to its companion", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58003)])
 T.eq("Driver Status counts the rest", props["Driver Status"], "Connected (2 generators)")
 T.truthy("its binding stays, so its programming does", bindingOf(58003))
+local cabinProxy = companionOf[58003] + 1
+addGenerators()
+T.eq(
+  "Add Generators marks its companion",
+  C4:GetDeviceDisplayName(cabinProxy),
+  "Demo Cabin Generator - REMOVED FROM KOHLER"
+)
+T.eq("and leaves the others' names", C4:GetDeviceDisplayName(companionOf[58001] + 1), "Demo Generator")
+addGenerators()
+T.eq("only once", C4:GetDeviceDisplayName(cabinProxy), "Demo Cabin Generator - REMOVED FROM KOHLER")
 table.insert(homes[2].devices, cabin)
 EC.Refresh_Generators()
 T.eq("it comes back", props["Driver Status"], "Connected (3 generators)")
+addGenerators()
+T.eq("the next Add Generators restores its name", C4:GetDeviceDisplayName(cabinProxy), "Demo Cabin Generator")
+T.eq("and adds no companion", TableLength(C4:GetDevicesByC4iName("kohler_generator.c4z") or {}), 3)
 
 T.section("a 429 pauses the poll for the wait it names")
 apiAnswers = { { 429, { message = "Too Many Requests" }, { ["Retry-After"] = "120" } } }
