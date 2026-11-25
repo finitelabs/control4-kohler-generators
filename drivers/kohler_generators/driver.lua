@@ -126,9 +126,6 @@ local ADDED_KEY = "GeneratorsAdded"
 --- poll.
 --- @type table<string, boolean>
 local gAutoTried = {}
---- Adds the generators no add has given a companion yet; set once addGenerators is defined.
---- @type fun()
-local autoAddGenerators
 
 --- Whether the account is connected, as the Account Connected variable says.
 local gConnected = false
@@ -231,6 +228,119 @@ end
 --- @return string
 local function connectedStatus(count)
   return string.format("Connected (%d generator%s)", count, count == 1 and "" or "s")
+end
+
+-- ─── Companions ────────────────────────────────────────────────────────────
+
+--- @param deviceId integer
+--- @return integer|nil
+local function proxyOf(deviceId)
+  return tonumber((tostring(C4:GetProxyDevicesById(deviceId) or "")):match("^(%d+)"))
+end
+
+--- Rename the companions of generators that are no longer on the account, so the integrator can
+--- find and remove them, and restore the name of one whose generator is back.
+local function markRemovedCompanions()
+  for key, binding in pairs(bindings:getDynamicBindings(NS)) do
+    local listed = gState.generators[key] ~= nil
+    for deviceId in pairs(C4:GetBoundConsumerDevices(C4:GetDeviceID(), binding.bindingId) or {}) do
+      local proxyId = proxyOf(tonumber(deviceId))
+      local name = proxyId and C4:GetDeviceDisplayName(proxyId)
+      local marked = name and name:find(REMOVED_SUFFIX, 1, true) ~= nil
+      if name and not listed and not marked then
+        log:info("Generator %s left the account; renaming %s", key, name)
+        C4:RenameDevice(proxyId, name .. REMOVED_SUFFIX)
+      elseif name and listed and marked then
+        log:info("Generator %s is back on the account; renaming %s", key, name)
+        C4:RenameDevice(proxyId, (name:gsub(REMOVED_SUFFIX:gsub("%p", "%%%0"), "")))
+      end
+    end
+  end
+end
+
+--- Give every generator on the account a companion driver: the one it had, a spare in this
+--- driver's room, or a new one named after the generator.
+--- @param auto? boolean Whether this driver started it, not the Add Generators action.
+local function addGenerators(auto)
+  if companions.running then
+    if not auto then
+      log:info("Add Generators is already running")
+    end
+    return
+  end
+  if not client:hasSession() or not gListed then
+    C4:UpdateProperty("Driver Status", "Sign in before adding generators")
+    return
+  end
+  markRemovedCompanions()
+  local needs = {}
+  for key, identity in pairs(gState.generators) do
+    local binding = ensureBinding(identity)
+    if binding then
+      needs[#needs + 1] = {
+        binding = binding.bindingId,
+        file = COMPANION_DRIVER,
+        consumer = constants.GENERATOR_BINDING,
+        class = constants.GENERATOR_CLASS,
+        name = identity.name,
+        key = key,
+      }
+    end
+  end
+  table.sort(needs, function(a, b)
+    return a.name < b.name
+  end)
+  if #needs == 0 then
+    C4:UpdateProperty("Driver Status", "The account has no generators")
+    return
+  end
+  companions
+    :setup(needs, {
+      spares = "room",
+      progress = function(done, total)
+        C4:UpdateProperty("Driver Status", string.format("Adding generator %d of %d...", done, total))
+      end,
+    })
+    :next(function(result)
+      log:info(
+        "Add Generators: %d kept, %d bound again, %d spares, %d added, %d failed",
+        result.kept,
+        result.rebound,
+        result.spares,
+        result.added,
+        result.failed
+      )
+      local added = persist:get(ADDED_KEY, {}) or {}
+      for _, need in ipairs(needs) do
+        handoff(need.key)
+        if next(C4:GetBoundConsumerDevices(C4:GetDeviceID(), need.binding) or {}) ~= nil then
+          added[need.key] = true
+        elseif auto then
+          gAutoTried[need.key] = true
+        end
+      end
+      persist:set(ADDED_KEY, added)
+      if #result.missing > 0 then
+        C4:UpdateProperty("Driver Status", "Load the Kohler Generator driver on the controller first")
+      elseif result.failed > 0 then
+        C4:UpdateProperty("Driver Status", string.format("%d generator(s) got no driver", result.failed))
+      else
+        C4:UpdateProperty("Driver Status", connectedStatus(TableLength(gState.generators)))
+      end
+    end, function(err)
+      log:warn("Add Generators failed: %s", err)
+    end)
+end
+
+--- Adds the generators no add has given a companion yet.
+local function autoAddGenerators()
+  local added = persist:get(ADDED_KEY, {}) or {}
+  for key in pairs(gState.generators) do
+    if not added[key] and not gAutoTried[key] then
+      log:info("Adding the account's generators that have no driver yet")
+      return addGenerators(true)
+    end
+  end
 end
 
 -- ─── Reading the account ───────────────────────────────────────────────────
@@ -540,108 +650,6 @@ adjustPolling = function()
     log:debug("Polling every %ds", pollIntervalS())
     startPolling()
   end
-end
-
--- ─── Companions ────────────────────────────────────────────────────────────
-
---- @param deviceId integer
---- @return integer|nil
-local function proxyOf(deviceId)
-  return tonumber((tostring(C4:GetProxyDevicesById(deviceId) or "")):match("^(%d+)"))
-end
-
---- Rename the companions of generators that are no longer on the account, so the integrator can
---- find and remove them, and restore the name of one whose generator is back.
-local function markRemovedCompanions()
-  for key, binding in pairs(bindings:getDynamicBindings(NS)) do
-    local listed = gState.generators[key] ~= nil
-    for deviceId in pairs(C4:GetBoundConsumerDevices(C4:GetDeviceID(), binding.bindingId) or {}) do
-      local proxyId = proxyOf(tonumber(deviceId))
-      local name = proxyId and C4:GetDeviceDisplayName(proxyId)
-      local marked = name and name:find(REMOVED_SUFFIX, 1, true) ~= nil
-      if name and not listed and not marked then
-        log:info("Generator %s left the account; renaming %s", key, name)
-        C4:RenameDevice(proxyId, name .. REMOVED_SUFFIX)
-      elseif name and listed and marked then
-        log:info("Generator %s is back on the account; renaming %s", key, name)
-        C4:RenameDevice(proxyId, (name:gsub(REMOVED_SUFFIX:gsub("%p", "%%%0"), "")))
-      end
-    end
-  end
-end
-
---- Give every generator on the account a companion driver: the one it had, a spare in this
---- driver's room, or a new one named after the generator.
---- @param auto? boolean Whether this driver started it, not the Add Generators action.
-local function addGenerators(auto)
-  if companions.running then
-    if not auto then
-      log:info("Add Generators is already running")
-    end
-    return
-  end
-  if not client:hasSession() or not gListed then
-    C4:UpdateProperty("Driver Status", "Sign in before adding generators")
-    return
-  end
-  markRemovedCompanions()
-  local needs = {}
-  for key, identity in pairs(gState.generators) do
-    local binding = ensureBinding(identity)
-    if binding then
-      needs[#needs + 1] = {
-        binding = binding.bindingId,
-        file = COMPANION_DRIVER,
-        consumer = constants.GENERATOR_BINDING,
-        class = constants.GENERATOR_CLASS,
-        name = identity.name,
-        key = key,
-      }
-    end
-  end
-  table.sort(needs, function(a, b)
-    return a.name < b.name
-  end)
-  if #needs == 0 then
-    C4:UpdateProperty("Driver Status", "The account has no generators")
-    return
-  end
-  companions
-    :setup(needs, {
-      spares = "room",
-      progress = function(done, total)
-        C4:UpdateProperty("Driver Status", string.format("Adding generator %d of %d...", done, total))
-      end,
-    })
-    :next(function(result)
-      log:info(
-        "Add Generators: %d kept, %d bound again, %d spares, %d added, %d failed",
-        result.kept,
-        result.rebound,
-        result.spares,
-        result.added,
-        result.failed
-      )
-      local added = persist:get(ADDED_KEY, {}) or {}
-      for _, need in ipairs(needs) do
-        handoff(need.key)
-        if next(C4:GetBoundConsumerDevices(C4:GetDeviceID(), need.binding) or {}) ~= nil then
-          added[need.key] = true
-        elseif auto then
-          gAutoTried[need.key] = true
-        end
-      end
-      persist:set(ADDED_KEY, added)
-      if #result.missing > 0 then
-        C4:UpdateProperty("Driver Status", "Load the Kohler Generator driver on the controller first")
-      elseif result.failed > 0 then
-        C4:UpdateProperty("Driver Status", string.format("%d generator(s) got no driver", result.failed))
-      else
-        C4:UpdateProperty("Driver Status", connectedStatus(TableLength(gState.generators)))
-      end
-    end, function(err)
-      log:warn("Add Generators failed: %s", err)
-    end)
 end
 
 -- ─── Sign-in ───────────────────────────────────────────────────────────────
@@ -1109,16 +1117,6 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
     commandResult(idBinding, command, false, commandFailure(err))
     readAgain()
   end)
-end
-
-autoAddGenerators = function()
-  local added = persist:get(ADDED_KEY, {}) or {}
-  for key in pairs(gState.generators) do
-    if not added[key] and not gAutoTried[key] then
-      log:info("Adding the account's generators that have no driver yet")
-      return addGenerators(true)
-    end
-  end
 end
 
 -- ─── Actions (EC dispatch) ─────────────────────────────────────────────────
