@@ -1172,9 +1172,15 @@ function EC.Reset_Driver(tParams)
     for name, value in pairs(RESET_PROPERTY_VALUES) do
       UpdateProperty(name, value, true)
     end
-    for name, value in pairs(GetPropertyResetValues({ "Driver Version" })) do
+    for name, value in pairs(GetPropertyResetValues({ "Driver Version", "Cloud Status" })) do
       UpdateProperty(name, value, true)
     end
+    --#ifdef DRIVERCENTRAL
+    if not licensed() then
+      stopAccount()
+      return
+    end
+    --#endif
     login()
   end
 end

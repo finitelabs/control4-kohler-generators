@@ -858,18 +858,29 @@ setProperty("Log Level", "5 - Trace")
 setProperty("Log Mode", "Print")
 require("lib.persist"):set("UtilitySensed", { ["58001"] = true })
 Properties["Cloud Status"], props["Cloud Status"] = "Connected", "Connected"
+props["Cloud Status"] = nil
 local email = Properties["Email"]
 held = {}
 EC.Reset_Driver({ ["Are You Sure?"] = "Yes" })
 T.eq("Poll Interval", props["Poll Interval"], "60 seconds")
 T.eq("Log Level", props["Log Level"], "3 - Info")
 T.eq("Log Mode", props["Log Mode"], "Off")
-T.eq("the read-only displays are cleared", props["Cloud Status"], "")
+T.eq("Cloud Status is the cloud client's, and left alone", props["Cloud Status"], nil)
 T.eq("which generators sense utility voltage is forgotten", require("lib.persist"):get("UtilitySensed"), nil)
 T.eq("the email is kept", Properties["Email"], email)
 T.eq("and signed in with again", props["Login Status"], "Logging in...")
 T.falsy("the password is kept", IsEmpty(Properties["Password"]))
 T.falsy("Automatic Updates is left alone", props["Automatic Updates"])
 held = nil
+
+T.section("Reset Driver with no license keeps the account stopped and says so")
+local drivercentral = require("lib.drivercentral")
+local wasLicensed = drivercentral._licensed
+drivercentral._licensed = false
+props["Login Status"], props["Driver Status"] = nil, nil
+EC.Reset_Driver({ ["Are You Sure?"] = "Yes" })
+T.eq("Login Status", props["Login Status"], drivercentral.UNLICENSED_STATUS)
+T.eq("Driver Status", props["Driver Status"], drivercentral.UNLICENSED_STATUS)
+drivercentral._licensed = wasLicensed
 
 T.finish()
