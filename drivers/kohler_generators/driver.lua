@@ -192,6 +192,9 @@ local login
 --- @type fun(delay: number, loginStatus: string)
 local loginLater
 
+--- The refresh whose failed reads last grew the 5xx backoff, so one poll grows it once.
+local gUnavailableRefreshId = nil
+
 --- The wait before signing in again after reads are refused with a fresh token, growing while
 --- they keep being refused; nil once a read works.
 --- @type number|nil
@@ -201,12 +204,17 @@ local gUnauthorizedBackoffS = nil
 --- refused even after a fresh sign-in waits before trying again.
 --- @param err KohlerError
 --- @param what string
-local function readFailed(err, what)
+--- @param refreshId integer The refresh the read belonged to.
+local function readFailed(err, what, refreshId)
   log:warn("Reading %s failed: %s", what, err.message)
   if err.kind == "rateLimited" then
     gPausedUntil = os.time() + err.retryAfter
     C4:UpdateProperty("Driver Status", string.format("Rate limited by KOHLER; retrying in %ds", err.retryAfter))
   elseif err.kind == "unavailable" then
+    if refreshId == gUnavailableRefreshId then
+      return
+    end
+    gUnavailableRefreshId = refreshId
     local wait = gUnavailableBackoffS or UNAVAILABLE_BACKOFF_S
     gUnavailableBackoffS = math.min(wait * 2, UNAVAILABLE_BACKOFF_MAX_S)
     gPausedUntil = os.time() + wait
@@ -246,7 +254,7 @@ local function readGenerator(identity, refreshId, generation)
     handoff(key)
   end, function(err)
     if not stale(refreshId, generation) then
-      readFailed(err, identity.name)
+      readFailed(err, identity.name, refreshId)
     end
   end)
 end
@@ -292,7 +300,7 @@ local function refreshGenerators()
     C4:UpdateProperty("Driver Status", connectedStatus(#list))
   end, function(err)
     if not stale(refreshId, generation) then
-      readFailed(err, "the account's generators")
+      readFailed(err, "the account's generators", refreshId)
     end
   end)
 end

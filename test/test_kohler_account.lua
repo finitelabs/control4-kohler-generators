@@ -380,4 +380,18 @@ held = nil
 stale()
 T.eq("the old account's generators are not shown", props["Driver Status"], "Connecting")
 
+T.section("generators that all fail in one poll pause it once")
+setProperty("Email", "demo@example.com")
+T.eq("signed in again", props["Login Status"], "Logged In")
+local unavailable = { 503, { message = "Service Unavailable" } }
+apiAnswers = { { 200, homes }, unavailable, unavailable, unavailable }
+EC.Refresh_Generators()
+requests = {}
+now = now + 29
+ShimFireTimers()
+T.eq("the poll waits out the first step of the backoff", #requests, 0)
+now = now + 2
+ShimFireTimers()
+T.eq("and no more: it reads again after 30 seconds", sent("/homeowner/homes$"), 1)
+
 T.finish()
