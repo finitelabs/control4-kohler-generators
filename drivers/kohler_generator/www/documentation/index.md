@@ -355,6 +355,7 @@ says so and offers Try again where a new read can help.
 | --------------------- | ------------------------------------------------------------------- |
 | Generator connection  | Tests whether the generator is `Online` or `Offline`.               |
 | Power source          | Tests whether the house is on `Generator Power` or `Utility Power`. |
+| Utility power         | Tests whether the utility power is `Out` or `On`.                   |
 | Engine running status | Tests whether the engine is `Running` or `Not Running`.             |
 | Exercise status       | Tests whether the generator is `Exercising` or `Not Exercising`.    |
 | Switch position       | Tests whether the switch is `In Auto` or `Not In Auto`.             |
