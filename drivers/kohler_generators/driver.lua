@@ -489,6 +489,12 @@ end
 --- @type integer|nil
 local gPollingS = nil
 
+--- The Poll Interval property, in seconds.
+--- @return integer
+local function configuredPollS()
+  return tonumber((Properties["Poll Interval"] or ""):match("^(%d+)")) or DEFAULT_POLL_S
+end
+
 --- The poll interval in seconds: the Poll Interval property, or BUSY_POLL_S while a generator
 --- runs or the utility is out.
 --- @return integer
@@ -498,7 +504,7 @@ local function pollIntervalS()
       return BUSY_POLL_S
     end
   end
-  return tonumber((Properties["Poll Interval"] or ""):match("^(%d+)")) or DEFAULT_POLL_S
+  return configuredPollS()
 end
 
 local function startPolling()
@@ -980,8 +986,7 @@ local function recordUnfit(key)
     return string.format("Reads from KOHLER are paused; try again in %ds", gPausedUntil - os.time())
   end
   local readAt = gRecordReadAt[key]
-  local pollS = tonumber((Properties["Poll Interval"] or ""):match("^(%d+)")) or DEFAULT_POLL_S
-  if readAt ~= nil and os.time() - readAt > 2 * pollS then
+  if readAt ~= nil and os.time() - readAt > 2 * configuredPollS() then
     return "The generator's last reading is out of date; try again after the next one"
   end
   return nil
