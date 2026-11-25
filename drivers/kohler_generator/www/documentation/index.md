@@ -305,9 +305,9 @@ voltage or the load.
 ### Commands
 
 Each command goes to KOHLER through the account driver, and the generator is
-read again right after. **Driver Status** shows whether KOHLER took the command,
-or why it was not sent. A command is sent once: if KOHLER does not answer, check
-the generator before sending it again.
+read again right after. For 30 seconds, **Driver Status** shows whether KOHLER
+took the command, or why it was not sent. A command is sent once: if KOHLER does
+not answer, check the generator before sending it again.
 
 | Command               | What it does                                                                                                                                                                                                                             |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

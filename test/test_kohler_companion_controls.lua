@@ -28,6 +28,12 @@ local function fixture(name)
   return body
 end
 
+local now = 1790000000
+local realTime = os.time
+os.time = function(t)
+  return t and realTime(t) or now
+end
+
 local props = {}
 local realUpdateProperty = C4.UpdateProperty
 -- Director's Properties table takes the new value, which the shim's UpdateProperty leaves alone.
@@ -138,6 +144,14 @@ RFP.commandResult(
   { ACTION = "stop", OK = "false", MESSAGE = "No exercise is running" }
 )
 T.eq("refused", props["Driver Status"], "Stop Exercise not sent: No exercise is running")
+
+T.section("a reading leaves the answer in Driver Status for 30 seconds")
+now = now + 29
+record("device-58001.json")
+T.eq("kept at 29 seconds", props["Driver Status"], "Stop Exercise not sent: No exercise is running")
+now = now + 1
+record("device-58001.json")
+T.eq("replaced at 30", props["Driver Status"], "Online")
 
 T.section("Load Control off removes the loads")
 setLoadControl("Off")

@@ -174,6 +174,12 @@ local gLoadVariables = {}
 --- @type table|nil
 local gRecord = nil
 
+--- How long a command's result stays in Driver Status before a reading may replace it, in seconds.
+local RESULT_HOLD_S = 30
+
+--- os.time() until which Driver Status keeps the last command's result.
+local gResultUntil = 0
+
 -- ─── Programming ───────────────────────────────────────────────────────────
 
 --- Record whether the generator is online, firing its event on a change.
@@ -484,7 +490,9 @@ function RFP.updateGenerator(idBinding, _strCommand, tParams)
   if renamed then
     applyGeneratorName()
   end
-  C4:UpdateProperty("Driver Status", identity.connected and "Online" or "Generator offline")
+  if os.time() >= gResultUntil then
+    C4:UpdateProperty("Driver Status", identity.connected and "Online" or "Generator offline")
+  end
   setOnline(identity.connected)
   applyRecord(record)
 end
@@ -535,11 +543,18 @@ end
 
 -- ─── Commands (EC dispatch) ───────────────────────────────────────────────
 
+--- Show a command's progress or result in Driver Status, where readings leave it for a while.
+--- @param text string
+local function showResult(text)
+  gResultUntil = os.time() + RESULT_HOLD_S
+  C4:UpdateProperty("Driver Status", text)
+end
+
 --- Send a command to the account, which checks it, sends it to KOHLER and answers commandResult.
 --- @param command KohlerCommand|table
 local function sendCommand(command)
   if command.action ~= "refresh" then
-    C4:UpdateProperty("Driver Status", "Sending " .. COMMAND_NAMES[command.action] .. "...")
+    showResult("Sending " .. COMMAND_NAMES[command.action] .. "...")
   end
   SendToProxy(ACCOUNT_BINDING, constants.CMD.GENERATOR_COMMAND, { JSON = JSON:encode(command) })
 end
@@ -577,7 +592,7 @@ end
 function EC.Set_Load(tParams)
   log:trace("EC.Set_Load(%s)", tParams)
   if not loadControlOn() then
-    C4:UpdateProperty("Driver Status", "Load Control is off")
+    showResult("Load Control is off")
     return
   end
   sendCommand({ action = "load", load = Select(tParams, "Load"), on = Select(tParams, "State") == "On" })
@@ -614,10 +629,10 @@ function RFP.commandResult(idBinding, _strCommand, tParams)
   local message = Select(tParams, "MESSAGE") or ""
   if Select(tParams, "OK") == "true" then
     log:info("%s sent", name)
-    C4:UpdateProperty("Driver Status", name .. " sent")
+    showResult(name .. " sent")
   else
     log:warn("%s not sent: %s", name, message)
-    C4:UpdateProperty("Driver Status", name .. " not sent: " .. message)
+    showResult(name .. " not sent: " .. message)
   end
 end
 
