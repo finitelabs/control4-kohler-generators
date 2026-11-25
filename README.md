@@ -176,7 +176,9 @@ Sets the logging mode. Default is `Off`.
 ##### Poll Interval \[ 30 seconds | **_60 seconds_** | 120 seconds | 300 seconds | 900 seconds \]
 
 Sets how often the driver reads the account's generators. Default is
-`60 seconds`.
+`60 seconds`. While a generator's engine runs or its utility power is out, the
+driver reads it every 15 seconds instead. It reads each generator's alerts and
+event log every 2 minutes, and sooner when its alerts or status change.
 
 ### Driver Actions
 
@@ -293,5 +295,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - **Kohler Generator** companion, one per generator, added, bound and named by
   the Add Generators action, which shows the generator in its room with its
   model, serial number, controller, firmware, fuel, connection and dealer.
+- Generator status, power source and readings as variables: utility and
+  generator voltage, load, frequency, engine speed, battery, temperatures in the
+  project's scale, run hours, the exercise schedule and maintenance dates.
+- Events for a utility outage and its end, the engine starting and stopping, an
+  exercise, a fault or warning, alerts clearing, the switch leaving and
+  returning to Auto, maintenance falling due and a low battery.
+- Conditionals and contact outputs for generator power, running, fault and the
+  switch, so outage programming works with any contact input.
 - Account Connected and Account Disconnected events, and Generator Online and
   Generator Offline events, for programming.
