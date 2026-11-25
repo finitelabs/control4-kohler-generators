@@ -319,7 +319,9 @@ not answer, check the generator before sending it again.
 
 The driver refuses a command the KOHLER app would refuse, and sends nothing:
 
-- Any command while the generator is offline.
+- Any command while the generator is offline, while the account driver is
+  reconnecting or its reads are paused, or when the generator's last reading is
+  older than two of the account driver's Poll Intervals.
 - **Start Exercise** while utility power is out, the engine already runs, the
   switch is not in Auto, or the generator is not ready to run.
 - **Stop Exercise** when no exercise is running.
