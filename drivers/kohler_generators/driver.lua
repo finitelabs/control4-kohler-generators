@@ -359,8 +359,11 @@ local gRecordReadAt = {}
 --- @param identity KohlerIdentity
 --- @param refreshId integer
 --- @param generation integer
---- @param afterCommand? boolean Sent after a command: reads of the generator sent before it are out of date.
---- @return Deferred<boolean> read Resolves with whether the record was read.
+--- @param afterCommand? boolean Sent after a command: reads of the generator sent before it are out
+--- of date, and a newer refresh does not outdate it; only an ended sign-in or the generator leaving
+--- the account does.
+--- @return Deferred<boolean|nil> read Resolves true when the record was read, false when the read
+--- failed, nil when it was out of date.
 local function readGenerator(identity, refreshId, generation, afterCommand)
   local key = tostring(identity.id)
   gRecordReadsIssued = gRecordReadsIssued + 1
@@ -368,9 +371,15 @@ local function readGenerator(identity, refreshId, generation, afterCommand)
   if afterCommand then
     gRecordReadFloor[key] = readId
   end
+  local function outdated()
+    if afterCommand then
+      return generation ~= gLoginGeneration or gState.generators[key] == nil
+    end
+    return stale(refreshId, generation)
+  end
   return client:getDevice(identity.id, identity.host):next(function(record)
-    if stale(refreshId, generation) then
-      return false
+    if outdated() then
+      return nil
     end
     if readId < (gRecordReadFloor[key] or 0) then
       return true
@@ -385,7 +394,7 @@ local function readGenerator(identity, refreshId, generation, afterCommand)
     adjustPolling()
     return true
   end, function(err)
-    if not stale(refreshId, generation) then
+    if not outdated() then
       readFailed(err, identity.name, refreshId)
     end
     return false
@@ -928,8 +937,9 @@ function RFP.REFRESH_STATE(idBinding)
   end
 end
 
---- Generators with a command on its way to KOHLER, by generator id.
---- @type table<string, boolean>
+--- Generators with a command on its way to KOHLER, by generator id: the sign-in it was sent under,
+--- so a lock from an earlier one is ignored.
+--- @type table<string, integer>
 local gCommandInFlight = {}
 
 --- The least time between a generator's last read and a Refresh that reads it again, in seconds.
@@ -944,16 +954,17 @@ local function commandResult(idBinding, action, ok, message)
   SendToProxy(idBinding, CMD.COMMAND_RESULT, { ACTION = action, OK = tostring(ok), MESSAGE = message })
 end
 
---- Read one generator now, so a read of it sent before can't hand the companion the state from
---- before a command. The poll's reads of the other generators are not touched.
+--- Read one generator now. After a command, a read of it sent before can't hand the companion the
+--- state from before the command. The poll's reads of the other generators are not touched.
 --- @param key string
---- @return Deferred<boolean>|nil read Nil when none was sent.
-local function readNow(key)
+--- @param afterCommand boolean
+--- @return Deferred<boolean|nil>|nil read Nil when none was sent.
+local function readNow(key, afterCommand)
   local identity = gState.generators[key]
   if not identity or not client:hasSession() then
     return nil
   end
-  return readGenerator(identity, gRefreshAccepted, gLoginGeneration, true)
+  return readGenerator(identity, gRefreshAccepted, gLoginGeneration, afterCommand)
 end
 
 --- Why a generator's last record can't be trusted to check a command against, or nil: reads are
@@ -1018,11 +1029,11 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
     elseif readAt ~= nil and os.time() - readAt < REFRESH_MIN_S then
       log:info("Not refreshing generator %s: read %ds ago", key, os.time() - readAt)
     else
-      readNow(key)
+      readNow(key, false)
     end
     return
   end
-  if gCommandInFlight[key] then
+  if gCommandInFlight[key] == gLoginGeneration then
     return commandResult(idBinding, action, false, "Another command is still on its way")
   end
   local unfit = recordUnfit(key)
@@ -1038,18 +1049,24 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
   end
   local identity = gState.generators[key] or Generator.identity(record)
   log:info("Sending %s to generator %s", action, key)
-  gCommandInFlight[key] = true
   local generation = gLoginGeneration
+  gCommandInFlight[key] = generation
+  local function release()
+    if gCommandInFlight[key] == generation then
+      gCommandInFlight[key] = nil
+    end
+  end
   local function readAgain()
-    local read = generation == gLoginGeneration and readNow(key) or nil
+    local read = generation == gLoginGeneration and readNow(key, true) or nil
     if read == nil then
-      gCommandInFlight[key] = nil
-      return
+      return release()
     end
-    local function settled()
-      gCommandInFlight[key] = nil
-    end
-    read:next(settled, settled)
+    -- A read out of date leaves the lock, unless the generator has left the account.
+    read:next(function(result)
+      if result ~= nil or gState.generators[key] == nil then
+        release()
+      end
+    end, release)
   end
   client:send(request, identity and identity.host or "Oncue"):next(function()
     commandResult(idBinding, action, true, "Sent")

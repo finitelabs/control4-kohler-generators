@@ -789,4 +789,29 @@ requests = {}
 command(58001, { action = "refresh" })
 T.eq("read 5 seconds after", sent("/devices/58001%?"), 1)
 
+T.section("a command's read is taken though a poll's account read lands while the command is out")
+deviceAnswers["58001"] = fixture("state-standby.json")
+now = now + 5
+EC.Refresh_Generators()
+held = {}
+requests, toProxy = {}, {}
+EC.Refresh_Generators()
+command(58001, { action = "start", mode = "Unloaded" })
+deviceAnswers["58001"] = fixture("state-exercise.json")
+table.remove(held, 2)()
+table.remove(held, 1)()
+table.remove(held, 1)()
+toProxy = {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "the second Start is checked against the exercise",
+  (proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)] or {}).MESSAGE,
+  "The generator is already running"
+)
+T.eq("one POST", sentMethod("POST"), 1)
+while #held > 0 do
+  table.remove(held, 1)()
+end
+held = nil
+
 T.finish()
