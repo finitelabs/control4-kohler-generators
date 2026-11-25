@@ -900,6 +900,31 @@ T.falsy("the password is kept", IsEmpty(Properties["Password"]))
 T.falsy("Automatic Updates is left alone", props["Automatic Updates"])
 held = nil
 
+T.section("after a restart, a companion that asks during the sign-in waits for its record")
+EC.Reconnect()
+EC.Add_Generators()
+T.truthy("58001 has its binding", bindingOf(58001))
+ShimRestartDirector()
+held, events, toProxy = {}, {}, {}
+dofile(DRIVER)
+OnDriverInit()
+ShimLateInit()
+T.eq("signing in", props["Login Status"], "Logging in...")
+RFP.REFRESH_STATE(bindingOf(58001), "REFRESH_STATE", {})
+T.falsy("no goOffline", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+while held and #held > 0 do
+  local waiting = held
+  held = {}
+  for _, answer in ipairs(waiting) do
+    answer()
+  end
+end
+held = nil
+T.eq("signed in", props["Login Status"], "Logged In")
+T.eq("Account Connected fires at the start too", events, { "Account Connected" })
+T.truthy("the record follows", proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)])
+T.falsy("and still no goOffline", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+
 T.section("Reset Driver with no license keeps the account stopped and says so")
 local drivercentral = require("lib.drivercentral")
 local wasLicensed = drivercentral._licensed

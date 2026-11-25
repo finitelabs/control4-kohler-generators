@@ -143,13 +143,16 @@ local gAutoTried = {}
 --- Whether the account is connected, as the Account Connected variable says.
 local gConnected = false
 --- Whether the account was connected at the last change: nil until the first change after
---- start-up, so a start-up sign-in is not news.
+--- start-up, so a start-up that can't sign in fires no Account Disconnected.
 --- @type boolean|nil
 local gWasConnected = nil
 
 --- Bumped on every sign-in and stop, so a retry armed, or a read sent, under an earlier one
 --- retires itself.
 local gLoginGeneration = 0
+--- The login generation whose sign-in is on its way, so a companion asking meanwhile waits for it.
+--- @type integer|nil
+local gSigningIn = nil
 
 --- All Kohler Generators instances on this controller, sorted by device id. Used for leader
 --- election (lowest id is the leader that runs updates).
@@ -358,12 +361,13 @@ end
 
 -- ─── Reading the account ───────────────────────────────────────────────────
 
---- Record whether the account is connected, firing its event on a change after start-up.
+--- Record whether the account is connected, firing Account Connected on every sign-in, the one at
+--- start-up included, and Account Disconnected when a sign-in is lost.
 --- @param connected boolean
 local function setConnected(connected)
   gConnected = connected
   values:update("Account Connected", connected, "BOOL")
-  if connected and gWasConnected == false then
+  if connected and gWasConnected ~= true then
     C4:FireEventByID(EVENT.ACCOUNT_CONNECTED)
   elseif not connected and gWasConnected == true then
     C4:FireEventByID(EVENT.ACCOUNT_DISCONNECTED)
@@ -752,10 +756,12 @@ function Account.login(retryBackoffS, waitS, waitStatus)
   end
   C4:UpdateProperty("Login Status", "Logging in...")
   C4:UpdateProperty("Driver Status", "Connecting")
+  gSigningIn = generation
   client:signIn():next(function()
     if generation ~= gLoginGeneration then
       return
     end
+    gSigningIn = nil
     C4:UpdateProperty("Login Status", "Logged In")
     if not gReadsRefused then
       setConnected(true)
@@ -770,6 +776,7 @@ function Account.login(retryBackoffS, waitS, waitStatus)
     if generation ~= gLoginGeneration then
       return
     end
+    gSigningIn = nil
     log:warn("Signing in to KOHLER failed: %s", err.message)
     setConnected(false)
     if err.kind == "credentials" then
@@ -993,7 +1000,7 @@ function RFP.REFRESH_STATE(idBinding)
   if gState.records[key] then
     handoff(key)
     handoffFeeds(key)
-  elseif not client:hasSession() then
+  elseif not client:hasSession() and gSigningIn ~= gLoginGeneration then
     SendToProxy(idBinding, CMD.GO_OFFLINE, {})
   end
 end
