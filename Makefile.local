@@ -47,3 +47,15 @@ fmt-mock-kohler: $(MOCK_STAMP) ## Format the mock's Python
 
 check-mock-kohler-fmt: $(MOCK_STAMP) ## Assert the mock's Python is formatted
 	$(MOCK_BLACK) --check $(MOCK_PY_FILES)
+
+# ─── Generator page (drivers/kohler_generator/www/dist) ──────────────────────
+
+.PHONY: test-page
+test: test-page
+
+test-page: ## Run the generator page's tests (node:test)
+	@if command -v node >/dev/null 2>&1; then \
+		TZ=UTC node --test test/page_*.test.mjs; \
+	else \
+		echo "node not found; skipping the generator page's tests"; \
+	fi
