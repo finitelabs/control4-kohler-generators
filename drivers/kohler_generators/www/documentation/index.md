@@ -35,6 +35,7 @@ its room in the Control4 app.
 - [Included Drivers](#included-drivers)
   - [Kohler Generators](#kohler-generators)
   - [Kohler Generator](#kohler-generator)
+    - [Generator Page](#generator-page)
 - [Installer Setup](#installer-setup)
   <!-- #ifdef DRIVERCENTRAL -->
   - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
@@ -101,6 +102,25 @@ generator is reaching the KOHLER cloud.
 - Commands to start and stop an exercise, change the exercise schedule and
   switch load-shed loads
 - A generator page in the Control4 app
+
+### Generator Page
+
+Selecting a generator in the Control4 app, on a touchscreen or a phone, opens
+its page.
+
+<img alt="The generator page" src="./images/ui-page.png" width="640"/>
+
+1. **Top card** - whether the house is on utility or generator power, the
+   engine's state, the switch position and when the generator last reported.
+1. **Exercise** - the schedule, the next and last exercise, and buttons to start
+   or stop an exercise and change the schedule.
+1. **Now** - the readings this generator's controller reports.
+1. **Loads** - a switch for each load-shed load, shown only when Load Control is
+   On and the generator has a load control module.
+1. **Alerts** - active alerts, with the event log under History.
+1. **Service** - maintenance dates, the dealer and the generator's details.
+
+The Kohler Generator driver's documentation covers the page in full.
 
 # <span style="color:#336EE5">Installer Setup</span>
 

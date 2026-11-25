@@ -241,15 +241,15 @@ its page.
 
 <img alt="The generator page" src="./images/ui-page.png" width="640"/>
 
-1. **Top**: whether the house is on utility or generator power, the engine's
-   state, the switch position and when the generator last reported.
-1. **Exercise**: the schedule, the next and last exercise, and buttons to start
+1. **Top card** - whether the house is on utility or generator power, the
+   engine's state, the switch position and when the generator last reported.
+1. **Exercise** - the schedule, the next and last exercise, and buttons to start
    or stop an exercise and change the schedule.
-1. **Now**: the readings this generator's controller reports.
-1. **Loads**: a switch for each load-shed load, shown only when Load Control is
+1. **Now** - the readings this generator's controller reports.
+1. **Loads** - a switch for each load-shed load, shown only when Load Control is
    On and the generator has a load control module.
-1. **Alerts**: active alerts, with the event log under History.
-1. **Service**: maintenance dates, the dealer and the generator's details.
+1. **Alerts** - active alerts, with the event log under History.
+1. **Service** - maintenance dates, the dealer and the generator's details.
 
 Opening or refreshing the page never runs the generator. Start asks first, and
 says what happens: the engine starts and, for a Loaded Full Speed exercise, the
