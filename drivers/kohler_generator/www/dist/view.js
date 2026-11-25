@@ -111,11 +111,20 @@
     };
   }
 
+  // The driver's schedule line, "Weekly, Tuesday 10:00, ...", with its time as the rest of the page
+  // shows times: "Weekly, Tuesday 10:00 AM, ...".
+  function scheduleText(schedule) {
+    if (!schedule || schedule === "None") return "No exercise scheduled";
+    return schedule.replace(/\b(\d{1,2}):(\d{2})\b/, function (_m, h, m) {
+      return clock(new Date(2000, 0, 1, Number(h), Number(m)));
+    });
+  }
+
   function exercise(state, now) {
     var e = state.exercise;
     return {
       running: !!e.running,
-      schedule: e.schedule && e.schedule !== "None" ? e.schedule : "No exercise scheduled",
+      schedule: scheduleText(e.schedule),
       next: when(e.nextAt, now),
       last: when(e.lastAt, now),
       start: { enabled: !e.start, reason: e.start || "" },

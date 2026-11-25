@@ -31,6 +31,15 @@ test("standby: utility power, start allowed, stop refused", () => {
   assert.equal(v.history.length, 3);
 });
 
+test("the schedule's time reads as the page's other times", () => {
+  const v = KGView.view(sample(), NOW);
+  assert.equal(v.exercise.schedule, "Weekly, Tuesday 10:00 AM, Unloaded, 20 minutes");
+  assert.match(v.exercise.next, /10:00 AM$/);
+  const evening = KGView.view(sample((s) => (s.exercise.schedule = "Monthly, Friday 18:05, Unloaded, 30 minutes")), NOW);
+  assert.equal(evening.exercise.schedule, "Monthly, Friday 6:05 PM, Unloaded, 30 minutes");
+  assert.equal(KGView.view(sample((s) => (s.exercise.schedule = "None")), NOW).exercise.schedule, "No exercise scheduled");
+});
+
 test("readings: only those sent, in the project's scale", () => {
   let v = KGView.view(sample(), NOW);
   const byKey = Object.fromEntries(v.readings.map((r) => [r.key, r.value]));
