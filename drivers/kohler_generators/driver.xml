@@ -1,0 +1,223 @@
+<devicedata>
+  <name>Kohler Generators</name>
+  <version/>
+  <manufacturer>Finite Labs</manufacturer>
+  <model>Kohler Generators</model>
+  <creator>Finite Labs</creator>
+  <small image_source="c4z">icons/device_sm.png</small>
+  <large image_source="c4z">icons/device_lg.png</large>
+  <control>lua_gen</control>
+  <controlmethod>ip</controlmethod>
+  <driver>DriverWorks</driver>
+  <copyright>Copyright 2026 Finite Labs, LLC. All rights reserved.</copyright>
+  <created>11/25/2026 12:11:47 AM</created>
+  <modified/>
+  <combo>true</combo>
+  <minimum_os_version>3.3.0</minimum_os_version>
+  <composer_categories>
+    <category>Other</category>
+  </composer_categories>
+  <conditionals>
+    <conditional>
+      <id>1</id>
+      <name>ACCOUNT_CONNECTED</name>
+      <type>BOOL</type>
+      <condition_statement>KOHLER account connection</condition_statement>
+      <description>NAME account is STRING</description>
+      <true_text>Connected</true_text>
+      <false_text>Not Connected</false_text>
+      <sort_order>1</sort_order>
+    </conditional>
+  </conditionals>
+  <events>
+    <event>
+      <id>1</id>
+      <name>Account Connected</name>
+      <description>When NAME signs in to the KOHLER account, or signs in again after losing it</description>
+    </event>
+    <event>
+      <id>2</id>
+      <name>Account Disconnected</name>
+      <description>When NAME loses its KOHLER sign-in</description>
+    </event>
+  </events>
+  <config>
+    <script file="driver.lua" jit="1"/>
+    <documentation file="www/documentation/index.html"/>
+    <properties>
+      <property>
+        <name>Cloud</name>
+        <type>LABEL</type>
+        <default>Cloud Settings</default>
+      </property>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <property>
+        <name>Cloud Status</name>
+        <default/>
+        <type>STRING</type>
+        <readonly>true</readonly>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Automatic Updates</name>
+        <type>LIST</type>
+        <items>
+          <item>Off</item>
+          <item>On</item>
+        </items>
+        <default>On</default>
+      </property>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <property>
+        <name>Update Channel</name>
+        <type>LIST</type>
+        <default>Production</default>
+        <items>
+          <item>Production</item>
+          <item>Prerelease</item>
+        </items>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Account Settings</name>
+        <type>LABEL</type>
+        <default>Account Settings</default>
+      </property>
+      <property>
+        <name>Email</name>
+        <type>STRING</type>
+        <default/>
+        <description>The email address you sign in to the KOHLER Energy Management app with.</description>
+      </property>
+      <property>
+        <name>Password</name>
+        <type>STRING</type>
+        <default/>
+        <password>true</password>
+      </property>
+      <property>
+        <name>Login Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Driver</name>
+        <type>LABEL</type>
+        <default>Driver Settings</default>
+      </property>
+      <property>
+        <name>Driver Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Driver Version</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Log Level</name>
+        <type>DYNAMIC_LIST</type>
+        <default>3 - Info</default>
+      </property>
+      <property>
+        <name>Log Mode</name>
+        <type>LIST</type>
+        <default>Off</default>
+        <items>
+          <item>Off</item>
+          <item>Print</item>
+          <item>Log</item>
+          <item>Print and Log</item>
+        </items>
+      </property>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <property>
+        <name>Support Code</name>
+        <type>STRING</type>
+        <default/>
+        <description>Enter only a code from Finite Labs support. It opens the Lua window for an hour.</description>
+        <password>true</password>
+      </property>
+      <property>
+        <name>Cloud Monitoring</name>
+        <type>LIST</type>
+        <default>Enabled</default>
+        <items>
+          <item>Disabled</item>
+          <item>Enabled</item>
+        </items>
+        <description>Sends memory and error reports to Finite Labs so we can fix driver problems.</description>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Generators</name>
+        <type>LABEL</type>
+        <default>Generator Settings</default>
+      </property>
+      <property>
+        <name>Poll Interval</name>
+        <type>LIST</type>
+        <default>60 seconds</default>
+        <items>
+          <item>30 seconds</item>
+          <item>60 seconds</item>
+          <item>120 seconds</item>
+          <item>300 seconds</item>
+          <item>900 seconds</item>
+        </items>
+        <description>How often the generators are read while nothing is happening.</description>
+      </property>
+    </properties>
+    <actions>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <action>
+        <name>Update Drivers</name>
+        <command>Update_Drivers</command>
+      </action>
+      <!-- #endif -->
+      <action>
+        <name>Add Generators</name>
+        <command>Add_Generators</command>
+      </action>
+      <action>
+        <name>Refresh Generators</name>
+        <command>Refresh_Generators</command>
+      </action>
+      <action>
+        <name>Reconnect</name>
+        <command>Reconnect</command>
+      </action>
+      <action>
+        <name>Reset Driver</name>
+        <command>Reset_Driver</command>
+        <params>
+          <param>
+            <name>Are You Sure?</name>
+            <type>LIST</type>
+            <items>
+              <item>No</item>
+              <item>Yes</item>
+            </items>
+          </param>
+        </params>
+      </action>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <action>
+        <name>Diagnostics Snapshot</name>
+        <command>DiagnosticsSnapshot</command>
+      </action>
+      <!-- #endif -->
+    </actions>
+    <commands>
+      <command>
+        <name>Refresh Generators</name>
+        <description>Refresh generators on NAME</description>
+      </command>
+    </commands>
+  </config>
+  <connections/>
+</devicedata>
