@@ -420,6 +420,21 @@ T.eq("Account Connected fires once", { #events - firedBefore, events[#events] },
 T.eq("Account Connected is true", require("lib.values"):getValue("Account Connected").value, true)
 T.eq("the generators are read", props["Driver Status"], "Connected (3 generators)")
 
+T.section("after refused reads, the account is connected again though a record read fails for another reason")
+requests = {}
+apiAlways = { 401, { message = "Unauthorized" } }
+EC.Refresh_Generators()
+T.eq("Account Connected is false", require("lib.values"):getValue("Account Connected").value, false)
+local firedAt = #events
+apiAlways, deviceAlways = nil, { 503, "Service Unavailable" }
+ShimFireTimers()
+T.eq("Account Connected is true", require("lib.values"):getValue("Account Connected").value, true)
+T.eq("Account Connected fires once", { #events - firedAt, events[#events] }, { 1, "Account Connected" })
+deviceAlways = nil
+now = now + 3600
+ShimFireTimers()
+T.eq("the generators are read again", props["Driver Status"], "Connected (3 generators)")
+
 T.section("a read answered after Reset Driver is not taken")
 held = {}
 EC.Refresh_Generators()

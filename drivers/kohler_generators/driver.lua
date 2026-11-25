@@ -383,6 +383,10 @@ local gUnavailableRefreshId = nil
 --- @type number|nil
 local gUnauthorizedBackoffS = nil
 
+--- Whether reads were refused with a fresh sign-in, so the account counts as connected again only
+--- once a refresh is read without a refusal.
+local gReadsRefused = false
+
 --- A failed read: a 429 or 5xx pauses the poll; a refused sign-in signs in again, and a read
 --- refused even after a fresh sign-in waits before trying again.
 --- @param err KohlerError
@@ -405,6 +409,7 @@ function Account.readFailed(err, what, refreshId)
   elseif err.kind == "unauthorized" then
     local wait = gUnauthorizedBackoffS or LOGIN_RETRY_S
     gUnauthorizedBackoffS = math.min(wait * 2, LOGIN_RETRY_MAX_S)
+    gReadsRefused = true
     Account.login(nil, wait, "KOHLER refused access")
   elseif err.kind == "credentials" or err.kind == "refused" then
     Account.login()
@@ -568,11 +573,15 @@ local function refreshGenerators()
     local function settled(ok)
       unread = unread - 1
       allRead = allRead and ok
-      if unread <= 0 and allRead and not stale(refreshId, generation) then
-        if gUnauthorizedBackoffS ~= nil then
+      if unread <= 0 and not stale(refreshId, generation) then
+        -- A refused read signs in again, which makes its refresh stale, so this one had none.
+        if gReadsRefused then
+          gReadsRefused = false
           setConnected(true)
         end
-        gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
+        if allRead then
+          gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
+        end
       end
     end
     if unread == 0 then
@@ -749,7 +758,7 @@ function Account.login(retryBackoffS, waitS, waitStatus)
     end
     C4:UpdateProperty("Login Status", "Logged In")
     -- After reads were refused with a fresh sign-in, the account is connected again once a read works.
-    if gUnauthorizedBackoffS == nil then
+    if not gReadsRefused then
       setConnected(true)
     end
     gPausedUntil, gUnavailableBackoffS = 0, nil
