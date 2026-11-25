@@ -561,7 +561,10 @@ class Cloud:
             gen = self.detached.pop(gid, None)
             if gen is not None:
                 gen.owner = acct
-                gen.home = acct.homes[int(b.get("home", 0))]
+                if "home" in b:
+                    gen.home = acct.homes[int(b["home"])]
+                elif not any(h is gen.home for h in acct.homes):
+                    gen.home = acct.homes[0]
                 self.generators[gid] = gen
                 acct.generators.append(gen)
             else:
