@@ -100,7 +100,7 @@ local gUnavailableBackoffS = nil
 --- Set once a refresh has listed the account's generators, so Add Generators knows them.
 local gListed = false
 
---- Whether the account is connected, as ACCOUNT_CONNECTED says.
+--- Whether the account is connected, as the Account Connected variable says.
 local gConnected = false
 --- Whether the account was connected at the last change: nil until the first change after
 --- start-up, so a start-up sign-in is not news.
@@ -394,7 +394,7 @@ end
 --- @param connected boolean
 local function setConnected(connected)
   gConnected = connected
-  values:update("ACCOUNT_CONNECTED", connected, "BOOL")
+  values:update("Account Connected", connected, "BOOL")
   if connected and gWasConnected == false then
     C4:FireEventByID(EVENT.ACCOUNT_CONNECTED)
   elseif not connected and gWasConnected == true then
@@ -550,9 +550,9 @@ function OnDriverInit()
   -- before then (src/lib/bindings.lua, src/lib/values.lua).
   bindings:restoreBindings()
   values:restoreValues()
-  local stored = values:getValue("ACCOUNT_CONNECTED")
+  local stored = values:getValue("Account Connected")
   if stored == nil or stored.deleted then
-    values:update("ACCOUNT_CONNECTED", false, "BOOL")
+    values:update("Account Connected", false, "BOOL")
   end
 end
 

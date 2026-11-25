@@ -47,7 +47,7 @@ local gInitialized = false
 --- @type KohlerIdentity|nil
 local gIdentity = nil
 
---- Whether the generator is online, as the ONLINE variable says: restored at start, so a start
+--- Whether the generator is online, as the Online variable says: restored at start, so a start
 --- that finds it as it was fires nothing.
 local gOnline = false
 
@@ -56,7 +56,7 @@ local gOnline = false
 --- Record whether the generator is online, firing its event on a change.
 --- @param online boolean
 local function setOnline(online)
-  values:update("ONLINE", online, "BOOL")
+  values:update("Online", online, "BOOL")
   if online ~= gOnline then
     gOnline = online
     C4:FireEventByID(online and EVENT.GENERATOR_ONLINE or EVENT.GENERATOR_OFFLINE)
@@ -206,11 +206,11 @@ function OnDriverInit()
 
   -- Before OnDriverLateInit: Director resolves variables' programming before then.
   values:restoreValues()
-  local stored = values:getValue("ONLINE")
+  local stored = values:getValue("Online")
   if stored == nil or stored.deleted then
-    values:update("ONLINE", false, "BOOL")
+    values:update("Online", false, "BOOL")
   end
-  gOnline = toboolean(Select(values:getValue("ONLINE"), "value"))
+  gOnline = toboolean(Select(values:getValue("Online"), "value"))
 end
 
 function OnDriverLateInit()

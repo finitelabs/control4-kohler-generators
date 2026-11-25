@@ -180,7 +180,7 @@ binding class `KOHLER_GENERATOR`.
 
 | Variable | Type    | Description                                         |
 | -------- | ------- | --------------------------------------------------- |
-| ONLINE   | Boolean | Whether the generator is reaching the KOHLER cloud. |
+| Online   | Boolean | Whether the generator is reaching the KOHLER cloud. |
 
 ### Events
 

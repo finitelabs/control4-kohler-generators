@@ -365,7 +365,7 @@ Generators** does this for you.
 
 | Variable          | Type    | Description                                     |
 | ----------------- | ------- | ----------------------------------------------- |
-| ACCOUNT_CONNECTED | Boolean | Whether the driver is signed in to the account. |
+| Account Connected | Boolean | Whether the driver is signed in to the account. |
 
 ### Events
 

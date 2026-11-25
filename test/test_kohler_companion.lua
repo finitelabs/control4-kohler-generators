@@ -72,12 +72,12 @@ OnDriverInit()
 ShimLateInit()
 
 local function online()
-  return require("lib.values"):getValue("ONLINE").value
+  return require("lib.values"):getValue("Online").value
 end
 
 T.section("at start-up")
 T.eq("asks the account for its record", asked, { constants.GENERATOR_BINDING .. " " .. constants.CMD.REFRESH_STATE })
-T.eq("ONLINE is false", online(), false)
+T.eq("Online is false", online(), false)
 
 T.section("the record fills the properties")
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
@@ -89,7 +89,7 @@ T.eq("Dealer", props["Dealer"], "Example Power Co., (555) 555-0142")
 T.eq("Driver Status", props["Driver Status"], "Online")
 T.eq("renamed after the generator", renamed, { "Demo Generator" })
 T.eq("Generator Online fires", events, { "Generator Online" })
-T.eq("ONLINE is true", online(), true)
+T.eq("Online is true", online(), true)
 
 T.section("the same record again changes nothing")
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
@@ -103,7 +103,7 @@ RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSO
 T.eq("not renamed", #renamed, 1)
 T.eq("Driver Status", props["Driver Status"], "Generator offline")
 T.eq("Generator Offline fires", events[#events], "Generator Offline")
-T.eq("ONLINE is false", online(), false)
+T.eq("Online is false", online(), false)
 
 T.section("an unreadable record is ignored")
 local before = #events
