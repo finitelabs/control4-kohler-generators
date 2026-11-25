@@ -137,6 +137,7 @@ class Generator:
         self.load_shed = copy.deepcopy(profile.get("loadShed"))
         self.pim = copy.deepcopy(profile.get("pim"))
 
+        self.started = False
         self.online = True
         self.offline_since = None
         self.snapshot = None
@@ -252,6 +253,7 @@ class Generator:
     def _crank(self):
         self.engine = "CrankOn"
         self.run_start = self.t
+        self.started = False
         self._after(self.timing["crank_s"], "started")
         self._touch()
 
@@ -259,6 +261,7 @@ class Generator:
         if self.engine != "CrankOn":
             return
         self.engine = EXERCISE_STATES[self.ex_mode] if self.kind == "exercise" else "Running"
+        self.started = True
         self._event("Engine Started", etype="runningNotice")
         self._notice(
             "EngineStartedNotice", f'The engine on your generator "{self.name}" has started.'
@@ -286,7 +289,8 @@ class Generator:
             self._stop_engine()
 
     def _stop_engine(self):
-        was_running = self.engine in RUNNING_STATES
+        was_running = self.started
+        self.started = False
         self.engine = "Off" if self.switch == "Off" else "Standby"
         self.power = "Utility"
         if was_running:

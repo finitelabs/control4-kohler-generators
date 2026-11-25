@@ -229,3 +229,15 @@ async def test_no_exercise_during_an_outage(signed_in, clock):
     rec = await api.record(BLUE)
     assert rec["engineState"] == "Running"
     assert rec["powerSource"] == "Generator"
+
+
+async def test_fault_while_cranking_logs_no_stop(signed_in, clock):
+    _, client, api = await signed_in()
+    before = (await api.record(BLUE))["lastRanTimestamp"]
+    await api.call("POST", f"/devices/{BLUE}/exercise/start", {"mode": "Unloaded"})
+    clock.advance(1)
+    await control(client, "fault", device=BLUE)
+    events = [e["event"] for e in await api.get(f"/devices/{BLUE}/events")]
+    assert "Engine Started" not in events
+    assert "Engine Stopped" not in events
+    assert (await api.record(BLUE))["lastRanTimestamp"] == before
