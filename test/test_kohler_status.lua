@@ -83,6 +83,12 @@ T.eq("each load-shed load, off", #standby.loads, 6)
 T.eq("named as the app names it", standby.loads[1].name, "HVAC A")
 T.eq("off", standby.loads[1].on, false)
 
+local lowOil = fixture("state-standby.json")
+lowOil.engineOilPressureOk = false
+T.eq("low oil pressure reads false", Status.fromRecord(lowOil, NOW, "F").oilPressureOk, false)
+lowOil.engineOilPressureOk = nil
+T.eq("and none reported, nil", Status.fromRecord(lowOil, NOW, "F").oilPressureOk, nil)
+
 T.section("temperatures follow the project's scale")
 T.eq("Celsius, to a tenth", state("standby", "C").readings["Controller Temperature"], 23.5)
 T.eq("a missing one stays nil", state("standby", "C").readings["Coolant Temperature"], nil)

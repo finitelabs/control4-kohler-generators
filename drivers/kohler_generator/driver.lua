@@ -67,7 +67,7 @@ local VARIABLES = {
   { "Frequency", "NUMBER", nil },
   { "Engine RPM", "NUMBER", nil },
   { "Battery Voltage", "NUMBER", nil },
-  { "Oil Pressure OK", "BOOL", false },
+  { "Oil Pressure OK", "BOOL", nil },
   { "Controller Temperature", "NUMBER", nil },
   { "Lube Oil Temperature", "NUMBER", nil },
   { "Coolant Temperature", "NUMBER", nil },
@@ -230,7 +230,7 @@ local function applyRecord(record)
   for name, reading in pairs(s.readings) do
     values:update(name, reading, "NUMBER")
   end
-  values:update("Oil Pressure OK", s.oilPressureOk == true, "BOOL")
+  values:update("Oil Pressure OK", s.oilPressureOk, "BOOL")
   values:update("Last Ran", s.lastRan, "STRING")
   values:update("Next Exercise", s.nextExercise, "STRING")
   values:update("Next Maintenance", s.nextMaintenance, "STRING", nil, nil, { property = false })

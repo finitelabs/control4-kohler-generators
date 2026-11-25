@@ -150,6 +150,9 @@ function M.fromRecord(record, now, scale)
   local engineText = type(record.engineStateDisplayNameEn) == "string" and record.engineStateDisplayNameEn
     or Generator.label(engine)
   local oilOk = record.engineOilPressureOk
+  if type(oilOk) ~= "boolean" then
+    oilOk = nil
+  end
   local loads = {}
   local shed = record.loadShed
   if type(shed) == "table" and shed.isConnected == true and type(shed.parameters) == "table" then
@@ -186,7 +189,7 @@ function M.fromRecord(record, now, scale)
       ["Operation Hours"] = n(record.totalOperationHours),
       ["Hours Since Maintenance"] = n(record.runtimeSinceLastMaintenanceHours),
     },
-    oilPressureOk = type(oilOk) == "boolean" and oilOk or nil,
+    oilPressureOk = oilOk,
     lastRan = M.formatTime(Generator.time(record.lastRanTimestamp)),
     nextExercise = M.formatTime(Generator.time(exercise.nextStartTimestamp)),
     lastMaintenance = M.formatTime(Generator.time(device.lastMaintenanceTimestamp)),
