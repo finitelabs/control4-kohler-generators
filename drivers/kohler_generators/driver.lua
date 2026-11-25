@@ -608,7 +608,7 @@ local function pollIntervalS()
 end
 
 --- Sets the next poll at the rate the generators need. Each poll sets the one after it once its
---- reads settle, so a slow cloud never has two polls out and a new rate applies from the next one.
+--- reads settle, so polls never pile up behind a slow cloud and a new rate applies from the next one.
 --- Refresh Generators is not held back by this.
 local function startPolling()
   if not licensed() then
