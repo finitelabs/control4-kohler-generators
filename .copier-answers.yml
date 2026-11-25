@@ -5,7 +5,7 @@ cloud_diagnostics: true
 dc_pid: 0
 embedded_drivers: kohler_generators:kohler_generator
 extra_build_secrets: KOHLER_CLIENT_ID KOHLER_CLIENT_SECRET KOHLER_API_KEY
-extra_required_checks: ''
+extra_required_checks: mock-kohler
 github_org: finitelabs
 icon_style: square
 primary_color: '#336EE5'
