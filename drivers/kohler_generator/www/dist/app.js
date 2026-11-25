@@ -306,7 +306,7 @@
   }
 
   // The open Start sheet follows the generator: a refusal or a running engine that arrives while it
-  // is open greys Start with the reason.
+  // is open grays Start with the reason.
   function guardStart(v) {
     if (!startGuard) return;
     var e = v.exercise;
