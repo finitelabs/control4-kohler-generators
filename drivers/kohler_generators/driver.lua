@@ -757,7 +757,6 @@ function Account.login(retryBackoffS, waitS, waitStatus)
       return
     end
     C4:UpdateProperty("Login Status", "Logged In")
-    -- After reads were refused with a fresh sign-in, the account is connected again once a read works.
     if not gReadsRefused then
       setConnected(true)
     end
