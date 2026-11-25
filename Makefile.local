@@ -1,0 +1,39 @@
+# Kept out of Makefile so `copier update` cannot clobber these.
+
+# ─── Mock KOHLER generator cloud (test/mock-kohler) ───────────────────────────
+
+MOCK_DIR    := test/mock-kohler
+MOCK_VENV   := $(MOCK_DIR)/.venv
+MOCK_PY     := $(MOCK_VENV)/bin/python3
+MOCK_STAMP  := $(MOCK_VENV)/.requirements-installed
+MOCK_CONFIG ?= instances/demo.json
+MOCK_ARGS   ?=
+
+$(MOCK_STAMP): $(MOCK_DIR)/requirements.txt
+	@test -x $(MOCK_PY) || python3 -m venv $(MOCK_VENV)
+	$(MOCK_PY) -m pip install --quiet pip-tools
+	cd $(MOCK_DIR) && .venv/bin/pip-sync requirements.txt
+	@touch $@
+
+.PHONY: mock-kohler-deps mock-kohler test-mock-kohler fmt-mock-kohler check-mock-kohler-fmt
+
+mock-kohler-deps: ## Recompile the mock's requirements.txt (UPGRADE=1 to upgrade)
+	@test -x $(MOCK_PY) || python3 -m venv $(MOCK_VENV)
+	$(MOCK_PY) -m pip install --quiet pip-tools
+	cd $(MOCK_DIR) && .venv/bin/pip-compile --quiet --no-strip-extras \
+		$(if $(UPGRADE),--upgrade,) requirements.in
+
+mock-kohler: $(MOCK_STAMP) ## Run the mock KOHLER cloud (MOCK_CONFIG=, MOCK_ARGS=)
+	cd $(MOCK_DIR) && .venv/bin/python3 -m mock_kohler --config $(MOCK_CONFIG) $(MOCK_ARGS)
+
+test-mock-kohler: $(MOCK_STAMP) ## Run the mock's own tests
+	cd $(MOCK_DIR) && .venv/bin/python3 -m pytest -q
+
+MOCK_BLACK := $(MOCK_VENV)/bin/black
+MOCK_PY_FILES := $(MOCK_DIR)/mock_kohler $(MOCK_DIR)/tests
+
+fmt-mock-kohler: $(MOCK_STAMP) ## Format the mock's Python
+	$(MOCK_BLACK) $(MOCK_PY_FILES)
+
+check-mock-kohler-fmt: $(MOCK_STAMP) ## Assert the mock's Python is formatted
+	$(MOCK_BLACK) --check $(MOCK_PY_FILES)

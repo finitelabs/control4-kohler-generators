@@ -1,0 +1,6 @@
+# The mock KOHLER generator cloud's Python dependencies. Compile with:
+#   pip-compile --no-strip-extras requirements.in   (UPGRADE=1 make mock-kohler-deps upgrades)
+aiohttp
+pytest
+pytest-aiohttp
+black

@@ -1,0 +1,32 @@
+# Kept out of build.yml so `copier update` cannot clobber this.
+name: Mock KOHLER
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  mock-kohler:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # test/mock-kohler/requirements.txt is compiled for this Python.
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Check formatting
+        run: make check-mock-kohler-fmt
+
+      - name: Test the mock
+        run: make test-mock-kohler

@@ -1,0 +1,189 @@
+{
+  "description": "Liquid-cooled 48 kW, RDC2 Blue Board, natural gas, coolant and oil pressure readings",
+  "product": "Rdc2v4",
+  "productDisplayName": "RDC 2.4",
+  "controllerType": "RDC2 (Blue Board)",
+  "firmwareVersion": "3.9.2",
+  "currentFirmware": "RDC2.4 3.9.2",
+  "model": "Model48KW",
+  "modelDisplayName": "48 KW",
+  "ratedKw": 48,
+  "deviceHost": "Oncue",
+  "connectionType": "Cellular",
+  "coolingType": "Liquid",
+  "fuelType": "NaturalGas",
+  "utcOffsetHours": -5,
+  "quirks": {
+    "naiveLocalTimes": false,
+    "negativeLoad": true,
+    "fractionalSeconds": false
+  },
+  "exerciseModes": [
+    "Unloaded",
+    "LoadedFullSpeed",
+    "EcoExercise"
+  ],
+  "exercise": {
+    "frequency": "Monthly",
+    "mode": "LoadedFullSpeed",
+    "durationMinutes": 30,
+    "weekday": 2,
+    "time": "11:00"
+  },
+  "maintenance": {
+    "periodDays": 180,
+    "lastDaysAgo": 30
+  },
+  "hours": {
+    "totalRuntimeHours": 402.5,
+    "totalOperationHours": 30210.9,
+    "runtimeSinceLastMaintenanceHours": 3.2
+  },
+  "utilityVoltageV": 242.3,
+  "loadW": 21600,
+  "remoteResetCounterSeconds": 0,
+  "timing": {
+    "cooldown_s": 300
+  },
+  "telemetry": {
+    "standby": {
+      "batteryVoltageV": 13.7,
+      "engineCoolantTempF": 91.4,
+      "engineFrequencyHz": 0,
+      "engineSpeedRpm": 0,
+      "lubeOilTempF": null,
+      "controllerTempF": 77.0,
+      "engineCompartmentTempF": 66.2,
+      "engineOilPressurePsi": 0,
+      "engineOilPressureOk": true,
+      "generatorVoltageAvgV": 0,
+      "setOutputVoltageV": 240
+    },
+    "running": {
+      "batteryVoltageV": 14.2,
+      "engineCoolantTempF": 186.8,
+      "engineFrequencyHz": 60.0,
+      "engineSpeedRpm": 1801,
+      "controllerTempF": 92.5,
+      "engineCompartmentTempF": 118.4,
+      "engineOilPressurePsi": 52.3,
+      "generatorVoltageAvgV": 241.1
+    }
+  },
+  "dealerOrgs": [
+    {
+      "id": 9001,
+      "businessPartnerNo": "DEMO-9001",
+      "name": "Example Power Co.",
+      "e164PhoneNumber": "+15555550142",
+      "displayPhoneNumber": "(555) 555-0142",
+      "wizardStep": "OnboardingComplete",
+      "wizardComplete": true,
+      "address": {
+        "lat": null,
+        "long": null,
+        "address1": "1 Example Way",
+        "address2": null,
+        "city": "Demo City",
+        "state": "ZZ",
+        "postalCode": "00000",
+        "country": "US"
+      },
+      "userCount": 2,
+      "technicianCount": 1,
+      "deviceCount": 3,
+      "adminEmails": [
+        "service@example.com"
+      ]
+    }
+  ],
+  "serviceAgreement": {
+    "hasServiceAgreement": true,
+    "beginTimestamp": "2026-01-15T00:00:00+00:00",
+    "term": "FiveYears",
+    "termMonths": 60,
+    "termDays": null
+  },
+  "loadShed": {
+    "isConnected": false,
+    "parameters": [
+      {
+        "definitionId": 1,
+        "displayName": "HVAC A",
+        "value": false,
+        "isReadOnly": false
+      },
+      {
+        "definitionId": 2,
+        "displayName": "HVAC B",
+        "value": false,
+        "isReadOnly": false
+      },
+      {
+        "definitionId": 3,
+        "displayName": "Load A",
+        "value": false,
+        "isReadOnly": false
+      },
+      {
+        "definitionId": 4,
+        "displayName": "Load B",
+        "value": false,
+        "isReadOnly": false
+      },
+      {
+        "definitionId": 5,
+        "displayName": "Load C",
+        "value": false,
+        "isReadOnly": false
+      },
+      {
+        "definitionId": 6,
+        "displayName": "Load D",
+        "value": false,
+        "isReadOnly": false
+      }
+    ]
+  },
+  "pim": {
+    "isConnected": false,
+    "parameters": [
+      {
+        "definitionId": 7,
+        "displayName": "Digital Output B1 Value",
+        "value": false,
+        "isReadOnly": true
+      },
+      {
+        "definitionId": 8,
+        "displayName": "Digital Output B2 Value",
+        "value": false,
+        "isReadOnly": true
+      },
+      {
+        "definitionId": 9,
+        "displayName": "Digital Output B3 Value",
+        "value": false,
+        "isReadOnly": true
+      },
+      {
+        "definitionId": 10,
+        "displayName": "Digital Output B4 Value",
+        "value": false,
+        "isReadOnly": true
+      },
+      {
+        "definitionId": 11,
+        "displayName": "Digital Output B5 Value",
+        "value": false,
+        "isReadOnly": true
+      },
+      {
+        "definitionId": 12,
+        "displayName": "Digital Output B6 Value",
+        "value": false,
+        "isReadOnly": true
+      }
+    ]
+  }
+}
