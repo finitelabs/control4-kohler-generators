@@ -352,6 +352,14 @@ events = {}
 RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", { ALERTS = "{", EVENTS = "[]" })
 T.eq("no event", events, {})
 
+T.section("in the start delay, utility power is out before the house is on the generator")
+local delay = JSON:decode(fixture("state-outage.json"))
+delay.powerSource = "Utility"
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(delay) })
+T.eq("Utility power is Out", test("UTILITY_POWER", "Out"), true)
+T.eq("the house is not on generator power yet", test("ON_GENERATOR_POWER", "Generator Power"), false)
+handOver("standby")
+
 T.section("a load whose variable name is taken gets no variable")
 local clash = JSON:decode(fixture("state-standby.json"))
 clash.generatorLoadW = 4200
