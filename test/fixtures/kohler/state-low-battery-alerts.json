@@ -1,0 +1,15 @@
+[
+  {
+    "canRemoteResetFault": null,
+    "event": "Low Battery Voltage",
+    "fmi": "NotApplicable",
+    "id": 20003,
+    "isCriticalFault": false,
+    "level": "Warning",
+    "name": "Low Battery Voltage Warning",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:13:20+00:00",
+    "type": "warning"
+  }
+]

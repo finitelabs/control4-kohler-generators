@@ -1,8 +1,8 @@
 -- The Kohler Generators account driver against a scripted KOHLER cloud answering with the mock's
 -- replies: sign-in from the Email and Password properties and its Login Status, Account Connected
 -- and Account Disconnected on real changes only, a binding and a record handed off per generator,
--- Add Generators, a generator that leaves the account and its companion marked, a 429 that pauses the poll, and a wrong
--- password that stops.
+-- Add Generators, a generator that leaves the account and its companion marked, a 429 that pauses the poll, a wrong
+-- password that stops, alerts and event logs handed on every 2 minutes, and a faster poll while a generator runs.
 --
 -- Run from the driver root:
 --   make test
@@ -56,9 +56,13 @@ local issued = 0
 local apiAlways = nil
 --- When set, the answer every generator record read gets.
 local deviceAlways = nil
+--- When set, the answer every alerts read gets.
+local alertsAlways = nil
 --- When set, every answer waits in it, to be released by calling it.
 --- @type function[]|nil
 local held = nil
+--- A record a generator answers with in place of its fixture, by id.
+local deviceAnswers = {}
 
 urlDo = function(method, url, data, _headers, callback, context)
   requests[#requests + 1] = { method = method, url = url, data = data }
@@ -76,15 +80,20 @@ urlDo = function(method, url, data, _headers, callback, context)
       code, body = 200, { access_token = "access-" .. issued, refresh_token = "refresh-" .. issued, expires_in = 3600 }
     end
   else
-    local answer = apiAlways or (url:find("/devices/%d+%?") and deviceAlways) or table.remove(apiAnswers, 1)
+    local answer = apiAlways
+      or (url:find("/devices/%d+%?") and deviceAlways)
+      or (url:find("/alerts%?") and alertsAlways)
+      or table.remove(apiAnswers, 1)
     if answer then
       code, body, responseHeaders = answer[1], answer[2], answer[3] or {}
     elseif url:find("/homeowner/homes$") then
       code, body = 200, homes
+    elseif url:find("/devices/%d+/alerts%?") or url:find("/devices/%d+/events%?") then
+      code, body = 200, {}
     else
       local id = url:match("/devices/(%d+)%?")
       if id then
-        code, body = 200, fixture("device-" .. id .. ".json")
+        code, body = 200, deviceAnswers[id] or fixture("device-" .. id .. ".json")
       end
     end
   end
@@ -141,6 +150,16 @@ local function proxySends(command)
     end
   end
   return out
+end
+
+--- The interval of each repeating timer set, in milliseconds, in order.
+local repeating = {}
+local realSetTimer = C4.SetTimer
+C4.SetTimer = function(self, ms, callback, again)
+  if again then
+    repeating[#repeating + 1] = ms
+  end
+  return realSetTimer(self, ms, callback, again)
 end
 
 -- ─── A project ─────────────────────────────────────────────────────────────
@@ -427,5 +446,118 @@ deviceAlways = nil
 ShimFireTimers()
 T.eq("signs in once reads work", props["Login Status"], "Logged In")
 T.eq("and reads the account", props["Driver Status"], "Connected (3 generators)")
+
+T.section("each generator's alerts and event log are read and handed on every 2 minutes")
+requests, toProxy = {}, {}
+EC.Refresh_Generators()
+T.eq("each one's alerts", sent("/devices/%d+/alerts%?sourceDeviceHost=Oncue$"), 3)
+T.eq("and events", sent("/devices/%d+/events%?sourceDeviceHost=Oncue$"), 3)
+T.truthy("handed to its companion", proxySends(constants.CMD.UPDATE_FEEDS)[bindingOf(58001)])
+T.eq("as JSON", proxySends(constants.CMD.UPDATE_FEEDS)[bindingOf(58001)].ALERTS, "[]")
+requests = {}
+now = now + 60
+ShimFireTimers()
+T.eq("not again a minute later", sent("/alerts%?"), 0)
+now = now + 60
+ShimFireTimers()
+T.eq("again after two", sent("/alerts%?"), 3)
+requests = {}
+local warned = fixture("device-58001.json")
+warned.device.alertCount = warned.device.alertCount + 1
+deviceAnswers["58001"] = warned
+ShimFireTimers()
+T.eq("at once when a generator's alert count changes", sent("/alerts%?"), 1)
+deviceAnswers["58001"] = nil
+toProxy = {}
+RFP.REFRESH_STATE(bindingOf(58001), "REFRESH_STATE", {})
+T.truthy("a companion that starts up is handed them too", proxySends(constants.CMD.UPDATE_FEEDS)[bindingOf(58001)])
+
+T.section("alerts answered after the sign-in ends are not handed on")
+now = now + 120
+held = {}
+EC.Refresh_Generators()
+table.remove(held, 1)()
+table.remove(held, 1)()
+local alerts = table.remove(held)
+apiAlways = { 401, { message = "Unauthorized" } }
+EC.Refresh_Generators()
+while #held > 0 do
+  table.remove(held, 1)()
+end
+T.eq("the sign-in ended and waits", props["Login Status"], "KOHLER refused access")
+apiAlways = nil
+toProxy = {}
+alerts()
+table.remove(held, 1)()
+held = nil
+T.eq("nothing handed from it", next(proxySends(constants.CMD.UPDATE_FEEDS)), nil)
+ShimFireTimers()
+T.eq("signed in again", props["Login Status"], "Logged In")
+
+T.section("an older alerts read answered after a newer one is not handed on")
+now = now + 120
+held = {}
+EC.Refresh_Generators()
+table.remove(held, 1)()
+table.remove(held, 1)()
+local older = table.remove(held)
+while #held > 0 do
+  table.remove(held, 1)()
+end
+local raised = fixture("device-58001.json")
+raised.device.alertCount = raised.device.alertCount + 1
+deviceAnswers["58001"] = raised
+EC.Refresh_Generators()
+while #held > 0 do
+  table.remove(held, 1)()
+end
+held = nil
+deviceAnswers["58001"] = nil
+toProxy = {}
+older()
+local handed = 0
+for _, s in ipairs(toProxy) do
+  if s.command == constants.CMD.UPDATE_FEEDS then
+    handed = handed + 1
+  end
+end
+T.eq("nothing handed from the older read", handed, 0)
+
+T.section("a generator that runs is polled every 15 seconds, until it stops")
+T.eq("polling at the Poll Interval", repeating[#repeating], 60000)
+deviceAnswers["58001"] = fixture("state-outage.json")
+EC.Refresh_Generators()
+T.eq("every 15 seconds while it runs", repeating[#repeating], 15000)
+local count = #repeating
+ShimFireTimers()
+T.eq("and stays there", #repeating, count)
+deviceAnswers["58001"] = fixture("state-standby.json")
+ShimFireTimers()
+T.eq("back to the Poll Interval when it stops", repeating[#repeating], 60000)
+
+T.section("alerts reads that fail wait longer each time, and leave the account's status alone")
+now = now + 120
+alertsAlways = { 503, { message = "Service Unavailable" } }
+ShimFireTimers()
+T.eq("the account still reads as connected", props["Driver Status"], "Connected (3 generators)")
+for _, wait in ipairs({ 120, 240 }) do
+  requests = {}
+  now = now + wait - 60
+  ShimFireTimers()
+  T.eq(string.format("no alerts read before %ds", wait), sent("/alerts%?"), 0)
+  T.eq("though the generators are", sent("/devices/%d+%?"), 3)
+  now = now + 60
+  ShimFireTimers()
+  T.eq(string.format("read again at %ds", wait), sent("/alerts%?"), 3)
+end
+alertsAlways = nil
+requests = {}
+now = now + 480
+ShimFireTimers()
+T.eq("read once they work", sent("/alerts%?"), 3)
+requests = {}
+now = now + 120
+ShimFireTimers()
+T.eq("then every 2 minutes again", sent("/alerts%?"), 3)
 
 T.finish()

@@ -33,6 +33,7 @@ local githubUpdater = require("lib.github-updater")
 
 local Client = require("kohler.client")
 local Generator = require("kohler.generator")
+local Status = require("kohler.status")
 local constants = require("constants")
 
 --- Whether the license gate lets the account reach KOHLER. An OSS build has no gate.
@@ -64,6 +65,12 @@ local EVENT = { ACCOUNT_CONNECTED = 1, ACCOUNT_DISCONNECTED = 2 }
 
 --- Poll interval when the property holds nothing usable.
 local DEFAULT_POLL_S = 60
+--- Poll interval while a generator runs or the utility is out.
+local BUSY_POLL_S = 15
+--- How often each generator's alerts and event log are read, unless its record shows a change.
+local FEED_INTERVAL_S = 120
+--- The longest wait before reading a generator's alerts and event log again after the reads fail.
+local FEED_RETRY_MAX_S = 900
 --- The wait before signing in again after a sign-in that may work later, and its ceiling.
 local LOGIN_RETRY_S = 5
 local LOGIN_RETRY_MAX_S = 300
@@ -83,6 +90,12 @@ local gState = {
   records = {},
   --- @type table<string, KohlerIdentity> generator id -> its identity, from homeowner/homes
   generators = {},
+  --- @type table<string, { alerts: table, events: table }> generator id -> its latest alerts and events
+  feeds = {},
+  --- @type table<string, { at: integer, alertCount: any, status: any, id: integer, wait?: integer, retryAt?: integer }>
+  --- generator id -> when, on what record and by which read its feeds were last read, and after a
+  --- failed read, the wait and when to read again
+  feedReads = {},
 }
 
 --- Set true once OnDriverLateInit finishes; guards the property handlers from firing while
@@ -139,6 +152,21 @@ local function handoff(key)
   SendToProxy(binding.bindingId, CMD.UPDATE_GENERATOR, { JSON = JSON:encode(record) })
 end
 
+--- Push a generator's alerts and event log to its bound companion (if any).
+--- @param key string The generator's id.
+local function handoffFeeds(key)
+  local feeds = gState.feeds[key]
+  local binding = bindings:getDynamicBinding(NS, key)
+  if not feeds or not binding then
+    return
+  end
+  SendToProxy(
+    binding.bindingId,
+    CMD.UPDATE_FEEDS,
+    { ALERTS = JSON:encode(feeds.alerts), EVENTS = JSON:encode(feeds.events) }
+  )
+end
+
 --- Tell a generator's companion it is gone.
 --- @param key string
 local function goOffline(key)
@@ -167,6 +195,7 @@ local function handOffOnBind(key, bindingId)
   OBC[bindingId] = function(_idBinding, _strClass, bIsBound)
     if bIsBound then
       handoff(key)
+      handoffFeeds(key)
     end
   end
 end
@@ -245,6 +274,74 @@ local function stale(refreshId, generation)
   return refreshId < gRefreshAccepted or generation ~= gLoginGeneration
 end
 
+--- Moves the poll to the rate the generators need; defined under Polling.
+--- @type fun()
+local adjustPolling
+
+--- The alerts and event log reads sent so far, numbering each so only a generator's latest is taken.
+local gFeedReadsIssued = 0
+
+--- Read a generator's alerts and event log and hand them to its companion. A newer refresh does
+--- not outdate them; a newer read of the same generator or an ended sign-in does.
+--- @param identity KohlerIdentity
+--- @param record table The record that asked for them.
+--- @param generation integer gLoginGeneration when it was sent.
+local function readFeeds(identity, record, generation)
+  local key = tostring(identity.id)
+  local device = type(record.device) == "table" and record.device or {}
+  gFeedReadsIssued = gFeedReadsIssued + 1
+  local readId = gFeedReadsIssued
+  local prior = gState.feedReads[key]
+  gState.feedReads[key] = {
+    at = os.time(),
+    alertCount = device.alertCount,
+    status = device.status,
+    id = readId,
+    wait = prior and prior.wait,
+  }
+  local function current()
+    return generation == gLoginGeneration and Select(gState.feedReads, key, "id") == readId
+  end
+  client
+    :getAlerts(identity.id, identity.host)
+    :next(function(alerts)
+      return client:getEvents(identity.id, identity.host):next(function(events)
+        if not current() or gState.generators[key] == nil then
+          return
+        end
+        gState.feedReads[key].wait = nil
+        gState.feeds[key] = { alerts = alerts, events = events }
+        handoffFeeds(key)
+      end)
+    end)
+    :next(nil, function(err)
+      if current() then
+        local entry = gState.feedReads[key]
+        local wait = entry.wait and math.min(entry.wait * 2, FEED_RETRY_MAX_S) or FEED_INTERVAL_S
+        wait = math.max(wait, err.retryAfter or 0)
+        entry.wait, entry.retryAt = wait, os.time() + wait
+        log:warn("Reading %s's alerts and events failed: %s; trying again in %ds", identity.name, err.message, wait)
+      end
+    end)
+end
+
+--- Whether a generator's alerts and event log are due a read: every FEED_INTERVAL_S, and at once
+--- when its alert count or status changes; after a failed read, once its wait is over.
+--- @param key string
+--- @param record table
+--- @return boolean
+local function feedsDue(key, record)
+  local last = gState.feedReads[key]
+  if last == nil then
+    return true
+  end
+  if last.retryAt then
+    return os.time() >= last.retryAt
+  end
+  local device = type(record.device) == "table" and record.device or {}
+  return os.time() - last.at >= FEED_INTERVAL_S or device.alertCount ~= last.alertCount or device.status ~= last.status
+end
+
 --- Read one generator's record and hand it to its companion.
 --- @param identity KohlerIdentity
 --- @param refreshId integer
@@ -258,6 +355,10 @@ local function readGenerator(identity, refreshId, generation)
     end
     gState.records[key] = record
     handoff(key)
+    if feedsDue(key, record) then
+      readFeeds(identity, record, generation)
+    end
+    adjustPolling()
     return true
   end, function(err)
     if not stale(refreshId, generation) then
@@ -315,6 +416,8 @@ local function refreshGenerators()
         log:info("Generator %s is no longer on the account", key)
         gState.generators[key] = nil
         gState.records[key] = nil
+        gState.feeds[key] = nil
+        gState.feedReads[key] = nil
         goOffline(key)
       end
     end
@@ -349,9 +452,19 @@ local function pollTick()
   refresh:next(done, done)
 end
 
---- The poll interval in seconds, from the Poll Interval property.
+--- The interval the poll timer runs at; nil while it is stopped.
+--- @type integer|nil
+local gPollingS = nil
+
+--- The poll interval in seconds: the Poll Interval property, or BUSY_POLL_S while a generator
+--- runs or the utility is out.
 --- @return integer
 local function pollIntervalS()
+  for _, record in pairs(gState.records) do
+    if Status.busy(record) then
+      return BUSY_POLL_S
+    end
+  end
   return tonumber((Properties["Poll Interval"] or ""):match("^(%d+)")) or DEFAULT_POLL_S
 end
 
@@ -359,12 +472,22 @@ local function startPolling()
   if not licensed() then
     return
   end
-  SetTimer("KohlerPoll", pollIntervalS() * ONE_SECOND, pollTick, true)
+  gPollingS = pollIntervalS()
+  SetTimer("KohlerPoll", gPollingS * ONE_SECOND, pollTick, true)
 end
 
 local function stopPolling()
   CancelTimer("KohlerPoll")
   gPollInFlight = false
+  gPollingS = nil
+end
+
+--- Move the running poll to the rate the generators now need.
+adjustPolling = function()
+  if gPollingS ~= nil and gPollingS ~= pollIntervalS() then
+    log:debug("Polling every %ds", pollIntervalS())
+    startPolling()
+  end
 end
 
 -- ─── Companions ────────────────────────────────────────────────────────────
@@ -492,7 +615,7 @@ local function dropGenerators()
   for key in pairs(gState.generators) do
     goOffline(key)
   end
-  gState.generators, gState.records = {}, {}
+  gState.generators, gState.records, gState.feeds, gState.feedReads = {}, {}, {}, {}
   gListed = false
 end
 
@@ -775,6 +898,7 @@ function RFP.REFRESH_STATE(idBinding)
   end
   if gState.records[key] then
     handoff(key)
+    handoffFeeds(key)
   elseif not client:hasSession() then
     SendToProxy(idBinding, CMD.GO_OFFLINE, {})
   end
@@ -796,6 +920,7 @@ function EC.Refresh_Generators()
     return
   end
   gPausedUntil = 0
+  gState.feedReads = {}
   refreshGenerators()
 end
 

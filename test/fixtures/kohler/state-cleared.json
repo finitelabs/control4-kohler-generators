@@ -1,0 +1,196 @@
+{
+  "addedBy": null,
+  "associatedUsers": [
+    "demo@example.com"
+  ],
+  "batteryVoltageV": 13.6,
+  "connectionType": "Ethernet",
+  "controllerClockTimestamp": "2026-09-21T09:13:20",
+  "controllerTempF": 74.3,
+  "coolingType": "Air",
+  "device": {
+    "address": {
+      "address1": "100 Example Street",
+      "address2": null,
+      "city": "Demo City",
+      "country": "US",
+      "lat": 40.0001,
+      "long": -100.0001,
+      "postalCode": "00000",
+      "state": "ZZ"
+    },
+    "alertCount": 0,
+    "controllerType": "RDC2 (Blue Board)",
+    "currentFirmware": "RDC2.4 3.9.2",
+    "dealerOrgs": [
+      {
+        "address": {
+          "address1": "1 Example Way",
+          "address2": null,
+          "city": "Demo City",
+          "country": "US",
+          "lat": null,
+          "long": null,
+          "postalCode": "00000",
+          "state": "ZZ"
+        },
+        "adminEmails": [
+          "service@example.com"
+        ],
+        "businessPartnerNo": "DEMO-9001",
+        "deviceCount": 3,
+        "displayPhoneNumber": "(555) 555-0142",
+        "e164PhoneNumber": "+15555550142",
+        "id": 9001,
+        "name": "Example Power Co.",
+        "technicianCount": 1,
+        "userCount": 2,
+        "wizardComplete": true,
+        "wizardStep": "OnboardingComplete"
+      }
+    ],
+    "deviceHost": "Oncue",
+    "deviceIpAddress": "192.0.2.11:2402",
+    "displayName": "Demo Generator",
+    "firmwareVersion": "3.9.2",
+    "hasAcceptedPrivacyPolicy": true,
+    "hasServiceAgreement": null,
+    "id": 58001,
+    "isConnected": true,
+    "lastConnectedTimestamp": "2026-09-21T14:13:00+00:00",
+    "lastMaintenanceTimestamp": "2026-05-04T14:13:20+00:00",
+    "latestParameterUpdateTimestamp": "2026-09-21T14:03:20.0000000+00:00",
+    "macAddress": "01:A1:00:00:00:02",
+    "maintenancePeriodDays": 365,
+    "model": "Model20KW",
+    "modelDisplayName": "20 KW",
+    "nextMaintenanceTimestamp": "2027-05-04T14:13:20+00:00",
+    "product": "Rdc2v4",
+    "productDisplayName": "RDC 2.4",
+    "serialNumber": "DEMO000001",
+    "status": "ReadyToRun",
+    "statusUpdateTimestamp": "2026-09-21T14:13:20.0000000+00:00",
+    "totalRuntimeHours": 84.3
+  },
+  "engineCompartmentTempF": null,
+  "engineCoolantTempF": null,
+  "engineFrequencyHz": 0,
+  "engineOilPressureOk": true,
+  "engineOilPressurePsi": null,
+  "engineSpeedRpm": 0,
+  "engineState": "Standby",
+  "engineStateDisplayNameEn": "Standby",
+  "exercise": {
+    "durationMinutes": 20,
+    "frequency": "Weekly",
+    "lastEndTimestamp": "2026-09-19T15:20:00+00:00",
+    "lastStartTimestamp": "2026-09-19T15:00:00+00:00",
+    "mode": "Unloaded",
+    "nextStartTimestamp": "2026-09-26T15:00:00Z",
+    "runningMode": null
+  },
+  "fuelType": "NaturalGas",
+  "generatorLoadPercent": 0,
+  "generatorLoadW": 0,
+  "generatorVoltageAvgV": 0,
+  "lastRanTimestamp": "2026-09-19T15:00:00+00:00",
+  "loadShed": {
+    "isConnected": true,
+    "parameters": [
+      {
+        "definitionId": 1,
+        "displayName": "HVAC A",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 2,
+        "displayName": "HVAC B",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 3,
+        "displayName": "Load A",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 4,
+        "displayName": "Load B",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 5,
+        "displayName": "Load C",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 6,
+        "displayName": "Load D",
+        "isReadOnly": false,
+        "value": false
+      }
+    ]
+  },
+  "lubeOilTempF": 58.1,
+  "pim": {
+    "isConnected": true,
+    "parameters": [
+      {
+        "definitionId": 7,
+        "displayName": "Digital Output B1 Value",
+        "isReadOnly": true,
+        "value": false
+      },
+      {
+        "definitionId": 8,
+        "displayName": "Digital Output B2 Value",
+        "isReadOnly": true,
+        "value": false
+      },
+      {
+        "definitionId": 9,
+        "displayName": "Digital Output B3 Value",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 10,
+        "displayName": "Digital Output B4 Value",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 11,
+        "displayName": "Digital Output B5 Value",
+        "isReadOnly": false,
+        "value": false
+      },
+      {
+        "definitionId": 12,
+        "displayName": "Digital Output B6 Value",
+        "isReadOnly": false,
+        "value": false
+      }
+    ]
+  },
+  "powerSource": "Utility",
+  "remoteResetCounterSeconds": 0,
+  "runtimeSinceLastMaintenanceHours": 6.1,
+  "serverIpAddress": "198.51.100.20",
+  "serviceAgreement": {
+    "beginTimestamp": null,
+    "hasServiceAgreement": null,
+    "term": null,
+    "termDays": null,
+    "termMonths": null
+  },
+  "setOutputVoltageV": 240,
+  "switchState": "Auto",
+  "totalOperationHours": 21455.0,
+  "totalRuntimeHours": 84.3,
+  "utilityVoltageV": 241.6
+}

@@ -1,0 +1,15 @@
+[
+  {
+    "canRemoteResetFault": null,
+    "event": "Parameter Value Abnormal",
+    "fmi": "NotApplicable",
+    "id": 20002,
+    "isCriticalFault": false,
+    "level": "Warning",
+    "name": "Parameter Value Abnormal Warning",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:13:20+00:00",
+    "type": "warning"
+  }
+]

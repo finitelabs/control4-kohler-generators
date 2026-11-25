@@ -24,9 +24,14 @@ ______________________________________________________________________
 
 This driver represents a single KOHLER home standby generator in Control4. It
 does not reach the cloud itself. It binds to the **Kohler Generators** account
-driver, which hands it the generator's details on every read. It shows the
-generator in its room in the Control4 app; selecting it there does not run the
-generator.
+driver, which hands it the generator's details, status and alerts on every read.
+It shows the generator in its room in the Control4 app; selecting it there does
+not run the generator.
+
+Programming can react to a utility outage, the engine starting and stopping, an
+exercise, a fault or warning, the switch leaving Auto and maintenance falling
+due, and four contact outputs follow the generator's power, running, fault and
+switch state.
 
 # <span style="color:#336EE5">Index</span>
 
@@ -40,6 +45,7 @@ generator.
     - [Generator](#generator)
     - [Driver Settings](#driver-settings)
   - [Connections](#connections)
+- [Status and Readings](#status-and-readings)
 - [Programming Reference](#programming-reference)
 - [Support](#support)
 - [Changelog](#changelog)
@@ -120,6 +126,19 @@ How the generator reaches the KOHLER cloud.
 
 The dealer on the account for this generator, with their phone number.
 
+#### Exercise Schedule (read-only)
+
+How often the generator exercises, on what day and time, in which mode and for
+how long, or `None`.
+
+#### Last Maintenance (read-only)
+
+When the generator was last serviced.
+
+#### Next Maintenance (read-only)
+
+When the generator is next due for service.
+
 ### Driver Settings
 
 #### Driver Status (read-only)
@@ -174,26 +193,105 @@ nothing. The Kohler Generators driver's documentation lists what a report holds.
 Binds to one generator connection on the **Kohler Generators** driver, with
 binding class `KOHLER_GENERATOR`.
 
+### Contact Outputs
+
+Four `CONTACT_SENSOR` outputs, each closed while its condition holds. Bind them
+to contact sensor drivers or other devices that take a contact.
+
+| Output             | Closed while                          |
+| ------------------ | ------------------------------------- |
+| On Generator Power | The house is on generator power       |
+| Running            | The engine runs                       |
+| Fault              | The generator has a fault             |
+| Not In Auto        | The generator's switch is not in Auto |
+
+# <span style="color:#336EE5">Status and Readings</span>
+
+The account driver reads the generator every Poll Interval, and every 15 seconds
+while the engine runs or the utility is out, and its alerts and event log every
+2 minutes. The KOHLER cloud updates each generator's readings on its own
+schedule, so a reading can be a few minutes old.
+
+A reading the generator's controller does not report has no value. Temperatures
+show in the project's temperature scale.
+
+After the driver or the controller restarts, the first read compares the
+generator with how it was before the restart: a restart during an outage is not
+mistaken for a new one, and an outage that started while the controller was off
+fires its events and contact programming once. An event the generator logged in
+the last 5 minutes still fires.
+
 # <span style="color:#336EE5">Programming Reference</span>
 
 ### Variables
 
-| Variable | Type    | Description                                         |
-| -------- | ------- | --------------------------------------------------- |
-| Online   | Boolean | Whether the generator is reaching the KOHLER cloud. |
+| Variable                | Type    | Description                                                           |
+| ----------------------- | ------- | --------------------------------------------------------------------- |
+| Online                  | Boolean | Whether the generator is reaching the KOHLER cloud.                   |
+| Status                  | String  | The generator's status, such as `Ready To Run` or `Running Exercise`. |
+| Engine State            | String  | The engine's state as the KOHLER app shows it.                        |
+| Power Source            | String  | `Utility` or `Generator`.                                             |
+| On Generator Power      | Boolean | Whether the house is on generator power.                              |
+| Running                 | Boolean | Whether the engine runs.                                              |
+| Switch Position         | String  | `Auto`, `Off` or `Manual`.                                            |
+| In Auto                 | Boolean | Whether the switch is in Auto.                                        |
+| Fault                   | Boolean | Whether the generator has a fault.                                    |
+| Active Alerts           | Number  | How many alerts are active.                                           |
+| Last Alert              | String  | The newest active alert.                                              |
+| Utility Voltage         | Number  | Volts.                                                                |
+| Generator Voltage       | Number  | Volts.                                                                |
+| Load Watts              | Number  | The load on the generator, in watts.                                  |
+| Load Percent            | Number  | The load as a percentage of the generator's rating.                   |
+| Frequency               | Number  | Hertz.                                                                |
+| Engine RPM              | Number  | Engine speed.                                                         |
+| Battery Voltage         | Number  | Volts.                                                                |
+| Oil Pressure OK         | Boolean | Whether the oil pressure is OK.                                       |
+| Controller Temperature  | Number  | In the project's scale.                                               |
+| Lube Oil Temperature    | Number  | In the project's scale.                                               |
+| Coolant Temperature     | Number  | In the project's scale.                                               |
+| Runtime Hours           | Number  | Hours the engine has run.                                             |
+| Operation Hours         | Number  | Hours the controller has been on.                                     |
+| Hours Since Maintenance | Number  | Engine hours since the last service.                                  |
+| Last Ran                | String  | When the engine last ran.                                             |
+| Next Exercise           | String  | When the next exercise starts.                                        |
+| Next Maintenance        | String  | When the next service is due.                                         |
+| Maintenance Due         | Boolean | Whether the service is due.                                           |
+| Load _name_             | Boolean | One per load-shed load, such as `Load HVAC A`, whether it is on.      |
 
 ### Events
 
-| Event             | Description                                                                                                        |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Generator Online  | Fires when the generator reaches the KOHLER cloud again.                                                           |
-| Generator Offline | Fires when the generator stops reaching the KOHLER cloud, leaves the account, or the account driver is signed out. |
+| Event                  | Description                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Generator Online       | Fires when the generator reaches the KOHLER cloud again.                                                           |
+| Generator Offline      | Fires when the generator stops reaching the KOHLER cloud, leaves the account, or the account driver is signed out. |
+| Utility Power Lost     | Fires when the utility power goes out.                                                                             |
+| Utility Power Restored | Fires when the utility power comes back.                                                                           |
+| Engine Started         | Fires when the engine starts.                                                                                      |
+| Engine Stopped         | Fires when the engine stops.                                                                                       |
+| Exercise Started       | Fires when an exercise starts.                                                                                     |
+| Exercise Ended         | Fires when an exercise ends.                                                                                       |
+| Fault                  | Fires when the generator logs a fault.                                                                             |
+| Warning                | Fires when the generator logs a warning.                                                                           |
+| Alerts Cleared         | Fires when the last active alert clears.                                                                           |
+| Switch Not In Auto     | Fires when the switch moves out of Auto.                                                                           |
+| Switch Back In Auto    | Fires when the switch moves back to Auto.                                                                          |
+| Maintenance Due        | Fires when the service falls due.                                                                                  |
+| Low Battery            | Fires when the generator logs a low battery.                                                                       |
 
 ### Conditionals
 
-| Conditional          | Description                                           |
-| -------------------- | ----------------------------------------------------- |
-| Generator connection | Tests whether the generator is `Online` or `Offline`. |
+| Conditional           | Description                                                         |
+| --------------------- | ------------------------------------------------------------------- |
+| Generator connection  | Tests whether the generator is `Online` or `Offline`.               |
+| Power source          | Tests whether the house is on `Generator Power` or `Utility Power`. |
+| Engine running status | Tests whether the engine is `Running` or `Not Running`.             |
+| Exercise status       | Tests whether the generator is `Exercising` or `Not Exercising`.    |
+| Switch position       | Tests whether the switch is `In Auto` or `Not In Auto`.             |
+| Fault status          | Tests whether the generator is `Faulted` or `Not Faulted`.          |
+| Maintenance status    | Tests whether the service is `Due` or `Not Due`.                    |
+
+The number variables can be compared in programming too, such as the battery
+voltage or the load.
 
 # <span style="color:#336EE5">Support</span>
 

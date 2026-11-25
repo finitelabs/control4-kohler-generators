@@ -38,6 +38,8 @@ return {
   CMD = {
     --- account to companion: the generator's full record, as { JSON = ... }
     UPDATE_GENERATOR = "updateGenerator",
+    --- account to companion: the generator's alerts and event log, as { ALERTS = ..., EVENTS = ... }
+    UPDATE_FEEDS = "updateFeeds",
     --- account to companion: the generator is gone, or the account is signed out
     GO_OFFLINE = "goOffline",
     --- companion to account: send the generator's record again

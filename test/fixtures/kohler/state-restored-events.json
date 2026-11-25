@@ -1,0 +1,50 @@
+[
+  {
+    "event": "Engine Stopped",
+    "fmi": "NotApplicable",
+    "id": 10000000106,
+    "isCriticalFault": false,
+    "level": "Status",
+    "name": "Engine Stopped Status",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:16:50+00:00",
+    "type": "notice"
+  },
+  {
+    "event": "Utility Power Restored",
+    "fmi": "NotApplicable",
+    "id": 10000000105,
+    "isCriticalFault": false,
+    "level": "Status",
+    "name": "Utility Power Restored Status",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:13:50+00:00",
+    "type": "notice"
+  },
+  {
+    "event": "Engine Started",
+    "fmi": "NotApplicable",
+    "id": 10000000104,
+    "isCriticalFault": false,
+    "level": "Status",
+    "name": "Engine Started Status",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:13:28+00:00",
+    "type": "runningNotice"
+  },
+  {
+    "event": "Utility Power Lost",
+    "fmi": "NotApplicable",
+    "id": 10000000103,
+    "isCriticalFault": false,
+    "level": "Status",
+    "name": "Utility Power Lost Status",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:13:20+00:00",
+    "type": "notice"
+  }
+]
