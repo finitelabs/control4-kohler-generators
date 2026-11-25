@@ -159,6 +159,8 @@ request = Controls.request({ action = "load", load = "HVAC A", on = true }, stan
 T.eq("on is true", request.body, { value = true })
 _, refusal = Controls.request({ action = "load", load = "Hot Tub", on = true }, standby, NOW)
 T.eq("refuses a load it doesn't have", refusal, "The generator has no load named Hot Tub")
+_, refusal = Controls.request({ action = "load", on = true }, standby, NOW)
+T.eq("refuses with no load chosen", refusal, "Choose a load")
 _, refusal = Controls.request({ action = "load", load = "HVAC A", on = true }, fixture("device-58002.json"), NOW)
 T.eq("refuses without a load control module", refusal, "The generator has no load control module")
 T.eq("which lists no loads", Controls.loads(fixture("device-58002.json")), {})

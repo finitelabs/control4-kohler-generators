@@ -217,6 +217,9 @@ function M.request(command, record, now)
       },
     }
   elseif action == "load" then
+    if type(command.load) ~= "string" or command.load == "" then
+      return nil, "Choose a load"
+    end
     if not M.hasLoadControl(record) then
       return nil, "The generator has no load control module"
     end
