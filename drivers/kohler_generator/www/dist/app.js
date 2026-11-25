@@ -11,6 +11,8 @@
   var pending = null;
   var note = null;
   var sheet = null;
+  var sheetNode = null;
+  var draft = null;
   var startMode = "Unloaded";
   var requests = 0;
   var historyOpen = false;
@@ -146,15 +148,17 @@
       actions.appendChild(
         button(sending("start") ? "Starting..." : "Start exercise", "btn primary", function () {
           startMode = (e.sheet && e.sheet.mode) || "Unloaded";
-          sheet = "start";
-          render();
+          openSheet("start");
         }, e.start.enabled && !pending)
       );
     }
     actions.appendChild(
       button("Change schedule", "btn", function () {
-        sheet = "schedule";
-        render();
+        draft = {};
+        Object.keys(e.sheet).forEach(function (k) {
+          draft[k] = String(e.sheet[k]);
+        });
+        openSheet("schedule");
       }, e.schedulable.enabled && !pending)
     );
     c.appendChild(actions);
@@ -234,13 +238,30 @@
     if (v.service.due) c.appendChild(el("p", "note tone-warn", "Maintenance is due. Contact your dealer."));
   }
 
+  // Takes the open sheet off the screen.
+  function dismiss() {
+    if (sheetNode && sheetNode.parentNode) sheetNode.parentNode.removeChild(sheetNode);
+    sheet = sheetNode = draft = null;
+  }
+
+  function cancel() {
+    dismiss();
+    render();
+  }
+
+  // Puts a sheet on the screen. A sheet is built once when it opens, not on each render, so the 30 s
+  // tick and the driver's pushes leave its fields and an open picker alone.
+  function openSheet(kind) {
+    if (sheetNode && sheetNode.parentNode) sheetNode.parentNode.removeChild(sheetNode);
+    sheet = kind;
+    if (kind === "start") renderStartSheet();
+    else renderScheduleSheet();
+  }
+
   function scrim(content) {
     var s = el("div", "scrim");
     s.addEventListener("click", function (event) {
-      if (event.target === s) {
-        sheet = null;
-        render();
-      }
+      if (event.target === s) cancel();
     });
     var dialog = el("div", "sheet");
     dialog.setAttribute("role", "dialog");
@@ -248,6 +269,7 @@
     dialog.appendChild(content);
     s.appendChild(dialog);
     document.body.appendChild(s);
+    sheetNode = s;
   }
 
   function renderStartSheet() {
@@ -263,7 +285,7 @@
       input.checked = mode === startMode;
       input.addEventListener("change", function () {
         startMode = mode;
-        render();
+        openSheet("start");
       });
       label.appendChild(input);
       label.appendChild(el("span", null, mode));
@@ -272,15 +294,10 @@
     body.appendChild(modes);
     body.appendChild(el("p", "sheet-text", copy.text));
     var actions = el("div", "actions");
-    actions.appendChild(
-      button(copy.cancel, "btn", function () {
-        sheet = null;
-        render();
-      })
-    );
+    actions.appendChild(button(copy.cancel, "btn", cancel));
     actions.appendChild(
       button(copy.ok, "btn primary", function () {
-        sheet = null;
+        dismiss();
         send({ action: "start", mode: startMode });
       })
     );
@@ -288,54 +305,57 @@
     scrim(body);
   }
 
-  function select(label, options, value) {
+  // A schedule field, kept in draft as the homeowner changes it.
+  function field(label, key, input) {
     var wrap = el("label", "field");
     wrap.appendChild(el("span", "field-label", label));
+    input.addEventListener("change", function () {
+      draft[key] = input.value;
+    });
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  function select(label, key, options) {
     var s = el("select");
     options.forEach(function (o) {
       var opt = el("option", null, typeof o === "number" ? o + " minutes" : o);
       opt.value = String(o);
-      if (String(o) === String(value)) opt.selected = true;
+      if (String(o) === draft[key]) opt.selected = true;
       s.appendChild(opt);
     });
-    wrap.appendChild(s);
-    return { wrap: wrap, input: s };
+    s.value = draft[key];
+    return field(label, key, s);
   }
 
-  function renderScheduleSheet(v) {
-    var start = v.exercise.sheet;
+  function renderScheduleSheet() {
     var body = el("div");
     body.appendChild(el("h2", "sheet-title", "Exercise schedule"));
-    var frequency = select("How often", KGView.FREQUENCIES, start.frequency);
-    var day = select("Day", KGView.WEEKDAYS, start.day);
-    var timeWrap = el("label", "field");
-    timeWrap.appendChild(el("span", "field-label", "Time"));
     var time = el("input");
     time.type = "time";
-    time.value = start.time || "10:00";
-    timeWrap.appendChild(time);
-    var mode = select("Mode", KGView.MODES, start.mode);
-    var minutes = select("Length", KGView.MINUTES, start.minutes);
-    [frequency.wrap, day.wrap, timeWrap, mode.wrap, minutes.wrap].forEach(function (w) {
+    time.value = draft.time || "10:00";
+    [
+      select("How often", "frequency", KGView.FREQUENCIES),
+      select("Day", "day", KGView.WEEKDAYS),
+      field("Time", "time", time),
+      select("Mode", "mode", KGView.MODES),
+      select("Length", "minutes", KGView.MINUTES),
+    ].forEach(function (w) {
       body.appendChild(w);
     });
     var actions = el("div", "actions");
-    actions.appendChild(
-      button("Cancel", "btn", function () {
-        sheet = null;
-        render();
-      })
-    );
+    actions.appendChild(button("Cancel", "btn", cancel));
     actions.appendChild(
       button("Save", "btn primary", function () {
-        sheet = null;
+        var values = draft;
+        dismiss();
         send({
           action: "schedule",
-          frequency: frequency.input.value,
-          day: day.input.value,
-          time: time.value,
-          mode: mode.input.value,
-          minutes: minutes.input.value,
+          frequency: values.frequency,
+          day: values.day,
+          time: values.time,
+          mode: values.mode,
+          minutes: values.minutes,
         });
       })
     );
@@ -344,14 +364,13 @@
   }
 
   function render() {
-    var old = document.querySelector(".scrim");
-    if (old) old.parentNode.removeChild(old);
     page.textContent = "";
     if (!current) {
       page.appendChild(el("p", "loading", "Loading..."));
       return;
     }
     var v = KGView.view(current, now());
+    if (sheet && !v.connected) dismiss();
     if (v.notConnected) renderNotConnected(v);
     if (!v.top) return;
     renderTop(v);
@@ -362,8 +381,6 @@
       renderAlerts(v);
     }
     renderService(v);
-    if (sheet === "start" && v.connected) renderStartSheet();
-    else if (sheet === "schedule" && v.connected) renderScheduleSheet(v);
   }
 
   function onState(state) {

@@ -177,6 +177,38 @@ test("page: no answer in 20 s says so", () => {
   assert.ok(page.textContent.includes("No answer from the generator's driver"));
 });
 
+test("page: an open schedule sheet keeps its edits through the tick and the driver's pushes", () => {
+  const { c4, page, body, window, advance } = openPage(KGDemo.state(NOW));
+  page.button("Change schedule").click();
+  const sheet = body.byClass("sheet")[0];
+  const [frequency, , , minutes] = sheet.all((e) => e.tagName === "SELECT");
+  frequency.value = "Monthly";
+  frequency.dispatch("change");
+  minutes.value = "45";
+  minutes.dispatch("change");
+  advance(30000);
+  window.onDataToUi(envelope({ device: 42, boot: "b", rev: 2, state: KGDemo.state(NOW) }));
+  assert.equal(body.byClass("sheet")[0], sheet, "the same sheet, not rebuilt");
+  assert.equal(frequency.value, "Monthly");
+  sheet.button("Save").click();
+  assert.equal(body.byClass("sheet").length, 0);
+  const sent = commands(c4)[0];
+  assert.deepEqual(
+    [sent.action, sent.frequency, sent.day, sent.time, sent.mode, sent.minutes],
+    ["schedule", "Monthly", "Tuesday", "10:00", "Unloaded", "45"]
+  );
+});
+
+test("page: the sheet closes when the generator goes offline", () => {
+  const { page, body, window } = openPage(KGDemo.state(NOW));
+  page.button("Change schedule").click();
+  const offline = KGDemo.state(NOW);
+  offline.connected = false;
+  offline.reason = "offline";
+  window.onDataToUi(envelope({ device: 42, boot: "b", rev: 2, state: offline }));
+  assert.equal(body.byClass("sheet").length, 0);
+});
+
 test("page: a load switch sends its new state", () => {
   const { c4, page } = openPage(KGDemo.state(NOW));
   const loadA = page.all((e) => e.type === "checkbox" && e.getAttribute("aria-label") === "Load A")[0];
