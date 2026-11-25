@@ -178,8 +178,11 @@ ShimSetDevices({
 ShimSetRoom(UTILITY)
 ShimSetDriverFiles({ "kohler_generator.c4z" })
 
+local xmlFile = assert(io.open(root .. "/drivers/kohler_generators/driver.xml", "r"))
+local CONFIG = xmlFile:read("*a"):match("<config>(.*)</config>")
+xmlFile:close()
 C4.GetDriverConfigInfo = function(_, key)
-  return ({ minimum_os_version = "3.3.0", version = "20261125", model = "Kohler Generators" })[key]
+  return ({ minimum_os_version = "3.3.0", version = "20261125", model = "Kohler Generators", config = CONFIG })[key]
 end
 C4.GetVersionInfo = function()
   return { version = "4.3.0" }
@@ -191,6 +194,9 @@ Properties["Automatic Updates"] = "Off"
 Properties["Log Level"] = "3 - Info"
 Properties["Log Mode"] = "Off"
 Properties["Cloud Monitoring"] = "Enabled"
+Properties["Cloud Status"] = ""
+Properties["Login Status"] = ""
+Properties["Driver Status"] = ""
 package.preload["cloud-client-byte"] = function()
   return {}
 end
@@ -845,5 +851,36 @@ while #held > 0 do
   table.remove(held, 1)()
 end
 held = nil
+
+T.section("Reset Driver returns the settings to a fresh install's, and keeps the sign-in")
+setProperty("Poll Interval", "300 seconds")
+setProperty("Log Level", "5 - Trace")
+setProperty("Log Mode", "Print")
+require("lib.persist"):set("UtilitySensed", { ["58001"] = true })
+Properties["Cloud Status"], props["Cloud Status"] = "Connected", "Connected"
+props["Cloud Status"] = nil
+local email = Properties["Email"]
+held = {}
+EC.Reset_Driver({ ["Are You Sure?"] = "Yes" })
+T.eq("Poll Interval", props["Poll Interval"], "60 seconds")
+T.eq("Log Level", props["Log Level"], "3 - Info")
+T.eq("Log Mode", props["Log Mode"], "Off")
+T.eq("Cloud Status is the cloud client's, and left alone", props["Cloud Status"], nil)
+T.eq("which generators sense utility voltage is forgotten", require("lib.persist"):get("UtilitySensed"), nil)
+T.eq("the email is kept", Properties["Email"], email)
+T.eq("and signed in with again", props["Login Status"], "Logging in...")
+T.falsy("the password is kept", IsEmpty(Properties["Password"]))
+T.falsy("Automatic Updates is left alone", props["Automatic Updates"])
+held = nil
+
+T.section("Reset Driver with no license keeps the account stopped and says so")
+local drivercentral = require("lib.drivercentral")
+local wasLicensed = drivercentral._licensed
+drivercentral._licensed = false
+props["Login Status"], props["Driver Status"] = nil, nil
+EC.Reset_Driver({ ["Are You Sure?"] = "Yes" })
+T.eq("Login Status", props["Login Status"], drivercentral.UNLICENSED_STATUS)
+T.eq("Driver Status", props["Driver Status"], drivercentral.UNLICENSED_STATUS)
+drivercentral._licensed = wasLicensed
 
 T.finish()
