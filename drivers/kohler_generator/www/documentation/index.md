@@ -215,10 +215,11 @@ schedule, so a reading can be a few minutes old.
 A reading the generator's controller does not report has no value. Temperatures
 show in the project's temperature scale.
 
-After the driver or the controller restarts, the first read sets every variable
-and contact without firing events or contact programming, so a restart during an
-outage is not mistaken for a new one. An event the generator logged in the last
-5 minutes still fires.
+After the driver or the controller restarts, the first read compares the
+generator with how it was before the restart: a restart during an outage is not
+mistaken for a new one, and an outage that started while the controller was off
+fires its events and contact programming once. An event the generator logged in
+the last 5 minutes still fires.
 
 # <span style="color:#336EE5">Programming Reference</span>
 

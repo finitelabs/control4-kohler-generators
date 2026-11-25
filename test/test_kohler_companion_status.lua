@@ -1,6 +1,6 @@
 -- The Kohler Generator companion's status: the record and the alerts and event log the account
--- hands it become variables, conditionals, contact outputs and events, which fire on a change and
--- never on the first read after a restart.
+-- hands it become variables, conditionals, contact outputs and events, which fire on a change,
+-- including one across a restart.
 --
 -- Run from the driver root:
 --   make test
@@ -237,8 +237,21 @@ handOver("standby")
 T.eq("Controller Temperature", var("Controller Temperature"), 23.5)
 ShimResetTemperatureScale()
 
-T.section("a restart in the middle of an outage fires nothing on its first read")
+T.section("an outage that starts while the driver is stopped fires once on its first read")
 handOver("standby", true)
+ShimRestartDirector()
+events, told = {}, {}
+start()
+handOver("outage", true)
+T.eq("the transitions across the restart", events, { "Utility Power Lost", "Engine Started" })
+T.eq("the contacts that changed, and the rest without firing", told, {
+  "1 CLOSED",
+  "2 CLOSED",
+  "3 STATE_OPENED",
+  "4 STATE_OPENED",
+})
+
+T.section("a restart in the middle of an outage fires nothing on its first read")
 ShimRestartDirector()
 events, told = {}, {}
 start()

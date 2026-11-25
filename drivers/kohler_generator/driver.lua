@@ -94,6 +94,12 @@ local RESTART_GRACE_S = 300
 --- Persisted: the highest event id this generator's events have fired up to.
 local CURSOR_KEY = "EventCursor"
 
+--- Persisted: the flags the last record set, so a change across a restart fires once.
+local FLAGS_KEY = "StatusFlags"
+
+--- Persisted: each contact output's state as last told, by connection id as text.
+local CONTACTS_KEY = "ContactStates"
+
 --- The identity properties, filled from each record.
 local IDENTITY_PROPERTIES = {
   { "Generator Name", "name" },
@@ -124,17 +130,22 @@ local gStatus = nil
 --- @type KohlerAlerts|nil
 local gAlerts = nil
 
---- The flags the last record set, which the next one is compared with; nil until the first record
---- since start-up, so a start-up fires nothing.
+--- The flags the last record set, which the next one is compared with; restored at start, and nil
+--- only before a generator's first record ever.
 --- @type table|nil
 local gFlags = nil
 
 --- Whether an event log has been read since start-up.
 local gEventsRead = false
 
---- Each contact output's state as last told to its proxy, by connection id; nil until told.
+--- Each contact output's state as last told to its proxy, by connection id; nil until told since
+--- start-up.
 --- @type table<integer, boolean>
 local gTold = {}
+
+--- Each contact output's state as last told before start-up, by connection id as text.
+--- @type table<string, boolean>
+local gToldBefore = {}
 
 -- ─── Programming ───────────────────────────────────────────────────────────
 
@@ -191,16 +202,26 @@ local function contactClosed(id)
 end
 
 --- Tell each contact output's proxies its state: a change as CLOSED or OPENED, which fires the
---- contact's programming, and the first state since start-up as STATE_CLOSED or STATE_OPENED,
---- which fires nothing.
+--- contact's programming, and a state unchanged since before start-up as STATE_CLOSED or
+--- STATE_OPENED, which fires nothing.
 local function tellContacts()
+  local changed = false
   for _, contact in ipairs(CONTACTS) do
     local closed = contactClosed(contact.id)
     if closed ~= nil and closed ~= gTold[contact.id] then
+      local was = gTold[contact.id]
+      if was == nil then
+        was = gToldBefore[tostring(contact.id)]
+      end
       local state = closed and "CLOSED" or "OPENED"
-      SendToProxy(contact.id, gTold[contact.id] == nil and ("STATE_" .. state) or state, {}, "NOTIFY")
+      SendToProxy(contact.id, (was == nil or was == closed) and ("STATE_" .. state) or state, {}, "NOTIFY")
       gTold[contact.id] = closed
+      gToldBefore[tostring(contact.id)] = closed
+      changed = true
     end
+  end
+  if changed then
+    persist:set(CONTACTS_KEY, gToldBefore)
   end
 end
 
@@ -255,6 +276,7 @@ local function applyRecord(record)
     fire(name)
   end
   gFlags = flags
+  persist:set(FLAGS_KEY, flags)
   tellContacts()
 end
 
@@ -510,6 +532,11 @@ function OnDriverInit()
       values:update(v[1], v[3], v[2])
     end
   end
+  local flags = persist:get(FLAGS_KEY)
+  gFlags = type(flags) == "table" and flags or nil
+  local told = persist:get(CONTACTS_KEY)
+  gToldBefore = type(told) == "table" and told or {}
+  gTold = {}
   for _, contact in ipairs(CONTACTS) do
     OBC[contact.id] = function(_idBinding, _strClass, bIsBound)
       local closed = contactClosed(contact.id)
