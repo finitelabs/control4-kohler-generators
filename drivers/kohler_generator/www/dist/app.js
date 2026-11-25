@@ -57,10 +57,11 @@
     return el("span", "badge tone-" + item.tone, item.text);
   }
 
-  // Sends a command, with a request id the driver's answer carries back.
+  // Sends a command, with a request id the driver's answer carries back: this page's own id first, so
+  // an answer to another page, or to one before a reload, never matches.
   function send(fields) {
     requests += 1;
-    fields.request = "r" + requests;
+    fields.request = bridge.pageId() + "-" + requests;
     if (pending && pending.timer) clearTimeout(pending.timer);
     pending = {
       id: fields.request,

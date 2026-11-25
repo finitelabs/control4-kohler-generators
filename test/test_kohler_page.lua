@@ -261,10 +261,36 @@ T.section("Start from the page runs Start Exercise, and its answer comes back to
 record("device-58001.json")
 sent = {}
 ExecuteCommand("KG_PAGE_COMMAND", { action = "start", mode = "Unloaded", request = "r1" })
-T.eq("the same command programming sends", sent[1], { action = "start", mode = "Unloaded" })
-RFP.commandResult(constants.GENERATOR_BINDING, "commandResult", { ACTION = "start", OK = "true", MESSAGE = "Sent" })
+T.eq("the same command programming sends, with the page's request", sent[1], {
+  action = "start",
+  mode = "Unloaded",
+  request = "r1",
+})
+RFP.commandResult(
+  constants.GENERATOR_BINDING,
+  "commandResult",
+  { ACTION = "start", OK = "true", MESSAGE = "Sent", REQUEST = "r1" }
+)
 local last = toUI[#toUI].message.state.lastCommand
 T.eq("answered", last, { request = "r1", action = "start", ok = true, message = "Sent" })
+
+T.section("a programming command's answer, while the page's is on its way, is not the page's")
+sent = {}
+ExecuteCommand("KG_PAGE_COMMAND", { action = "stop", request = "p1-2" })
+EC.Stop_Exercise({})
+T.eq("programming's carries no request", sent[2], { action = "stop" })
+RFP.commandResult(
+  constants.GENERATOR_BINDING,
+  "commandResult",
+  { ACTION = "stop", OK = "false", MESSAGE = "Another command is still on its way" }
+)
+T.eq("its answer names no request", toUI[#toUI].message.state.lastCommand.request, nil)
+RFP.commandResult(
+  constants.GENERATOR_BINDING,
+  "commandResult",
+  { ACTION = "stop", OK = "true", MESSAGE = "Sent", REQUEST = "p1-2" }
+)
+T.eq("the page's answer names its request", toUI[#toUI].message.state.lastCommand.request, "p1-2")
 
 T.section("each page command maps to its command")
 sent = {}
@@ -280,13 +306,17 @@ ExecuteCommand("KG_PAGE_COMMAND", {
 })
 ExecuteCommand("KG_PAGE_COMMAND", { action = "load", load = "HVAC A", on = "true", request = "r4" })
 ExecuteCommand("KG_PAGE_COMMAND", { action = "refresh" })
-T.eq("stop", sent[1], { action = "stop" })
-T.eq(
-  "schedule",
-  sent[2],
-  { action = "schedule", frequency = "Monthly", day = "Friday", time = "09:15", mode = "Unloaded", minutes = "30" }
-)
-T.eq("load", sent[3], { action = "load", load = "HVAC A", on = true })
+T.eq("stop", sent[1], { action = "stop", request = "r2" })
+T.eq("schedule", sent[2], {
+  action = "schedule",
+  frequency = "Monthly",
+  day = "Friday",
+  time = "09:15",
+  mode = "Unloaded",
+  minutes = "30",
+  request = "r3",
+})
+T.eq("load", sent[3], { action = "load", load = "HVAC A", on = true, request = "r4" })
 T.eq("Try again reads the generator", sent[4], { action = "refresh" })
 
 T.section("a command the page doesn't know runs nothing")

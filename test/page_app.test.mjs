@@ -127,7 +127,7 @@ test("page: Start asks first, with the physical effect, and sends only on confir
   assert.equal(sent.length, 1);
   assert.equal(sent[0].action, "start");
   assert.equal(sent[0].mode, "Unloaded");
-  assert.match(sent[0].request, /^r\d+$/);
+  assert.equal(sent[0].request, hello(c4).page + "-1");
   assert.ok(page.textContent.includes("Sending to the generator..."));
 });
 
@@ -151,6 +151,22 @@ test("page: the driver's answer clears pending and shows the result", () => {
   window.onDataToUi(envelope({ device: 42, boot: "b", rev: 2, state }));
   assert.ok(page.textContent.includes("Exercise start not sent: Utility power is out."));
   assert.equal(page.button("Start exercise").disabled, false);
+});
+
+test("page: an answer to another page, or to this one before a reload, leaves the command pending", () => {
+  const state = KGDemo.state(NOW);
+  state.lastCommand = { request: "r1", action: "stop", ok: true, message: "Sent" };
+  const { c4, page, body, window } = openPage(state);
+  page.button("Start exercise").click();
+  body.byClass("sheet")[0].button("Start exercise").click();
+  const request = commands(c4)[0].request;
+  assert.ok(request.startsWith(hello(c4).page + "-"), "the request carries the page's id");
+  window.onDataToUi(envelope({ device: 42, boot: "b", rev: 2, state }));
+  assert.ok(page.textContent.includes("Sending to the generator..."));
+  const answered = KGDemo.state(NOW);
+  answered.lastCommand = { request, action: "start", ok: false, message: "Another command is still on its way" };
+  window.onDataToUi(envelope({ device: 42, boot: "b", rev: 3, state: answered }));
+  assert.ok(page.textContent.includes("Exercise start not sent: Another command is still on its way."));
 });
 
 test("page: no answer in 20 s says so", () => {

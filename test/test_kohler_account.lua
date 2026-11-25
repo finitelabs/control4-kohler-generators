@@ -608,6 +608,14 @@ T.eq(
   { ACTION = "start", OK = "true", MESSAGE = "Sent" }
 )
 T.eq("then the generator is read", sent("/devices/58001%?"), 1)
+
+T.section("a command from the generator page is answered with its request id")
+EC.Refresh_Generators()
+requests, toProxy = {}, {}
+now = now + 600
+EC.Refresh_Generators()
+command(58001, { action = "stop", request = "p1-1" })
+T.eq("the request comes back", proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].REQUEST, "p1-1")
 T.truthy("and handed to its companion", proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)])
 
 T.section("a read sent before a command can't hand the companion the state from before it")

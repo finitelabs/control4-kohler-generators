@@ -189,10 +189,6 @@ local gAlertsReply = nil
 --- @type table|nil
 local gEventsReply = nil
 
---- The page's request id for the command on its way, answered by the next commandResult.
---- @type string|nil
-local gPageRequest = nil
-
 --- The last command's answer, for the page: { request, action, ok, message }.
 --- @type table|nil
 local gLastCommand = nil
@@ -582,9 +578,12 @@ local function showResult(text)
   C4:UpdateProperty("Driver Status", text)
 end
 
---- Send a command to the account, which checks it, sends it to KOHLER and answers commandResult.
+--- Send a command to the account, which checks it, sends it to KOHLER and answers commandResult
+--- with the page's request id, when the generator page sent it.
 --- @param command KohlerCommand|table
-local function sendCommand(command)
+--- @param request string|nil
+local function sendCommand(command, request)
+  command.request = request
   if command.action ~= "refresh" then
     showResult("Sending " .. COMMAND_NAMES[command.action] .. "...")
   end
@@ -594,20 +593,24 @@ end
 --- Starts an exercise now: the engine starts and runs for the scheduled length. Loaded Full Speed
 --- also moves the house onto generator power for the exercise.
 --- @param tParams table Mode.
-function EC.Start_Exercise(tParams)
+--- @param request string|nil The generator page's request id.
+function EC.Start_Exercise(tParams, request)
   log:trace("EC.Start_Exercise(%s)", tParams)
-  sendCommand({ action = "start", mode = Select(tParams, "Mode") })
+  sendCommand({ action = "start", mode = Select(tParams, "Mode") }, request)
 end
 
 --- Stops the exercise that is running: the engine cools down and stops.
-function EC.Stop_Exercise()
+--- @param _tParams table|nil
+--- @param request string|nil The generator page's request id.
+function EC.Stop_Exercise(_tParams, request)
   log:trace("EC.Stop_Exercise()")
-  sendCommand({ action = "stop" })
+  sendCommand({ action = "stop" }, request)
 end
 
 --- Changes when and how the generator exercises.
 --- @param tParams table Frequency, Day, Time, Mode and Minutes.
-function EC.Set_Exercise_Schedule(tParams)
+--- @param request string|nil The generator page's request id.
+function EC.Set_Exercise_Schedule(tParams, request)
   log:trace("EC.Set_Exercise_Schedule(%s)", tParams)
   sendCommand({
     action = "schedule",
@@ -616,18 +619,19 @@ function EC.Set_Exercise_Schedule(tParams)
     time = Select(tParams, "Time"),
     mode = Select(tParams, "Mode"),
     minutes = Select(tParams, "Minutes"),
-  })
+  }, request)
 end
 
 --- Switches a load-shed load on or off.
 --- @param tParams table Load and State.
-function EC.Set_Load(tParams)
+--- @param request string|nil The generator page's request id.
+function EC.Set_Load(tParams, request)
   log:trace("EC.Set_Load(%s)", tParams)
   if not loadControlOn() then
     showResult("Load Control is off")
     return
   end
-  sendCommand({ action = "load", load = Select(tParams, "Load"), on = Select(tParams, "State") == "On" })
+  sendCommand({ action = "load", load = Select(tParams, "Load"), on = Select(tParams, "State") == "On" }, request)
 end
 
 --- The loads Set Load offers: this generator's, while Load Control is on.
@@ -654,7 +658,7 @@ end
 --- The account answers a command.
 --- @param idBinding integer
 --- @param _strCommand string
---- @param tParams table ACTION, OK and MESSAGE.
+--- @param tParams table ACTION, OK, MESSAGE and, for the generator page's command, REQUEST.
 function RFP.commandResult(idBinding, _strCommand, tParams)
   log:trace("RFP.commandResult(%s, %s)", idBinding, tParams)
   local action = Select(tParams, "ACTION") or ""
@@ -668,8 +672,7 @@ function RFP.commandResult(idBinding, _strCommand, tParams)
     log:warn("%s not sent: %s", name, message)
     showResult(name .. " not sent: " .. message)
   end
-  gLastCommand = { request = gPageRequest, action = action, ok = ok, message = message }
-  gPageRequest = nil
+  gLastCommand = { request = Select(tParams, "REQUEST"), action = action, ok = ok, message = message }
   publishPage()
 end
 
@@ -677,23 +680,23 @@ end
 
 --- The page's commands, by the action it sends, each the command programming runs.
 local PAGE_COMMANDS = {
-  start = function(p)
-    EC.Start_Exercise({ Mode = p.mode })
+  start = function(p, request)
+    EC.Start_Exercise({ Mode = p.mode }, request)
   end,
-  stop = function(_p)
-    EC.Stop_Exercise()
+  stop = function(_p, request)
+    EC.Stop_Exercise(nil, request)
   end,
-  schedule = function(p)
+  schedule = function(p, request)
     EC.Set_Exercise_Schedule({
       Frequency = p.frequency,
       Day = p.day,
       Time = p.time,
       Mode = p.mode,
       Minutes = p.minutes,
-    })
+    }, request)
   end,
-  load = function(p)
-    EC.Set_Load({ Load = p.load, State = (p.on == true or p.on == "true") and "On" or "Off" })
+  load = function(p, request)
+    EC.Set_Load({ Load = p.load, State = (p.on == true or p.on == "true") and "On" or "Off" }, request)
   end,
 }
 
@@ -734,8 +737,7 @@ function EC.KG_PAGE_COMMAND(tParams)
     publishPage()
     return
   end
-  gPageRequest = request
-  run(p)
+  run(p, request)
 end
 
 EC.suppressDebug.KG_PAGE_PING = true
