@@ -129,8 +129,9 @@ Log Level.
 #### Cloud Monitoring \[ Disabled | **_Enabled_** \]
 
 When Enabled, the driver sends Finite Labs a short report once an hour, and a
-report of each error it hits, at most 10 a minute. Set it to Disabled to send
-nothing. The Kohler Generators driver's documentation lists what a report holds.
+report of each error it hits, at most 10 a minute, so problems in the driver can
+be found and fixed. Set it to Disabled to send nothing. The Kohler Generators
+driver's documentation lists what a report holds.
 
 <!-- #endif -->
 
