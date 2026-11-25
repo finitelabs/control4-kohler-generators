@@ -309,3 +309,6 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   switch load-shed loads, refused when the KOHLER app would refuse them.
 - A Load Control property that shows the load-shed loads, on by default when the
   generator has a load control module.
+- A generator page in the Control4 app, opened by selecting the generator, with
+  its power source, state, readings, exercise schedule with Start and Stop,
+  load-shed loads, alerts, history and service details.

@@ -25,8 +25,8 @@ ______________________________________________________________________
 This driver represents a single KOHLER home standby generator in Control4. It
 does not reach the cloud itself. It binds to the **Kohler Generators** account
 driver, which hands it the generator's details, status and alerts on every read.
-It shows the generator in its room in the Control4 app; selecting it there does
-not run the generator.
+It shows the generator in its room in the Control4 app, where selecting it opens
+the generator page. Opening the page does not run the generator.
 
 Programming can react to a utility outage, the engine starting and stopping, an
 exercise, a fault or warning, the switch leaving Auto and maintenance falling
@@ -47,6 +47,7 @@ exercise schedule and switch the generator's load-shed loads.
     - [Driver Settings](#driver-settings)
   - [Connections](#connections)
 - [Status and Readings](#status-and-readings)
+- [The Generator Page](#the-generator-page)
 - [Programming Reference](#programming-reference)
 - [Support](#support)
 - [Changelog](#changelog)
@@ -229,6 +230,31 @@ generator with how it was before the restart: a restart during an outage is not
 mistaken for a new one, and an outage that started while the controller was off
 fires its events and contact programming once. An event the generator logged in
 the last 5 minutes still fires.
+
+# <span style="color:#336EE5">The Generator Page</span>
+
+Selecting the generator in the Control4 app, on a touchscreen or a phone, opens
+its page. The page shows:
+
+- **Top**: whether the house is on utility or generator power, the engine's
+  state, the switch position and when the generator last reported.
+- **Exercise**: the schedule, the next and last exercise, and buttons to start
+  or stop an exercise and change the schedule.
+- **Now**: the readings this generator's controller reports.
+- **Loads**: a switch for each load-shed load, shown only when Load Control is
+  On and the generator has a load control module.
+- **Alerts**: active alerts, with the event log under History.
+- **Service**: maintenance dates, the dealer and the generator's details.
+
+Opening or refreshing the page never runs the generator. Start asks first, and
+says what happens: the engine starts and, for a Loaded Full Speed exercise, the
+house moves to generator power until the exercise ends. The page's commands are
+the driver's own Start Exercise, Stop Exercise, Set Exercise Schedule and Set
+Load commands, so they are refused for the same reasons. A button that would be
+refused is greyed out with the reason under it.
+
+When the account driver is not signed in, or the generator is offline, the page
+says so and offers Try again where a new read can help.
 
 # <span style="color:#336EE5">Programming Reference</span>
 
