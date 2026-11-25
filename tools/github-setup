@@ -51,7 +51,7 @@ command -v gh >/dev/null || { echo "error: gh is not installed" >&2; exit 1; }
 ORG=finitelabs
 NAME=control4-kohler-generators
 DESCRIPTION='Control4 drivers for KOHLER home standby generators. Connect your Control4 system to KOHLER generators to see utility and generator power, status, readings and alerts, run exercises, and switch load-shed circuits.'
-VISIBILITY=private
+VISIBILITY=public
 REPO="$ORG/$NAME"
 
 DRIFT=0

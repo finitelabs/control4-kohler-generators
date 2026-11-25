@@ -14,7 +14,7 @@ project_description: Control4 drivers for KOHLER home standby generators. Connec
     status, readings and alerts, run exercises, and switch load-shed circuits.
 project_name: control4-kohler-generators
 readme_driver_slug: kohler_generators
-repo_visibility: private
+repo_visibility: public
 stale_close_days: 14
 stale_days: 30
 stale_exempt_authors: derek-miller svc-finitelabs[bot]
