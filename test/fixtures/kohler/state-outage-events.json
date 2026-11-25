@@ -1,0 +1,26 @@
+[
+  {
+    "event": "Engine Started",
+    "fmi": "NotApplicable",
+    "id": 10000000102,
+    "isCriticalFault": false,
+    "level": "Status",
+    "name": "Engine Started Status",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:13:28+00:00",
+    "type": "runningNotice"
+  },
+  {
+    "event": "Utility Power Lost",
+    "fmi": "NotApplicable",
+    "id": 10000000101,
+    "isCriticalFault": false,
+    "level": "Status",
+    "name": "Utility Power Lost Status",
+    "parameter": null,
+    "parameterId": null,
+    "timestamp": "2026-09-21T14:13:20+00:00",
+    "type": "notice"
+  }
+]
