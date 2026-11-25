@@ -1,0 +1,459 @@
+/* The page in the Control4 app's own look: X4's dark wallpaper, translucent white surfaces, color only for
+   state, and the KOHLER blue for the main action and switches. Spacing comes from one 4 px scale. */
+@font-face {
+  font-family: Roboto;
+  font-weight: 300;
+  src: url("fonts/roboto-light.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Roboto;
+  font-weight: 400;
+  src: url("fonts/roboto-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Roboto;
+  font-weight: 500;
+  src: url("fonts/roboto-medium.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: dark;
+  --wall-base: #0b1b33;
+  --wall:
+    radial-gradient(120% 60% at 100% 0%, rgba(78, 36, 90, 0.85), rgba(78, 36, 90, 0) 75%),
+    radial-gradient(100% 50% at 100% 50%, rgba(40, 62, 104, 0.62), rgba(40, 62, 104, 0) 80%),
+    radial-gradient(160% 70% at 100% 100%, rgba(10, 90, 104, 0.9), rgba(10, 90, 104, 0) 75%),
+    linear-gradient(180deg, #0a0f20 0%, #0b1b33 50%, #072049 100%);
+  --cell: rgba(255, 255, 255, 0.08);
+  --row: rgba(255, 255, 255, 0.1);
+  --dialog: #141b2d;
+  --scrim: rgba(3, 6, 16, 0.62);
+  --hair: rgba(255, 255, 255, 0.12);
+  --track: rgba(255, 255, 255, 0.16);
+  --text: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.62);
+  --text-3: rgba(255, 255, 255, 0.4);
+  --accent: #336ee5;
+  --ok: #55bb36;
+  --warn: #f0a44b;
+  --bad: #ff4d4d;
+  --ok-tint: rgba(85, 187, 54, 0.16);
+  --warn-tint: rgba(240, 164, 75, 0.13);
+  --bad-tint: rgba(255, 77, 77, 0.14);
+  --quiet-tint: rgba(255, 255, 255, 0.06);
+
+  --gutter: 12px;
+  --gap: 12px;
+  --inset: 16px;
+}
+
+html {
+  background: var(--wall-base);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Roboto, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+button,
+select,
+input {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button:focus-visible,
+summary:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* One fixed layer, since iOS WebKit ignores background-attachment: fixed. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--wall);
+}
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--gutter) var(--gutter) 40px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.loading {
+  color: var(--text-2);
+  padding: 40px var(--inset);
+  text-align: center;
+}
+
+.top {
+  padding: 8px 4px 0;
+}
+
+.top-name {
+  font-size: 24px;
+  font-weight: 300;
+}
+
+.top-reported,
+.muted {
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.muted {
+  margin-top: 8px;
+}
+
+.card {
+  background: var(--cell);
+  border-radius: 14px;
+  padding: var(--inset);
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+.power-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-3);
+  margin-right: 8px;
+  flex: none;
+}
+
+.power-line .dot {
+  width: 14px;
+  height: 14px;
+  margin-right: 0;
+}
+
+.tone-ok .dot,
+.dot.tone-ok {
+  background: var(--ok);
+}
+
+.tone-warn .dot,
+.dot.tone-warn {
+  background: var(--warn);
+}
+
+.tone-bad .dot,
+.dot.tone-bad {
+  background: var(--bad);
+}
+
+.dot.tone-quiet {
+  background: var(--text-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.badge.tone-ok {
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.badge.tone-warn {
+  background: var(--warn-tint);
+  color: var(--warn);
+}
+
+.badge.tone-bad {
+  background: var(--bad-tint);
+  color: var(--bad);
+}
+
+.badge.tone-quiet {
+  background: var(--quiet-tint);
+  color: var(--text-2);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  border-top: 1px solid var(--hair);
+}
+
+.card-title + .row {
+  border-top: none;
+}
+
+.row-label {
+  display: flex;
+  align-items: center;
+}
+
+.row-value {
+  color: var(--text-2);
+  text-align: right;
+}
+
+.row-value.tone-warn,
+.cell-value.tone-warn,
+.note.tone-warn {
+  color: var(--warn);
+}
+
+.row-value.tone-bad,
+.cell-value.tone-bad,
+.note.tone-bad {
+  color: var(--bad);
+}
+
+.note.tone-ok {
+  color: var(--ok);
+}
+
+.note {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.note.tone-quiet {
+  color: var(--text-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.cell {
+  background: var(--row);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cell-value {
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.cell-label {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: var(--row);
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 48px;
+  height: 28px;
+  border-radius: 14px;
+  background: var(--track);
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+  flex: none;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.15s;
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::after {
+  transform: translateX(20px);
+}
+
+.switch:disabled {
+  opacity: 0.4;
+}
+
+.history {
+  margin-top: 8px;
+}
+
+.history summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.notice {
+  border: 1px solid var(--hair);
+}
+
+.notice-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.notice-text {
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--gutter);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--dialog);
+  border-radius: 16px;
+  padding: 20px var(--inset);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.sheet-title {
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 12px;
+}
+
+.sheet-text {
+  color: var(--text-2);
+  margin-top: 12px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border-top: 1px solid var(--hair);
+}
+
+.choice:first-child {
+  border-top: none;
+}
+
+.field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  border-top: 1px solid var(--hair);
+}
+
+.field select,
+.field input {
+  background: var(--row);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-width: 150px;
+}
+
+@media (min-width: 900px) {
+  .page {
+    max-width: 860px;
+  }
+}
