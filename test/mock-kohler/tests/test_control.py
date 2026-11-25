@@ -258,3 +258,13 @@ async def test_unknown_paths(signed_in):
     _, client, api = await signed_in()
     assert (await api.call("GET", "/nothing")).status == 404
     assert (await client.get(TOKEN_PATH)).status == 405
+
+
+async def test_reset_keeps_ids_moving(signed_in):
+    _, client, api = await signed_in()
+    await control(client, "warning", device=BLUE)
+    first = (await api.get(f"/devices/{BLUE}/events"))[0]["id"]
+    await control(client, "reset")
+    await control(client, "warning", device=BLUE)
+    second = (await api.get(f"/devices/{BLUE}/events"))[0]["id"]
+    assert second > first

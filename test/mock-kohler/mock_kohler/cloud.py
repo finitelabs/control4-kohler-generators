@@ -100,13 +100,13 @@ class Cloud:
         self.fail = None
         self.slow = None
         self.calls = []
+        self.ids = Ids()
         self._load()
         self.app = self._build_app()
         self.runner = None
 
     def _load(self):
         self.settings = {**DEFAULT_SETTINGS, **self.config.get("settings", {})}
-        self.ids = Ids()
         self.accounts = []
         self.generators = {}
         self.detached = {}
