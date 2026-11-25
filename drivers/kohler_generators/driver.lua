@@ -151,8 +151,9 @@ local gWasConnected = nil
 --- retires itself.
 local gLoginGeneration = 0
 --- The login generation whose sign-in is on its way, so a companion asking meanwhile waits for it.
+--- It starts at the generation before the first login, so a companion asking first waits too.
 --- @type integer|nil
-local gSigningIn = nil
+local gSigningIn = 0
 
 --- All Kohler Generators instances on this controller, sorted by device id. Used for leader
 --- election (lowest id is the leader that runs updates).
@@ -569,6 +570,7 @@ local function refreshGenerators()
       return
     end
     gRefreshAccepted = refreshId
+    local firstListing = not gListed
     gListed = true
     local listed = {}
     local list = Generator.fromHomes(homes)
@@ -609,6 +611,14 @@ local function refreshGenerators()
         gState.feeds[key] = nil
         gState.feedReads[key] = nil
         goOffline(key)
+      end
+    end
+    if firstListing then
+      -- A generator that left the account while this driver was stopped has a binding but no identity.
+      for key in pairs(bindings:getDynamicBindings(NS)) do
+        if not listed[key] then
+          goOffline(key)
+        end
       end
     end
     if not stale(refreshId, generation) then
@@ -703,7 +713,7 @@ end
 
 --- Take every generator offline and forget what was read.
 local function dropGenerators()
-  for key in pairs(gState.generators) do
+  for key in pairs(bindings:getDynamicBindings(NS)) do
     goOffline(key)
   end
   gState.generators, gState.records, gState.feeds, gState.feedReads = {}, {}, {}, {}
@@ -726,7 +736,7 @@ function Account.login(retryBackoffS, waitS, waitStatus)
     C4:UpdateProperty("Login Status", waitStatus)
     C4:UpdateProperty("Driver Status", string.format("Not connected; retrying in %ds", waitS))
     setConnected(false)
-    for key in pairs(gState.generators) do
+    for key in pairs(bindings:getDynamicBindings(NS)) do
       goOffline(key)
     end
     SetTimer("KohlerLoginRetry", waitS * ONE_SECOND, function()
