@@ -1,0 +1,51 @@
+{
+  "host": "0.0.0.0",
+  "port": 18400,
+  "client": {
+    "id": "mock-client",
+    "secret": "mock-client-secret"
+  },
+  "apiKey": "mock-api-key",
+  "settings": {
+    "access_ttl_s": 3600
+  },
+  "accounts": [
+    {
+      "email": "demo@example.com",
+      "password": "demo-password-1",
+      "id": 91001,
+      "sub": "00umockdemo0000001",
+      "firstName": "Demo",
+      "lastName": "Homeowner",
+      "homes": [
+        {
+          "id": 72001,
+          "name": "Demo Home",
+          "weatherCondition": "Clear",
+          "weatherTempF": 51.8,
+          "weatherTimePeriod": "Day",
+          "address": {
+            "lat": 40.0001,
+            "long": -100.0001,
+            "address1": "100 Example Street",
+            "address2": null,
+            "city": "Demo City",
+            "state": "ZZ",
+            "postalCode": "00000",
+            "country": "US"
+          },
+          "generators": [
+            {
+              "id": 58001,
+              "profile": "air-20kw-blue-ng",
+              "displayName": "Demo Generator",
+              "serialNumber": "DEMO000001",
+              "macAddress": "02:00:00:00:A1:01",
+              "deviceIpAddress": "192.0.2.11:2402"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
