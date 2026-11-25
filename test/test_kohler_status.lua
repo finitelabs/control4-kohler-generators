@@ -60,6 +60,13 @@ T.eq("in Auto", standby.inAuto, true)
 T.eq("the switch position", standby.switchPosition, "Auto")
 T.eq("not shut down", standby.shutDown, false)
 T.eq("the utility voltage", standby.readings["Utility Voltage"], 241.6)
+local listed = {}
+for _, name in ipairs(Status.READINGS) do
+  listed[name] = true
+end
+for name in pairs(standby.readings) do
+  T.truthy("a listed reading: " .. name, listed[name])
+end
 T.eq("the battery", standby.readings["Battery Voltage"], 13.6)
 T.eq("oil pressure OK", standby.oilPressureOk, true)
 T.eq("no load at standby", standby.readings["Load Watts"], 0)
@@ -118,6 +125,8 @@ unsensed.device.id = 59001
 unsensed.utilityVoltageV = 0
 unsensed.generatorVoltageAvgV = 0
 T.eq("utility not out", Status.fromRecord(unsensed, NOW, "F").utilityOut, false)
+T.eq("its utility voltage has no value", Status.fromRecord(unsensed, NOW, "F").readings["Utility Voltage"], nil)
+T.eq("its generator voltage still reads", Status.fromRecord(unsensed, NOW, "F").readings["Generator Voltage"], 0)
 T.eq("not busy", Status.busy(unsensed), false)
 unsensed.powerSource = "Generator"
 T.eq("on generator power, it is out", Status.fromRecord(unsensed, NOW, "F").utilityOut, true)
@@ -128,6 +137,7 @@ unsensed.utilityVoltageV = 240.1
 T.eq("a live line", Status.fromRecord(unsensed, NOW, "F").utilityOut, false)
 unsensed.utilityVoltageV = 0
 T.eq("then 0 volts is out", Status.fromRecord(unsensed, NOW, "F").utilityOut, true)
+T.eq("and reads 0 volts", Status.fromRecord(unsensed, NOW, "F").readings["Utility Voltage"], 0)
 
 T.section("power restored")
 local restored = state("restored")

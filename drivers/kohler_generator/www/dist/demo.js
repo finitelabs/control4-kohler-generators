@@ -1,6 +1,6 @@
 // A made-up generator for the page outside the Control4 app, where there is no C4 object: a stand-in C4 that
 // answers hello with the sample generator's state and carries out the page's commands on it, as the driver
-// and the generator would, a few seconds apart. The name, serial number and dealer are invented.
+// and the generator would, a few seconds apart. The serial number and dealer are invented.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
   else root.KGDemo = factory();
@@ -24,7 +24,6 @@
     return {
       connected: true,
       scale: "F",
-      name: "Sample Generator",
       lastHeard: now - 60,
       top: {
         powerSource: "Utility",

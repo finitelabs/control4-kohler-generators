@@ -27,6 +27,23 @@ local FAULT_LEVELS = { Fault = true, Shutdown = true }
 --- The event the generator logs when its battery is low.
 M.LOW_BATTERY_EVENT = "Low Battery Voltage"
 
+--- The readings' names, each a NUMBER variable that has no value while the generator doesn't report it.
+M.READINGS = {
+  "Utility Voltage",
+  "Generator Voltage",
+  "Load Watts",
+  "Load Percent",
+  "Frequency",
+  "Engine RPM",
+  "Battery Voltage",
+  "Controller Temperature",
+  "Lube Oil Temperature",
+  "Coolant Temperature",
+  "Runtime Hours",
+  "Operation Hours",
+  "Hours Since Maintenance",
+}
+
 local DAYS = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
 
 local FREQUENCIES = { Weekly = "Weekly", EveryOtherWeek = "Every other week", Monthly = "Monthly" }
@@ -163,8 +180,9 @@ function M.fromRecord(record, now, scale)
   local exercising = device.status == "RunningExercise"
     or (type(runningMode) == "string" and runningMode ~= "None")
     or (type(engine) == "string" and engine:find("^Performing.*Exercise$") ~= nil)
+  local utilitySensed = utilityV ~= nil and sensesUtility(device.id, utilityV)
   local utilityOut
-  if utilityV ~= nil and sensesUtility(device.id, utilityV) then
+  if utilitySensed then
     utilityOut = utilityV < UTILITY_OUT_V
   else
     utilityOut = power == "Generator" and not exercising
@@ -199,7 +217,7 @@ function M.fromRecord(record, now, scale)
     inAuto = record.switchState == "Auto",
     shutDown = device.status == "Shutdown" or engine == "Shutdown",
     readings = {
-      ["Utility Voltage"] = utilityV,
+      ["Utility Voltage"] = utilitySensed and utilityV or nil,
       ["Generator Voltage"] = n(record.generatorVoltageAvgV),
       ["Load Watts"] = Generator.load(record.generatorLoadW),
       ["Load Percent"] = Generator.load(record.generatorLoadPercent),

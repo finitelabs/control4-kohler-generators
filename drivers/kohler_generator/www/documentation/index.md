@@ -265,38 +265,38 @@ says so and offers Try again where a new read can help.
 
 ### Variables
 
-| Variable                | Type    | Description                                                        |
-| ----------------------- | ------- | ------------------------------------------------------------------ |
-| Online                  | Boolean | Whether the generator is reaching the KOHLER cloud.                |
-| Status                  | String  | The generator's status as the KOHLER app shows it.                 |
-| Engine State            | String  | The engine's state as the KOHLER app shows it.                     |
-| Power Source            | String  | `Utility` or `Generator`.                                          |
-| On Generator Power      | Boolean | Whether the house is on generator power.                           |
-| Running                 | Boolean | Whether the engine runs.                                           |
-| Switch Position         | String  | `Auto`, `Off` or `Manual`.                                         |
-| In Auto                 | Boolean | Whether the switch is in Auto.                                     |
-| Fault                   | Boolean | Whether the generator has a fault.                                 |
-| Active Alerts           | Number  | How many alerts are active.                                        |
-| Last Alert              | String  | The newest active alert.                                           |
-| Utility Voltage         | Number  | Volts.                                                             |
-| Generator Voltage       | Number  | Volts.                                                             |
-| Load Watts              | Number  | The load on the generator, in watts.                               |
-| Load Percent            | Number  | The load as a percentage of the generator's rating.                |
-| Frequency               | Number  | Hertz.                                                             |
-| Engine RPM              | Number  | Engine speed.                                                      |
-| Battery Voltage         | Number  | Volts.                                                             |
-| Oil Pressure OK         | Boolean | Whether the oil pressure is OK.                                    |
-| Controller Temperature  | Number  | In the project's scale.                                            |
-| Lube Oil Temperature    | Number  | In the project's scale.                                            |
-| Coolant Temperature     | Number  | In the project's scale.                                            |
-| Runtime Hours           | Number  | Hours the engine has run.                                          |
-| Operation Hours         | Number  | Hours the controller has been on.                                  |
-| Hours Since Maintenance | Number  | Engine hours since the last service.                               |
-| Last Ran                | String  | When the engine last ran.                                          |
-| Next Exercise           | String  | When the next exercise starts.                                     |
-| Next Maintenance        | String  | When the next service is due.                                      |
-| Maintenance Due         | Boolean | Whether the service is due.                                        |
-| Load _name_             | Boolean | One per load-shed load while Load Control is on, whether it is on. |
+| Variable                | Type    | Description                                                           |
+| ----------------------- | ------- | --------------------------------------------------------------------- |
+| Online                  | Boolean | Whether the generator is reaching the KOHLER cloud.                   |
+| Status                  | String  | The generator's status as the KOHLER app shows it.                    |
+| Engine State            | String  | The engine's state as the KOHLER app shows it.                        |
+| Power Source            | String  | `Utility` or `Generator`.                                             |
+| On Generator Power      | Boolean | Whether the house is on generator power.                              |
+| Running                 | Boolean | Whether the engine runs.                                              |
+| Switch Position         | String  | `Auto`, `Off` or `Manual`.                                            |
+| In Auto                 | Boolean | Whether the switch is in Auto.                                        |
+| Fault                   | Boolean | Whether the generator has a fault.                                    |
+| Active Alerts           | Number  | How many alerts are active.                                           |
+| Last Alert              | String  | The newest active alert.                                              |
+| Utility Voltage         | Number  | Volts. No value until the generator has reported a live utility line. |
+| Generator Voltage       | Number  | Volts.                                                                |
+| Load Watts              | Number  | The load on the generator, in watts.                                  |
+| Load Percent            | Number  | The load as a percentage of the generator's rating.                   |
+| Frequency               | Number  | Hertz.                                                                |
+| Engine RPM              | Number  | Engine speed.                                                         |
+| Battery Voltage         | Number  | Volts.                                                                |
+| Oil Pressure OK         | Boolean | Whether the oil pressure is OK.                                       |
+| Controller Temperature  | Number  | In the project's scale.                                               |
+| Lube Oil Temperature    | Number  | In the project's scale.                                               |
+| Coolant Temperature     | Number  | In the project's scale.                                               |
+| Runtime Hours           | Number  | Hours the engine has run.                                             |
+| Operation Hours         | Number  | Hours the controller has been on.                                     |
+| Hours Since Maintenance | Number  | Engine hours since the last service.                                  |
+| Last Ran                | String  | When the engine last ran.                                             |
+| Next Exercise           | String  | When the next exercise starts.                                        |
+| Next Maintenance        | String  | When the next service is due.                                         |
+| Maintenance Due         | Boolean | Whether the service is due.                                           |
+| Load _name_             | Boolean | One per load-shed load while Load Control is on, whether it is on.    |
 
 ### Events
 

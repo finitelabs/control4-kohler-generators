@@ -103,7 +103,7 @@ test("page: opening, a state and the timers send no command", () => {
   advance(120000);
   assert.deepEqual(commands(c4), []);
   assert.ok(c4.sent.every((s) => s.name === "KG_PAGE_HELLO" || s.name === "KG_PAGE_PING"));
-  assert.ok(page.textContent.includes("Sample Generator"));
+  assert.ok(page.textContent.includes("SAMPLE-000001"));
   assert.ok(page.textContent.includes("On utility power"));
 });
 
@@ -254,7 +254,7 @@ test("page: not connected shows Try again, which asks for a refresh", () => {
 
 test("page: cloud text is set as text, never parsed", () => {
   const state = KGDemo.state(NOW);
-  state.name = "<img src=x onerror=alert(1)>";
+  state.service.dealer = "<img src=x onerror=alert(1)>";
   const { page } = openPage(state);
   assert.ok(page.all((e) => e.tagName === "IMG").length === 0);
   assert.ok(page.textContent.includes("<img src=x onerror=alert(1)>"));
@@ -277,7 +277,7 @@ test("demo: runs without a C4 object", () => {
   const { page, advance, body } = loadPage();
   advance(10);
   assert.equal(body.getAttribute("data-mode"), "demo");
-  assert.ok(page.textContent.includes("Sample Generator"));
+  assert.ok(page.textContent.includes("SAMPLE-000001"));
   page.button("Start exercise").click();
   body.byClass("sheet")[0].button("Start exercise").click();
   advance(3000);
