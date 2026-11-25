@@ -33,6 +33,7 @@ local Status = require("kohler.status")
 local constants = require("constants")
 
 local ACCOUNT_BINDING = constants.GENERATOR_BINDING
+local PROXY_BINDING = 5001
 
 --- driver.xml event ids.
 local EVENT = {
@@ -193,6 +194,10 @@ local gEventsReply = nil
 --- @type table|nil
 local gLastCommand = nil
 
+--- The Navigator icon's state as last sent; nil until sent since start-up.
+--- @type string|nil
+local gIcon = nil
+
 --- The link with open generator pages; made in OnDriverInit.
 --- @type KohlerPageLink|nil
 local gPage = nil
@@ -278,6 +283,17 @@ end
 --- Record whether the generator has a fault.
 local function updateFault()
   values:update("Fault", hasFault(), "BOOL")
+end
+
+--- Show the generator's state as its Navigator icon, when it changed.
+local function updateIcon()
+  local id, description = Status.icon(gOnline, gStatus, hasFault())
+  if id == gIcon then
+    return
+  end
+  gIcon = id
+  -- A notification: the proxy ignores ICON_CHANGED sent as a command.
+  SendToProxy(PROXY_BINDING, "ICON_CHANGED", { icon = id, icon_description = description }, "NOTIFY", true)
 end
 
 --- The temperature scale the project shows.
@@ -519,6 +535,7 @@ function RFP.updateGenerator(idBinding, _strCommand, tParams)
   end
   setOnline(identity.connected)
   applyRecord(record)
+  updateIcon()
   publishPage()
 end
 
@@ -536,6 +553,7 @@ function RFP.updateFeeds(idBinding, _strCommand, tParams)
   end
   gAlertsReply, gEventsReply = alerts, events
   applyFeeds(alerts, events)
+  updateIcon()
   publishPage()
 end
 
@@ -559,6 +577,7 @@ function RFP.goOffline(idBinding)
   gIdentity = nil
   C4:UpdateProperty("Driver Status", "Offline")
   setOnline(false)
+  updateIcon()
   publishPage()
 end
 
@@ -892,6 +911,7 @@ function OnDriverLateInit()
     OnPropertyChanged(p)
   end
   gInitialized = true
+  updateIcon()
   C4:UpdateProperty("Driver Status", "Waiting for the Kohler Generators driver")
   -- The account answers with the record, or goOffline while it is signed out.
   SendToProxy(ACCOUNT_BINDING, constants.CMD.REFRESH_STATE, {})

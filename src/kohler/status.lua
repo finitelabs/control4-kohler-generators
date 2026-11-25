@@ -233,6 +233,30 @@ function M.busy(record)
   return s.online and (s.running or s.utilityOut or s.onGeneratorPower)
 end
 
+--- The Navigator icon for the generator's state, as a driver.xml state id, and its description.
+--- Offline comes first, then a fault, the utility out, an exercise, and a run; otherwise standby.
+--- @param online boolean
+--- @param status KohlerStatus|nil Nil before the first record.
+--- @param fault boolean
+--- @return string id
+--- @return string description
+function M.icon(online, status, fault)
+  if not online then
+    return "offline", "Offline"
+  elseif fault then
+    return "fault", "Fault"
+  elseif status == nil then
+    return "standby", "Standby"
+  elseif status.utilityOut then
+    return "utility_out", "Utility power out"
+  elseif status.exercising then
+    return "exercising", "Exercising"
+  elseif status.running then
+    return "running", "Running"
+  end
+  return "standby", "Standby"
+end
+
 --- @class KohlerAlerts
 --- @field count integer Active alerts, leaving out notices such as Not Connected.
 --- @field last string The newest one's name, "" for none.

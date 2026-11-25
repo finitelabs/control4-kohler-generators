@@ -41,9 +41,15 @@ C4.FireEventByID = function(_, id)
 end
 
 local asked = {}
+local icons = {}
 local realSendToProxy = C4.SendToProxy
 C4.SendToProxy = function(self, idBinding, command, tParams, ...)
-  asked[#asked + 1] = idBinding .. " " .. command
+  if command == "ICON_CHANGED" then
+    local callType = ...
+    icons[#icons + 1] = idBinding .. " " .. tParams.icon .. " " .. tostring(callType)
+  else
+    asked[#asked + 1] = idBinding .. " " .. command
+  end
   return realSendToProxy(self, idBinding, command, tParams, ...)
 end
 
@@ -79,6 +85,7 @@ end
 T.section("at start-up")
 T.eq("asks the account for its record", asked, { constants.GENERATOR_BINDING .. " " .. constants.CMD.REFRESH_STATE })
 T.eq("Online is false", online(), false)
+T.eq("the icon is sent at start-up, as a notification", icons, { "5001 offline NOTIFY" })
 
 T.section("the record fills the properties")
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
@@ -90,12 +97,32 @@ T.eq("Dealer", props["Dealer"], "Example Power Co., (555) 555-0142")
 T.eq("Driver Status", props["Driver Status"], "Online")
 T.eq("renamed after the generator", renamed, { "Demo Generator" })
 T.eq("Generator Online fires", events, { "Generator Online" })
-T.eq("Online is true", online(), true)
+T.eq("Online is NOTIFY", online(), true)
 
 T.section("the same record again changes nothing")
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
 T.eq("no second rename", #renamed, 1)
 T.eq("no second event", #events, 1)
+T.eq("the icon changed once, to standby", icons, { "5001 offline NOTIFY", "5001 standby NOTIFY" })
+
+T.section("the icon follows the generator")
+icons = {}
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("state-outage.json") })
+T.eq("an outage", icons, { "5001 utility_out NOTIFY" })
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("state-outage.json") })
+T.eq("the same state sends nothing", #icons, 1)
+RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", {
+  ALERTS = fixture("state-fault-alerts.json"),
+  EVENTS = fixture("state-fault-events.json"),
+})
+T.eq("a fault alert", icons[#icons], "5001 fault NOTIFY")
+RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", {
+  ALERTS = fixture("state-cleared-alerts.json"),
+  EVENTS = fixture("state-cleared-events.json"),
+})
+T.eq("cleared, back to the outage", icons[#icons], "5001 utility_out NOTIFY")
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
+T.eq("back to standby", icons[#icons], "5001 standby NOTIFY")
 
 T.section("a generator that stops reaching the cloud")
 local offline = JSON:decode(fixture("device-58001.json"))
@@ -105,6 +132,7 @@ T.eq("not renamed", #renamed, 1)
 T.eq("Driver Status", props["Driver Status"], "Generator offline")
 T.eq("Generator Offline fires", events[#events], "Generator Offline")
 T.eq("Online is false", online(), false)
+T.eq("the icon goes offline", icons[#icons], "5001 offline NOTIFY")
 
 T.section("an unreadable record is ignored")
 local before = #events

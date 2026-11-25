@@ -214,6 +214,26 @@ T.eq("ids that start again below the cursor are not news", restarted.lowBattery,
 T.eq("they become the cursor", moved, first)
 T.eq("so the next one is", Status.news(events, first - 1).lowBattery, true)
 
+T.section("the Navigator icon follows the state, highest first")
+local function icon(online, s, isFault)
+  local id, description = Status.icon(online, s, isFault)
+  return id .. " " .. description
+end
+T.eq("standby", icon(true, standby, false), "standby Standby")
+T.eq("an exercise runs the engine but shows as exercising", icon(true, exercise, false), "exercising Exercising")
+T.eq("an outage, running on the generator", icon(true, outage, false), "utility_out Utility power out")
+T.eq("running out of an exercise", icon(true, { running = true }, false), "running Running")
+T.eq("a fault over everything but offline", icon(true, outage, true), "fault Fault")
+T.eq("the fault fixture", icon(true, fault, fault.shutDown), "fault Fault")
+T.eq("offline over a fault", icon(false, outage, true), "offline Offline")
+T.eq(
+  "utility out over an exercise",
+  icon(true, { utilityOut = true, exercising = true, running = true }, false),
+  "utility_out Utility power out"
+)
+T.eq("before the first record", icon(true, nil, false), "standby Standby")
+T.eq("offline before the first record", icon(false, nil, false), "offline Offline")
+
 T.section("the schedule line")
 T.eq("none", Status.schedule(nil), "None")
 T.eq("none without a frequency", Status.schedule({ frequency = nil }), "None")
