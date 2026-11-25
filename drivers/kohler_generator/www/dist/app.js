@@ -13,6 +13,7 @@
   var sheet = null;
   var sheetNode = null;
   var draft = null;
+  var startGuard = null;
   var startMode = "Unloaded";
   var requests = 0;
   var historyOpen = false;
@@ -241,7 +242,7 @@
   // Takes the open sheet off the screen.
   function dismiss() {
     if (sheetNode && sheetNode.parentNode) sheetNode.parentNode.removeChild(sheetNode);
-    sheet = sheetNode = draft = null;
+    sheet = sheetNode = draft = startGuard = null;
   }
 
   function cancel() {
@@ -295,14 +296,27 @@
     body.appendChild(el("p", "sheet-text", copy.text));
     var actions = el("div", "actions");
     actions.appendChild(button(copy.cancel, "btn", cancel));
-    actions.appendChild(
-      button(copy.ok, "btn primary", function () {
-        dismiss();
-        send({ action: "start", mode: startMode });
-      })
-    );
+    var ok = button(copy.ok, "btn primary", function () {
+      dismiss();
+      send({ action: "start", mode: startMode });
+    });
+    actions.appendChild(ok);
     body.appendChild(actions);
+    var reason = el("p", "muted");
+    body.appendChild(reason);
     scrim(body);
+    startGuard = { ok: ok, reason: reason };
+    guardStart(KGView.view(current, now()));
+  }
+
+  // The open Start sheet follows the generator: a refusal or a running engine that arrives while it
+  // is open greys Start with the reason.
+  function guardStart(v) {
+    if (!startGuard) return;
+    var e = v.exercise;
+    var why = e.running ? "The generator is already running" : e.start.reason;
+    startGuard.ok.disabled = e.running || !e.start.enabled;
+    startGuard.reason.textContent = startGuard.ok.disabled ? why : "";
   }
 
   // A schedule field, kept in draft as the homeowner changes it.
@@ -381,6 +395,7 @@
       renderAlerts(v);
     }
     renderService(v);
+    guardStart(v);
   }
 
   function onState(state) {

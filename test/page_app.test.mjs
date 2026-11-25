@@ -177,6 +177,26 @@ test("page: no answer in 20 s says so", () => {
   assert.ok(page.textContent.includes("No answer from the generator's driver"));
 });
 
+test("page: an open Start sheet greys Start when a refusal or a running engine arrives", () => {
+  const { c4, page, body, window } = openPage(KGDemo.state(NOW));
+  page.button("Start exercise").click();
+  const sheet = body.byClass("sheet")[0];
+  assert.equal(sheet.button("Start exercise").disabled, false);
+  const out = KGDemo.state(NOW);
+  out.exercise.start = "Utility power is out";
+  window.onDataToUi(envelope({ device: 42, boot: "b", rev: 2, state: out }));
+  assert.equal(sheet.button("Start exercise").disabled, true);
+  assert.ok(sheet.textContent.includes("Utility power is out"));
+  const running = KGDemo.state(NOW);
+  running.exercise.running = true;
+  window.onDataToUi(envelope({ device: 42, boot: "b", rev: 3, state: running }));
+  assert.ok(sheet.textContent.includes("The generator is already running"));
+  sheet.button("Start exercise").click();
+  assert.deepEqual(commands(c4), []);
+  window.onDataToUi(envelope({ device: 42, boot: "b", rev: 4, state: KGDemo.state(NOW) }));
+  assert.equal(sheet.button("Start exercise").disabled, false);
+});
+
 test("page: an open schedule sheet keeps its edits through the tick and the driver's pushes", () => {
   const { c4, page, body, window, advance } = openPage(KGDemo.state(NOW));
   page.button("Change schedule").click();
