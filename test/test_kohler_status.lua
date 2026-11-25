@@ -185,6 +185,10 @@ local at = Generator.time(events[1].timestamp)
 T.eq("an event older than `since` is not news", Status.news(events, first - 1, at + 1).lowBattery, false)
 T.eq("one at `since` is", Status.news(events, first - 1, at).lowBattery, true)
 
+local _, empty = Status.news({}, nil)
+T.eq("an empty first log saves a cursor of 0", empty, 0)
+T.eq("so the first event ever logged is news", Status.news(events, empty).lowBattery, true)
+
 T.section("the schedule line")
 T.eq("none", Status.schedule(nil), "None")
 T.eq("none without a frequency", Status.schedule({ frequency = nil }), "None")
