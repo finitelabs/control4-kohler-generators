@@ -5,8 +5,9 @@
 -- goOffline when the generator leaves the account or the account is signed out. It turns them into
 -- variables, events, conditionals and four contact outputs. Its commands (start or stop an
 -- exercise, the exercise schedule, a load-shed load, Refresh) go to the account as generatorCommand,
--- which answers commandResult. Its UI Button proxy puts the generator in the Navigator; a tap on it
--- never runs the generator.
+-- which answers commandResult. Its UI Button proxy puts the generator in the Navigator, where it
+-- opens the generator page (www/dist); the page sends the same commands, and opening it or tapping
+-- the icon never runs the generator.
 
 require("lib.utils")
 require("drivers-common-public.global.handlers")
@@ -27,6 +28,7 @@ local diagnostics = require("lib.diagnostics")
 
 local Controls = require("kohler.controls")
 local Generator = require("kohler.generator")
+local Page = require("kohler.page")
 local Status = require("kohler.status")
 local constants = require("constants")
 
@@ -180,6 +182,25 @@ local RESULT_HOLD_S = 30
 --- os.time() until which Driver Status keeps the last command's result.
 local gResultUntil = 0
 
+--- The generator's last alerts reply and event log, for the page; nil until the first since
+--- start-up.
+--- @type table|nil
+local gAlertsReply = nil
+--- @type table|nil
+local gEventsReply = nil
+
+--- The page's request id for the command on its way, answered by the next commandResult.
+--- @type string|nil
+local gPageRequest = nil
+
+--- The last command's answer, for the page: { request, action, ok, message }.
+--- @type table|nil
+local gLastCommand = nil
+
+--- The link with open generator pages; made in OnDriverInit.
+--- @type KohlerPageLink|nil
+local gPage = nil
+
 -- ─── Programming ───────────────────────────────────────────────────────────
 
 --- Record whether the generator is online, firing its event on a change.
@@ -273,6 +294,13 @@ end
 --- @return boolean
 local function loadControlOn()
   return Properties["Load Control"] == "On"
+end
+
+--- Send open generator pages the state when it changed.
+local function publishPage()
+  if gPage ~= nil then
+    gPage:publish()
+  end
 end
 
 --- A load's variable name: "Load HVAC A", "Load A".
@@ -495,6 +523,7 @@ function RFP.updateGenerator(idBinding, _strCommand, tParams)
   end
   setOnline(identity.connected)
   applyRecord(record)
+  publishPage()
 end
 
 --- The account hands over the generator's alerts and event log.
@@ -509,7 +538,9 @@ function RFP.updateFeeds(idBinding, _strCommand, tParams)
     log:warn("The account sent alerts or events this driver cannot read")
     return
   end
+  gAlertsReply, gEventsReply = alerts, events
   applyFeeds(alerts, events)
+  publishPage()
 end
 
 --- A contact output's proxy asks for its state.
@@ -532,10 +563,11 @@ function RFP.goOffline(idBinding)
   gIdentity = nil
   C4:UpdateProperty("Driver Status", "Offline")
   setOnline(false)
+  publishPage()
 end
 
---- A tap on the Navigator button. It runs nothing: the generator page arrives with a later
---- release.
+--- A tap on the Navigator button, which the app answers by opening the generator page. It runs
+--- nothing.
 --- @param idBinding integer
 function RFP.SELECT(idBinding)
   log:trace("RFP.SELECT(%s)", idBinding)
@@ -625,16 +657,89 @@ end
 --- @param tParams table ACTION, OK and MESSAGE.
 function RFP.commandResult(idBinding, _strCommand, tParams)
   log:trace("RFP.commandResult(%s, %s)", idBinding, tParams)
-  local name = COMMAND_NAMES[Select(tParams, "ACTION") or ""] or "Command"
+  local action = Select(tParams, "ACTION") or ""
+  local name = COMMAND_NAMES[action] or "Command"
   local message = Select(tParams, "MESSAGE") or ""
-  if Select(tParams, "OK") == "true" then
+  local ok = Select(tParams, "OK") == "true"
+  if ok then
     log:info("%s sent", name)
     showResult(name .. " sent")
   else
     log:warn("%s not sent: %s", name, message)
     showResult(name .. " not sent: " .. message)
   end
+  gLastCommand = { request = gPageRequest, action = action, ok = ok, message = message }
+  gPageRequest = nil
+  publishPage()
 end
+
+-- ─── The generator page ────────────────────────────────────────────────────
+
+--- The page's commands, by the action it sends, each the command programming runs.
+local PAGE_COMMANDS = {
+  start = function(p)
+    EC.Start_Exercise({ Mode = p.mode })
+  end,
+  stop = function(_p)
+    EC.Stop_Exercise()
+  end,
+  schedule = function(p)
+    EC.Set_Exercise_Schedule({
+      Frequency = p.frequency,
+      Day = p.day,
+      Time = p.time,
+      Mode = p.mode,
+      Minutes = p.minutes,
+    })
+  end,
+  load = function(p)
+    EC.Set_Load({ Load = p.load, State = (p.on == true or p.on == "true") and "On" or "Off" })
+  end,
+}
+
+--- A generator page has opened: it gets the state.
+--- @param tParams table { page }
+function EC.KG_PAGE_HELLO(tParams)
+  if gPage ~= nil then
+    gPage:hello(tParams)
+  end
+end
+
+--- An open generator page, every 15 s.
+--- @param tParams table { boot, rev }
+function EC.KG_PAGE_PING(tParams)
+  if gPage ~= nil then
+    gPage:ping(tParams)
+  end
+end
+
+--- A command from the generator page: a button the homeowner pressed and, for Start Exercise,
+--- confirmed.
+--- @param tParams table { action, request, and the command's own fields }
+function EC.KG_PAGE_COMMAND(tParams)
+  log:trace("EC.KG_PAGE_COMMAND(%s)", tParams)
+  local p = type(tParams) == "table" and tParams or {}
+  if p.action == "refresh" then
+    EC.Refresh()
+    return
+  end
+  local run = PAGE_COMMANDS[p.action or ""]
+  if run == nil then
+    log:warn("The generator page sent a command this driver does not know: %s", tostring(p.action))
+    return
+  end
+  local request = type(p.request) == "string" and p.request or nil
+  if p.action == "load" and not loadControlOn() then
+    gLastCommand = { request = request, action = "load", ok = false, message = "Load Control is off" }
+    publishPage()
+    return
+  end
+  gPageRequest = request
+  run(p)
+end
+
+EC.suppressDebug.KG_PAGE_PING = true
+EC.suppressDebug.KG_PAGE_HELLO = true
 
 -- ─── Property handlers (OPC dispatch) ──────────────────────────────────────
 
@@ -666,6 +771,7 @@ function OPC.Load_Control(_v)
   if gRecord ~= nil then
     updateLoads(gRecord, Controls.loads(gRecord))
   end
+  publishPage()
 end
 
 function OPC.Auto_Rename_Driver(_v)
@@ -735,6 +841,28 @@ function OnDriverInit()
       values:update(v[1], v[3], v[2])
     end
   end
+  gPage = Page.link({
+    device = C4:GetDeviceID(),
+    boot = C4:UUID("Random"),
+    encode = function(value)
+      return JSON:encode(value)
+    end,
+    send = function(command, params)
+      C4:SendDataToUI(command, params)
+    end,
+    getState = function()
+      return Page.state({
+        identity = gIdentity,
+        record = gRecord,
+        alerts = gAlertsReply,
+        events = gEventsReply,
+        now = os.time(),
+        scale = scale(),
+        loadControl = loadControlOn(),
+        lastCommand = gLastCommand,
+      })
+    end,
+  })
   local flags = persist:get(FLAGS_KEY)
   gFlags = type(flags) == "table" and flags or nil
   local told = persist:get(CONTACTS_KEY)
