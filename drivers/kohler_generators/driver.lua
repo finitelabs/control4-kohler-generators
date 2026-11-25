@@ -160,19 +160,25 @@ local function keyForBinding(idBinding)
   return nil
 end
 
---- Make sure a generator has its provider binding, with a bind handler that hands the record off
---- when a companion connects.
+--- Hand a generator's record to a companion as soon as it connects to the generator's binding.
+--- @param key string The generator's id.
+--- @param bindingId integer
+local function handOffOnBind(key, bindingId)
+  OBC[bindingId] = function(_idBinding, _strClass, bIsBound)
+    if bIsBound then
+      handoff(key)
+    end
+  end
+end
+
+--- Make sure a generator has its provider binding, with its bind handler.
 --- @param identity KohlerIdentity
 --- @return table|nil binding
 local function ensureBinding(identity)
   local key = tostring(identity.id)
   local binding = bindings:getOrAddDynamicBinding(NS, key, "PROXY", true, identity.name, constants.GENERATOR_CLASS)
   if binding then
-    OBC[binding.bindingId] = function(_idBinding, _strClass, bIsBound)
-      if bIsBound then
-        handoff(key)
-      end
-    end
+    handOffOnBind(key, binding.bindingId)
   end
   return binding
 end
@@ -653,11 +659,7 @@ function OnDriverLateInit()
 
   -- Each binding's bind handler, so a companion that connects is handed its record.
   for key, binding in pairs(bindings:getDynamicBindings(NS)) do
-    OBC[binding.bindingId] = function(_idBinding, _strClass, bIsBound)
-      if bIsBound then
-        handoff(key)
-      end
-    end
+    handOffOnBind(key, binding.bindingId)
   end
 
   --#ifndef DRIVERCENTRAL
