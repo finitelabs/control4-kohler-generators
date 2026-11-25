@@ -351,6 +351,9 @@ local gRecordReadsIssued = 0
 --- taken, or one sent after a command.
 --- @type table<string, integer>
 local gRecordReadFloor = {}
+--- By generator id, when its record was last taken.
+--- @type table<string, integer>
+local gRecordReadAt = {}
 
 --- Read one generator's record and hand it to its companion.
 --- @param identity KohlerIdentity
@@ -373,6 +376,7 @@ local function readGenerator(identity, refreshId, generation, afterCommand)
       return true
     end
     gRecordReadFloor[key] = readId
+    gRecordReadAt[key] = os.time()
     gState.records[key] = record
     handoff(key)
     if feedsDue(key, record) then
@@ -949,6 +953,26 @@ local function readNow(key)
   return readGenerator(identity, gRefreshAccepted, gLoginGeneration, true)
 end
 
+--- Why a generator's last record can't be trusted to check a command against, or nil: reads are
+--- stopped while the sign-in retries, paused after a 429 or 5xx, or the record is older than two
+--- Poll Intervals.
+--- @param key string
+--- @return string|nil
+local function recordUnfit(key)
+  if gPollingS == nil then
+    return "The Kohler Generators driver is reconnecting to KOHLER"
+  end
+  if os.time() < gPausedUntil then
+    return string.format("Reads from KOHLER are paused; try again in %ds", gPausedUntil - os.time())
+  end
+  local readAt = gRecordReadAt[key]
+  local pollS = tonumber((Properties["Poll Interval"] or ""):match("^(%d+)")) or DEFAULT_POLL_S
+  if readAt ~= nil and os.time() - readAt > 2 * pollS then
+    return "The generator's last reading is out of date; try again after the next one"
+  end
+  return nil
+end
+
 --- What a failed command tells the companion.
 --- @param err KohlerError
 --- @return string
@@ -990,6 +1014,11 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
   end
   if gCommandInFlight[key] then
     return commandResult(idBinding, action, false, "Another command is still on its way")
+  end
+  local unfit = recordUnfit(key)
+  if unfit then
+    log:info("Not sending %s to generator %s: %s", action, key, unfit)
+    return commandResult(idBinding, action, false, unfit)
   end
   local record = gState.records[key]
   local request, refusal = Controls.request(command, record, os.time())

@@ -730,4 +730,42 @@ writeAnswers = { { 503, { message = "Service Unavailable" } } }
 command(58001, { action = "stop" })
 T.eq("the generator is read", sent("/devices/58001%?"), 1)
 
+T.section("no command is checked against a reading that may be out of date")
+deviceAnswers["58001"] = fixture("state-standby.json")
+EC.Refresh_Generators()
+deviceAlways = { 503, { message = "Service Unavailable" } }
+EC.Refresh_Generators()
+deviceAlways = nil
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.contains(
+  "while reads are paused",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "Reads from KOHLER are paused"
+)
+T.eq("nothing sent", sentMethod("POST"), 0)
+EC.Refresh_Generators()
+now = now + 121
+toProxy = {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "when older than two Poll Intervals",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "The generator's last reading is out of date; try again after the next one"
+)
+T.eq("nothing sent", sentMethod("POST"), 0)
+apiAlways = { 401, { message = "Unauthorized" } }
+EC.Refresh_Generators()
+apiAlways = nil
+requests, toProxy = {}, {}
+command(58001, { action = "start", mode = "Unloaded" })
+T.eq(
+  "while the sign-in retries",
+  proxySends(constants.CMD.COMMAND_RESULT)[bindingOf(58001)].MESSAGE,
+  "The Kohler Generators driver is reconnecting to KOHLER"
+)
+T.eq("nothing sent", sentMethod("POST"), 0)
+ShimFireTimers()
+T.eq("signed in again", props["Login Status"], "Logged In")
+
 T.finish()
