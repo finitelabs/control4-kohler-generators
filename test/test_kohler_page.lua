@@ -153,7 +153,7 @@ T.section("the link answers a hello with the state, marked for that page")
 local clock = 1000
 local pushed = {}
 local current = { a = 1 }
-local link = Page.link({
+local link = Page.Link:new({
   device = 77,
   boot = "boot-1",
   now = function()

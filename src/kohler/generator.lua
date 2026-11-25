@@ -6,6 +6,9 @@
 
 local M = {}
 
+--- The largest clock offset from UTC a generator can report, in seconds.
+local MAX_CLOCK_OFFSET_S = 14 * 3600
+
 --- Words a vendor enumeration splits into, where splitting at capitals reads wrong.
 local NAMES = {
   NaturalGas = "Natural Gas",
@@ -104,8 +107,6 @@ function M.time(value, clockOffset)
   return days * 86400 + fields[4] * 3600 + fields[5] * 60 + fields[6] - offset
 end
 
-local MAX_CLOCK_OFFSET_S = 14 * 3600
-
 --- The generator's clock offset from UTC, in seconds. A generator keeps its own clock, which needn't
 --- follow the controller's time zone or its daylight saving, and writes its local times by it. The
 --- record carries a reading of that clock and the moment the record was taken; their difference,
@@ -133,7 +134,7 @@ end
 
 --- A reading as a number, or nil when the cloud has none.
 --- @param value any
---- @return number|nil
+--- @return number|nil value
 function M.number(value)
   local n = tonumber(value)
   if n == nil or n ~= n or n == math.huge or n == -math.huge then
@@ -144,7 +145,7 @@ end
 
 --- A load reading: the cloud sends load as a negative number.
 --- @param value any
---- @return number|nil
+--- @return number|nil value
 function M.load(value)
   local n = M.number(value)
   return n and math.abs(n) or nil

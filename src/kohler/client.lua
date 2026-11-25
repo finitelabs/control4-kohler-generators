@@ -33,6 +33,15 @@ local DEFAULT_RETRY_AFTER_S = 60
 --- @field retryAfter? integer Seconds to wait, for "rateLimited".
 
 --- @class KohlerClient
+--- @field _allowed fun(): boolean False while the driver may not reach the cloud.
+--- @field _server string|nil The test cloud's origin, or nil for KOHLER's.
+--- @field _email string|nil The account email.
+--- @field _password string|nil The account password.
+--- @field _access string|nil The access token held.
+--- @field _expiresAt integer When the access token expires, in seconds since the epoch.
+--- @field _refresh string|nil The refresh token held.
+--- @field _pending Deferred|nil The sign-in or refresh in flight, which every call waiting on a token shares.
+--- @field _generation integer Bumped on sign-out, so a sign-in that settles after it keeps nothing.
 local Client = {}
 Client.__index = Client
 
@@ -68,9 +77,7 @@ function Client:new(options)
   instance._access = nil
   instance._expiresAt = 0
   instance._refresh = nil
-  --- The sign-in or refresh in flight, which every call waiting on a token shares.
   instance._pending = nil
-  --- Bumped on sign-out, so a sign-in that settles after it keeps nothing.
   instance._generation = 0
   return instance
 end
@@ -94,7 +101,7 @@ function Client:setServer(server, clientId, clientSecret, apiKey)
 end
 
 --- Whether a test cloud is in use.
---- @return boolean
+--- @return boolean testCloud
 function Client:usesTestCloud()
   return self._server ~= nil
 end
@@ -137,7 +144,7 @@ end
 
 --- Whether the client holds a sign-in to use: an access token, even one that has run out, or a
 --- refresh token. A call refreshes or signs in again as it needs to.
---- @return boolean
+--- @return boolean session
 function Client:hasSession()
   return self._access ~= nil or self._refresh ~= nil
 end
@@ -179,6 +186,7 @@ local function tokenError(err)
 end
 
 --- Runs one token request. Resolves once the tokens are held.
+--- @private
 --- @param form table<string, string>
 --- @return Deferred<boolean, KohlerError>
 function Client:_token(form)
@@ -219,6 +227,7 @@ function Client:_token(form)
 end
 
 --- Signs in with the email and password.
+--- @private
 --- @return Deferred<boolean, KohlerError>
 function Client:_passwordGrant()
   if IsEmpty(self._email) or IsEmpty(self._password) then
@@ -235,6 +244,7 @@ end
 
 --- A valid access token: the one held, a refreshed one, or a new sign-in. Calls waiting at the
 --- same time share one request.
+--- @private
 --- @return Deferred<boolean, KohlerError>
 function Client:_ensureToken()
   if self:isAuthenticated() then

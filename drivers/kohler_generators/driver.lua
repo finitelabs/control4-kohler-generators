@@ -41,27 +41,6 @@ local Generator = require("kohler.generator")
 local Status = require("kohler.status")
 local constants = require("constants")
 
---- Whether the license gate lets the account reach KOHLER. An OSS build has no gate.
---- @return boolean
-local function licensed()
-  --#ifdef DRIVERCENTRAL
-  if not drivercentral:licensed() then
-    return false
-  end
-  --#endif
-  return true
-end
-
---- Whether the license gate holds the account stopped, logged for an action it refuses.
---- @return boolean
-local function stopped()
-  if licensed() then
-    return false
-  end
-  log:print("No active license: the KOHLER account stays stopped")
-  return true
-end
-
 local NS = constants.BINDING_NAMESPACE
 local CMD = constants.CMD
 
@@ -86,6 +65,42 @@ local UNAVAILABLE_BACKOFF_MAX_S = 300
 local COMPANION_DRIVER = "kohler_generator.c4z"
 --- Added to the name of a companion whose generator is no longer on the account.
 local REMOVED_SUFFIX = " - REMOVED FROM KOHLER"
+--- The least time between a generator's last read and a Refresh that reads it again, in seconds.
+local REFRESH_MIN_S = 5
+--- The generators given a companion, by key, so a companion the integrator deletes isn't added again on its
+--- own. Add Generators still adds one.
+local ADDED_KEY = "GeneratorsAdded"
+--- Settable properties a reset returns to their defaults; the sign-in and update settings are kept.
+--- @type table<string, string>
+local RESET_PROPERTY_VALUES = {
+  ["Poll Interval"] = "60 seconds",
+  ["Log Level"] = "3 - Info",
+  ["Log Mode"] = "Off",
+  --#ifdef DRIVERCENTRAL
+  ["Cloud Monitoring"] = "Enabled",
+  --#endif
+}
+
+--- Whether the license gate lets the account reach KOHLER. An OSS build has no gate.
+--- @return boolean
+local function licensed()
+  --#ifdef DRIVERCENTRAL
+  if not drivercentral:licensed() then
+    return false
+  end
+  --#endif
+  return true
+end
+
+--- Whether the license gate holds the account stopped, logged for an action it refuses.
+--- @return boolean
+local function stopped()
+  if licensed() then
+    return false
+  end
+  log:print("No active license: the KOHLER account stays stopped")
+  return true
+end
 
 local client = Client:new({ allowed = licensed })
 
@@ -120,9 +135,6 @@ local gUnavailableBackoffS = nil
 --- Set once a refresh has listed the account's generators, so Add Generators knows them.
 local gListed = false
 
--- The generators given a companion, by key, so a companion the integrator deletes isn't added again on its
--- own. Add Generators still adds one.
-local ADDED_KEY = "GeneratorsAdded"
 --- Generators an automatic add left without a companion since start-up, so a failing add isn't tried every
 --- poll.
 --- @type table<string, boolean>
@@ -976,9 +988,6 @@ end
 --- @type table<string, integer>
 local gCommandInFlight = {}
 
---- The least time between a generator's last read and a Refresh that reads it again, in seconds.
-local REFRESH_MIN_S = 5
-
 --- Tell a companion how its command went, with the request id its command carried, if any.
 --- @param idBinding integer
 --- @param command table
@@ -1149,17 +1158,6 @@ function EC.Reconnect()
   client:signOut()
   Account.login()
 end
-
---- Settable properties a reset returns to their defaults; the sign-in and update settings are kept.
---- @type table<string, string>
-local RESET_PROPERTY_VALUES = {
-  ["Poll Interval"] = "60 seconds",
-  ["Log Level"] = "3 - Info",
-  ["Log Mode"] = "Off",
-  --#ifdef DRIVERCENTRAL
-  ["Cloud Monitoring"] = "Enabled",
-  --#endif
-}
 
 function EC.Reset_Driver(tParams)
   log:trace("EC.Reset_Driver()")
