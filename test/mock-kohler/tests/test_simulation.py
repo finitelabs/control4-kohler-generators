@@ -216,3 +216,16 @@ async def test_operation_hours_always_accrue(signed_in, clock):
     after = await api.record(BLUE)
     assert round(after["totalOperationHours"] - before["totalOperationHours"], 1) == 1.0
     assert after["totalRuntimeHours"] == before["totalRuntimeHours"]
+
+
+async def test_no_exercise_during_an_outage(signed_in, clock):
+    _, client, api = await signed_in()
+    await control(client, "outage", device=BLUE)
+    clock.advance(1)
+    resp = await api.call("POST", f"/devices/{BLUE}/exercise/start", {"mode": "Unloaded"})
+    assert resp.status == 409
+    assert "Utility power is out" in (await resp.json())["message"]
+    clock.advance(60)
+    rec = await api.record(BLUE)
+    assert rec["engineState"] == "Running"
+    assert rec["powerSource"] == "Generator"

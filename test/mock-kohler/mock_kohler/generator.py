@@ -364,6 +364,8 @@ class Generator:
             raise Refused(400, f"Exercise mode {mode!r} is not supported by this generator")
         if not self.online:
             raise Refused(409, "The generator is offline")
+        if not self.utility:
+            raise Refused(409, "Utility power is out")
         if self.kind == "exercise":
             raise Refused(409, "An exercise is already running")
         status = self.status()
