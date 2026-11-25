@@ -951,13 +951,17 @@ local gCommandInFlight = {}
 --- The least time between a generator's last read and a Refresh that reads it again, in seconds.
 local REFRESH_MIN_S = 5
 
---- Tell a companion how its command went.
+--- Tell a companion how its command went, with the request id its command carried, if any.
 --- @param idBinding integer
---- @param action string
+--- @param command table
 --- @param ok boolean
 --- @param message string
-local function commandResult(idBinding, action, ok, message)
-  SendToProxy(idBinding, CMD.COMMAND_RESULT, { ACTION = action, OK = tostring(ok), MESSAGE = message })
+local function commandResult(idBinding, command, ok, message)
+  local params = { ACTION = command.action, OK = tostring(ok), MESSAGE = message }
+  if type(command.request) == "string" then
+    params.REQUEST = command.request
+  end
+  SendToProxy(idBinding, CMD.COMMAND_RESULT, params)
 end
 
 --- Read one generator now. After a command, a read of it sent before can't hand the companion the
@@ -1022,10 +1026,10 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
   end
   local action = command.action
   if not licensed() then
-    return commandResult(idBinding, action, false, "No active license")
+    return commandResult(idBinding, command, false, "No active license")
   end
   if not client:hasSession() then
-    return commandResult(idBinding, action, false, "The Kohler Generators driver is not signed in")
+    return commandResult(idBinding, command, false, "The Kohler Generators driver is not signed in")
   end
   if action == "refresh" then
     local readAt = gRecordReadAt[key]
@@ -1039,18 +1043,18 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
     return
   end
   if gCommandInFlight[key] == gLoginGeneration then
-    return commandResult(idBinding, action, false, "Another command is still on its way")
+    return commandResult(idBinding, command, false, "Another command is still on its way")
   end
   local unfit = recordUnfit(key)
   if unfit then
     log:info("Not sending %s to generator %s: %s", action, key, unfit)
-    return commandResult(idBinding, action, false, unfit)
+    return commandResult(idBinding, command, false, unfit)
   end
   local record = gState.records[key]
   local request, refusal = Controls.request(command, record, os.time())
   if not request then
     log:info("Not sending %s to generator %s: %s", action, key, refusal)
-    return commandResult(idBinding, action, false, refusal)
+    return commandResult(idBinding, command, false, refusal)
   end
   local identity = gState.generators[key]
   log:info("Sending %s to generator %s", action, key)
@@ -1074,11 +1078,11 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
     end, release)
   end
   client:send(request, identity.host):next(function()
-    commandResult(idBinding, action, true, "Sent")
+    commandResult(idBinding, command, true, "Sent")
     readAgain()
   end, function(err)
     log:warn("%s for generator %s failed: %s", action, key, err.message)
-    commandResult(idBinding, action, false, commandFailure(err))
+    commandResult(idBinding, command, false, commandFailure(err))
     readAgain()
   end)
 end

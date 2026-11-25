@@ -533,4 +533,15 @@
       <hidden>False</hidden>
     </connection>
   </connections>
+  <capabilities>
+    <web_view_url proxybindingid="5001">controller://driver/kohler_generator/dist/index.html</web_view_url>
+    <mobile_web_view_enabled>true</mobile_web_view_enabled>
+    <navigator_display_option proxybindingid="5001">
+      <display_icons>
+        <Icon height="70" width="70">controller://driver/kohler_generator/icons/experience_70.png</Icon>
+        <Icon height="90" width="90">controller://driver/kohler_generator/icons/experience_90.png</Icon>
+        <Icon height="300" width="300">controller://driver/kohler_generator/icons/experience_300.png</Icon>
+      </display_icons>
+    </navigator_display_option>
+  </capabilities>
 </devicedata>
