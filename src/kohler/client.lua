@@ -1,5 +1,5 @@
---- KOHLER Energy Management client: signs in with the homeowner's email and password and reads
---- the account's homes and generators from the homeowner API.
+--- KOHLER Energy Management client: signs in with the homeowner's email and password, reads the
+--- account's homes and generators from the homeowner API, and sends their commands.
 ---
 --- Sign-in is the password grant with the app's client, which answers an access token of about
 --- an hour and a refresh token that changes on each use. Both stay in memory: after a restart the
@@ -319,13 +319,17 @@ local function apiError(err)
   return { kind = "failed", code = code, message = detail }
 end
 
---- An authenticated GET on the homeowner API. A 401 signs in again and repeats the call once.
+--- An authenticated call on the homeowner API. A 401 signs in again and repeats the call once:
+--- KOHLER took nothing from a call it refused. Nothing else repeats, so a write that timed out or
+--- failed with a 5xx is never sent twice.
+--- @param method "GET"|"POST"|"PUT"
 --- @param path string Below the API's base, such as "/homeowner/homes".
 --- @param query? table<string, string>
+--- @param body? table A write's JSON body.
 --- @param retried? boolean
 --- @return Deferred<any, KohlerError> body
 --- @private
-function Client:_get(path, query, retried)
+function Client:_call(method, path, query, body, retried)
   if not self._allowed() then
     return deferred.new():reject({ kind = "failed", message = "No active license" })
   end
@@ -347,15 +351,21 @@ function Client:_get(path, query, retried)
       ["Accept"] = "application/json",
     }
     local d = deferred.new()
-    http:get(url, headers):next(function(response)
+    local request
+    if method == "GET" then
+      request = http:get(url, headers)
+    else
+      request = http:request(method, url, body, headers)
+    end
+    request:next(function(response)
       d:resolve(response.body)
     end, function(err)
       local failure = apiError(err)
       if failure.kind == "unauthorized" and not retried then
         log:info("KOHLER refused the access token; signing in again")
         self._access, self._expiresAt, self._refresh = nil, 0, nil
-        self:_get(path, query, true):next(function(body)
-          d:resolve(body)
+        self:_call(method, path, query, body, true):next(function(again)
+          d:resolve(again)
         end, function(again)
           d:reject(again)
         end)
@@ -365,6 +375,15 @@ function Client:_get(path, query, retried)
     end)
     return d
   end)
+end
+
+--- An authenticated GET on the homeowner API.
+--- @param path string
+--- @param query? table<string, string>
+--- @return Deferred<any, KohlerError> body
+--- @private
+function Client:_get(path, query)
+  return self:_call("GET", path, query)
 end
 
 --- The account's homes, each with its generators (homeowner/homes).
@@ -406,6 +425,15 @@ function Client:getEvents(id, host)
   return self:_get("/devices/" .. tostring(id) .. "/events", { sourceDeviceHost = host }):next(function(body)
     return type(body) == "table" and body or {}
   end)
+end
+
+--- Sends a command to a generator (kohler.controls builds it): an exercise start or stop, an
+--- exercise schedule, or a load-shed load.
+--- @param request KohlerRequest
+--- @param host string The record's deviceHost, which routes the call.
+--- @return Deferred<any, KohlerError>
+function Client:send(request, host)
+  return self:_call(request.method, request.path, { sourceDeviceHost = host }, request.body)
 end
 
 return Client
