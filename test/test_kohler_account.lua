@@ -157,14 +157,14 @@ local function proxySends(command)
   return out
 end
 
---- The interval of each repeating timer set, in milliseconds, in order.
-local repeating = {}
-local realSetTimer = C4.SetTimer
-C4.SetTimer = function(self, ms, callback, again)
-  if again then
-    repeating[#repeating + 1] = ms
+--- The wait each poll was set for, in milliseconds, in order.
+local polls = {}
+local realSetTimer = SetTimer
+SetTimer = function(name, ms, ...)
+  if name == "KohlerPoll" then
+    polls[#polls + 1] = ms
   end
-  return realSetTimer(self, ms, callback, again)
+  return realSetTimer(name, ms, ...)
 end
 
 -- ─── A project ─────────────────────────────────────────────────────────────
@@ -562,16 +562,22 @@ end
 T.eq("nothing handed from the older read", handed, 0)
 
 T.section("a generator that runs is polled every 15 seconds, until it stops")
-T.eq("polling at the Poll Interval", repeating[#repeating], 60000)
+T.eq("polling at the Poll Interval", polls[#polls], 60000)
 deviceAnswers["58001"] = fixture("state-outage.json")
 EC.Refresh_Generators()
-T.eq("every 15 seconds while it runs", repeating[#repeating], 15000)
-local count = #repeating
+T.eq("every 15 seconds while it runs", polls[#polls], 15000)
 ShimFireTimers()
-T.eq("and stays there", #repeating, count)
+T.eq("and stays there", polls[#polls], 15000)
 deviceAnswers["58001"] = fixture("state-standby.json")
 ShimFireTimers()
-T.eq("back to the Poll Interval when it stops", repeating[#repeating], 60000)
+T.eq("back to the Poll Interval when it stops", polls[#polls], 60000)
+
+T.section("a Poll Interval change applies from the next poll")
+setProperty("Poll Interval", "120 seconds")
+T.eq("the next poll waits the new interval", polls[#polls], 120000)
+ShimFireTimers()
+T.eq("and so does the one after", polls[#polls], 120000)
+setProperty("Poll Interval", "60 seconds")
 
 T.section("alerts reads that fail wait longer each time, and leave the account's status alone")
 now = now + 120
