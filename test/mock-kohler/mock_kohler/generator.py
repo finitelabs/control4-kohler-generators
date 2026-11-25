@@ -371,8 +371,6 @@ class Generator:
         status = self.status()
         if status != "ReadyToRun":
             raise Refused(409, f"The generator is not ready to run ({status})")
-        if self.switch != "Auto":
-            raise Refused(409, "The generator switch is not in Auto")
         minutes = (self.schedule or {}).get("durationMinutes") or 20
         self._start_exercise(mode, minutes)
 

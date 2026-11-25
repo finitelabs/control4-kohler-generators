@@ -47,7 +47,8 @@ async def test_exercise_start_guards(signed_in, clock):
     body = await write(api, "POST", path, {"mode": "Unloaded"}, status=409)
     assert "SwitchStateOff" in body["message"]
     await control(client, "switch", device=BLUE, position="Manual")
-    await write(api, "POST", path, {"mode": "Unloaded"}, status=409)
+    body = await write(api, "POST", path, {"mode": "Unloaded"}, status=409)
+    assert "not ready to run (Running)" in body["message"]
     await control(client, "switch", device=BLUE, position="Auto")
     clock.advance(600)
 
