@@ -267,6 +267,19 @@ events = {}
 handOver("restored", true)
 T.eq("the next change fires", events, { "Utility Power Restored", "Engine Stopped" })
 
+T.section("alerts that clear while the driver is stopped fire Alerts Cleared once")
+handOver("fault", true)
+ShimRestartDirector()
+events = {}
+start()
+handOver("fault", true)
+T.eq("still active: nothing", events, {})
+ShimRestartDirector()
+events = {}
+start()
+handOver("standby", true)
+T.eq("cleared across the restart", events, { "Alerts Cleared" })
+
 T.section("an event logged while the driver was stopped")
 ShimRestartDirector()
 events = {}

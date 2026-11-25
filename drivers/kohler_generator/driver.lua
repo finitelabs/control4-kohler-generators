@@ -97,6 +97,10 @@ local CURSOR_KEY = "EventCursor"
 --- Persisted: the flags the last record set, so a change across a restart fires once.
 local FLAGS_KEY = "StatusFlags"
 
+--- Persisted: how many alerts were active at the last read, so alerts that clear across a restart
+--- fire Alerts Cleared once.
+local ALERT_COUNT_KEY = "AlertCount"
+
 --- Persisted: each contact output's state as last told, by connection id as text.
 local CONTACTS_KEY = "ContactStates"
 
@@ -286,8 +290,9 @@ end
 --- @param events table
 local function applyFeeds(alerts, events)
   local a = Status.alerts(alerts)
-  local hadAlerts = gAlerts ~= nil and gAlerts.count > 0
+  local hadAlerts = (tonumber(persist:get(ALERT_COUNT_KEY)) or 0) > 0
   gAlerts = a
+  persist:set(ALERT_COUNT_KEY, a.count)
   values:update("Active Alerts", a.count, "NUMBER")
   values:update("Last Alert", a.last, "STRING")
   updateFault()
