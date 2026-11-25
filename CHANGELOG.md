@@ -18,35 +18,21 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
-<!-- #ifdef DRIVERCENTRAL -->
-
 ## Unreleased
 
 ### Added
 
-- Added the Kohler Generators and Kohler Generator drivers to DriverCentral
-
-<!-- #endif -->
-
-<!-- #ifndef DRIVERCENTRAL -->
-
-## Unreleased
-
-### Added
-
-- Added the Kohler Generators and Kohler Generator drivers, which sign in to a
-  KOHLER account and add a driver for each generator on it
-- Added each generator's status, power source and readings as variables, with
-  temperatures in the project's scale
-- Added events for a utility outage and its end, the engine starting and
-  stopping, an exercise, a fault or warning, the switch leaving Auto,
-  maintenance falling due and a low battery
-- Added conditionals and contact outputs for generator power, running, fault and
-  the switch, so outage programming works with any contact input
-- Added commands to start and stop an exercise, change the exercise schedule and
-  switch load-shed loads
-- Added a generator page in the Control4 app with the generator's power,
-  readings, exercise schedule, loads, alerts and service details
-- Added automatic driver updates
-
-<!-- #endif -->
+- Added the Kohler Generators and Kohler Generator drivers for KOHLER home
+  standby generators
+- Added each generator's status, power source and readings in Control4
+- Added programming for utility outages, the engine running, exercises, faults
+  and maintenance
+- Added contact outputs, so any driver with a contact input can follow the
+  generator
+- Added starting an exercise, changing the exercise schedule and switching
+  load-shed loads from Control4
+- Added a generator page in the Control4 app
+  <!-- #ifdef DRIVERCENTRAL -->
+- Added a Support Code property, Cloud Monitoring and a Diagnostics Snapshot
+  action
+  <!-- #endif -->
