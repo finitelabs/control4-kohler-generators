@@ -629,6 +629,8 @@ function EC.Set_Load(tParams, request)
   log:trace("EC.Set_Load(%s)", tParams)
   if not loadControlOn() then
     showResult("Load Control is off")
+    gLastCommand = { request = request, action = "load", ok = false, message = "Load Control is off" }
+    publishPage()
     return
   end
   sendCommand({ action = "load", load = Select(tParams, "Load"), on = Select(tParams, "State") == "On" }, request)
@@ -735,11 +737,6 @@ function EC.KG_PAGE_COMMAND(tParams)
   local request = type(p.request) == "string" and p.request or nil
   if p.action == "load" and p.state ~= "On" and p.state ~= "Off" then
     log:warn("The generator page sent a load state this driver does not know: %s", tostring(p.state))
-    return
-  end
-  if p.action == "load" and not loadControlOn() then
-    gLastCommand = { request = request, action = "load", ok = false, message = "Load Control is off" }
-    publishPage()
     return
   end
   run(p, request)
