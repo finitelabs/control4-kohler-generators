@@ -25,8 +25,7 @@ test("standby: utility power, start allowed, stop refused", () => {
   assert.equal(v.top.reported, "Updated 4 min ago");
   assert.deepEqual(v.exercise.start, { enabled: true, reason: "" });
   assert.equal(v.exercise.stop.enabled, false);
-  assert.equal(v.exercise.schedulable.enabled, true);
-  assert.equal(v.loads.rows.length, 4);
+  assert.equal(v.loads.length, 4);
   assert.equal(v.alerts.length, 0);
   assert.equal(v.history.length, 3);
 });
@@ -120,11 +119,8 @@ test("fault: alerts first, with tones", () => {
   );
 });
 
-test("loads: absent when the driver sends none, greyed with a reason", () => {
+test("loads: absent when the driver sends none", () => {
   assert.equal(KGView.view(sample((s) => delete s.loads), NOW).loads, null);
-  const v = KGView.view(sample((s) => (s.loads.blocked = "The generator is offline")), NOW);
-  assert.ok(v.loads.rows.every((r) => r.disabled));
-  assert.equal(v.loads.note, "The generator is offline");
 });
 
 test("service: maintenance due shows in the warn tone", () => {

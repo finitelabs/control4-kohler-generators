@@ -134,10 +134,8 @@ test("page: Start asks first, with the physical effect, and sends only on confir
 test("page: guards grey the buttons and say why", () => {
   const state = KGDemo.state(NOW);
   state.exercise.start = "Utility power is out";
-  state.exercise.scheduleBlocked = "The generator is offline";
   const { page } = openPage(state);
   assert.equal(page.button("Start exercise").disabled, true);
-  assert.equal(page.button("Change schedule").disabled, true);
   assert.ok(page.textContent.includes("Utility power is out"));
 });
 

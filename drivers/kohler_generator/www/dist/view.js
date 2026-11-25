@@ -129,7 +129,6 @@
       last: when(e.lastAt, now),
       start: { enabled: !e.start, reason: e.start || "" },
       stop: { enabled: !e.stop, reason: e.running ? e.stop || "" : "" },
-      schedulable: { enabled: !e.scheduleBlocked, reason: e.scheduleBlocked || "" },
       sheet: e.sheet || {},
     };
   }
@@ -195,12 +194,9 @@
       .filter(Boolean);
     v.exercise = exercise(state, now);
     v.loads = state.loads
-      ? {
-          rows: state.loads.items.map(function (l) {
-            return { name: l.name, on: !!l.on, disabled: !!state.loads.blocked };
-          }),
-          note: state.loads.blocked || "",
-        }
+      ? state.loads.items.map(function (l) {
+          return { name: l.name, on: !!l.on };
+        })
       : null;
     v.alerts = (state.alerts || []).map(function (a) {
       return entry(a, now);

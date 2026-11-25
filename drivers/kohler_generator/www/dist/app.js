@@ -160,7 +160,7 @@
           draft[k] = String(e.sheet[k]);
         });
         openSheet("schedule");
-      }, e.schedulable.enabled && !pending)
+      }, !pending)
     );
     c.appendChild(actions);
     var reason = e.running ? e.stop.reason : e.start.reason;
@@ -184,14 +184,14 @@
   function renderLoads(v) {
     if (!v.loads) return;
     var c = card("Loads");
-    v.loads.rows.forEach(function (l) {
+    v.loads.forEach(function (l) {
       var r = el("label", "row switch-row");
       r.appendChild(el("span", "row-label", l.name));
       var input = el("input", "switch");
       input.type = "checkbox";
       input.setAttribute("role", "switch");
       input.checked = l.on;
-      input.disabled = l.disabled || !!pending;
+      input.disabled = !!pending;
       input.setAttribute("aria-label", l.name);
       input.addEventListener("change", function () {
         send({ action: "load", load: l.name, state: input.checked ? "On" : "Off" });
@@ -199,7 +199,6 @@
       r.appendChild(input);
       c.appendChild(r);
     });
-    if (v.loads.note) c.appendChild(el("p", "muted", v.loads.note));
   }
 
   function renderList(c, items, empty) {

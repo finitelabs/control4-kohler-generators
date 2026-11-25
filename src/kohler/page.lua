@@ -154,7 +154,7 @@ function M.state(ctx)
 
   local loads = nil
   if ctx.loadControl and Controls.hasLoadControl(record) then
-    loads = { items = {}, blocked = not s.online and "The generator is offline" or nil }
+    loads = { items = {} }
     for _, load in ipairs(s.loads) do
       loads.items[#loads.items + 1] = { name = load.name, on = load.on }
     end
@@ -188,7 +188,6 @@ function M.state(ctx)
       start = refusal({ action = "start", mode = "Unloaded" }, record, ctx.now),
       stop = refusal({ action = "stop" }, record, ctx.now),
       sheet = scheduleOf(exercise),
-      scheduleBlocked = not s.online and "The generator is offline" or nil,
     },
     loads = loads,
     alerts = alerts,
