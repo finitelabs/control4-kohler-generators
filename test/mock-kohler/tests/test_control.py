@@ -1,6 +1,9 @@
 import time
 
+from mock_kohler import times  # noqa: E402
 from conftest import (
+    OFFLINE,
+    OFFLINE_ID,
     API,
     BLUE,
     EMAIL,
@@ -284,3 +287,10 @@ async def test_fail_count_must_be_positive(signed_in):
     resp = await client.post("/_mock/fail", json={"status": 503, "count": 0})
     assert resp.status == 400
     await api.record(BLUE)
+
+
+async def test_offline_from_start_shows_the_time_it_went_offline(make_cloud):
+    cloud, _ = await make_cloud(OFFLINE)
+    gen = cloud.generators[OFFLINE_ID]
+    dev = gen.record()
+    assert dev["controllerClockTimestamp"] == times.local_naive(gen.offline_since, gen.tz)

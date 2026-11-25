@@ -581,7 +581,9 @@ class Generator:
         if online == self.online:
             return
         if not online:
+            now, self.t = self.t, (self.t if at is None else at)
             self.snapshot = self._live()
+            self.t = now
             self.snapshot_alerts = copy.deepcopy(self.alerts)
             self.offline_since = self.t if at is None else at
             self.online = False
