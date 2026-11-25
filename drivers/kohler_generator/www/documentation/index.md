@@ -64,10 +64,10 @@ exercise schedule and switch the generator's load-shed loads.
 
 ## Adding the Driver
 
-Run **Add Generators** on the **Kohler Generators** driver: it adds and binds
-one of these drivers per generator. To add one yourself, add the "Kohler
-Generator" driver and bind its `Kohler Generator` connection to a generator
-connection on the account driver in the "Connections" tab.
+The **Kohler Generators** driver adds and binds one of these drivers per
+generator after it signs in. To add one yourself, add the "Kohler Generator"
+driver and bind its `Kohler Generator` connection to a generator connection on
+the account driver in the "Connections" tab.
 
 ## Driver Properties
 

@@ -21,6 +21,7 @@ JSON = require("JSON")
 local log = require("lib.logging")
 local bindings = require("lib.bindings")
 local companions = require("lib.companions")
+local persist = require("lib.persist")
 local values = require("lib.values")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
@@ -117,6 +118,17 @@ local gUnavailableBackoffS = nil
 
 --- Set once a refresh has listed the account's generators, so Add Generators knows them.
 local gListed = false
+
+-- The generators given a companion, by key, so a companion the integrator deletes isn't added again on its
+-- own. Add Generators still adds one.
+local ADDED_KEY = "GeneratorsAdded"
+--- Generators an automatic add left without a companion since start-up, so a failing add isn't tried every
+--- poll.
+--- @type table<string, boolean>
+local gAutoTried = {}
+--- Adds the generators no add has given a companion yet; set once addGenerators is defined.
+--- @type fun()
+local autoAddGenerators
 
 --- Whether the account is connected, as the Account Connected variable says.
 local gConnected = false
@@ -456,6 +468,7 @@ local function refreshGenerators()
     end
     if not stale(refreshId, generation) then
       C4:UpdateProperty("Driver Status", connectedStatus(#list))
+      autoAddGenerators()
     end
   end, function(err)
     if not stale(refreshId, generation) then
@@ -559,9 +572,12 @@ end
 
 --- Give every generator on the account a companion driver: the one it had, a spare in this
 --- driver's room, or a new one named after the generator.
-local function addGenerators()
+--- @param auto? boolean Whether this driver started it, not the Add Generators action.
+local function addGenerators(auto)
   if companions.running then
-    log:info("Add Generators is already running")
+    if not auto then
+      log:info("Add Generators is already running")
+    end
     return
   end
   if not client:hasSession() or not gListed then
@@ -606,9 +622,16 @@ local function addGenerators()
         result.added,
         result.failed
       )
+      local added = persist:get(ADDED_KEY, {}) or {}
       for _, need in ipairs(needs) do
         handoff(need.key)
+        if next(C4:GetBoundConsumerDevices(C4:GetDeviceID(), need.binding) or {}) ~= nil then
+          added[need.key] = true
+        elseif auto then
+          gAutoTried[need.key] = true
+        end
       end
+      persist:set(ADDED_KEY, added)
       if #result.missing > 0 then
         C4:UpdateProperty("Driver Status", "Load the Kohler Generator driver on the controller first")
       elseif result.failed > 0 then
@@ -1088,6 +1111,16 @@ function RFP.generatorCommand(idBinding, _strCommand, tParams)
   end)
 end
 
+autoAddGenerators = function()
+  local added = persist:get(ADDED_KEY, {}) or {}
+  for key in pairs(gState.generators) do
+    if not added[key] and not gAutoTried[key] then
+      log:info("Adding the account's generators that have no driver yet")
+      return addGenerators(true)
+    end
+  end
+end
+
 -- ─── Actions (EC dispatch) ─────────────────────────────────────────────────
 
 function EC.Add_Generators()
@@ -1123,6 +1156,8 @@ function EC.Reset_Driver(tParams)
     dropGenerators()
     bindings:reset()
     companions:reset()
+    persist:set(ADDED_KEY, nil)
+    gAutoTried = {}
     client:setServer(nil)
     C4:UpdateProperty("Login Status", "")
     --#ifdef DRIVERCENTRAL
