@@ -489,6 +489,17 @@ T.eq("and no more: it reads again after 30 seconds", sent("/homeowner/homes$"), 
 T.section("record reads that keep failing with 5xx pause longer each poll, though the account is read")
 deviceAlways = { 503, { message = "Service Unavailable" } }
 EC.Refresh_Generators()
+local function staleCount(key)
+  local n = 0
+  for _, s in ipairs(toProxy) do
+    if s.command == constants.CMD.READS_STALE and s.binding == bindingOf(key) then
+      n = n + 1
+    end
+  end
+  return n
+end
+toProxy = {}
+local outageAt = now
 for _, wait in ipairs({ 30, 60, 120, 240 }) do
   requests = {}
   now = now + wait - 1
@@ -497,11 +508,18 @@ for _, wait in ipairs({ 30, 60, 120, 240 }) do
   now = now + 1
   ShimFireTimers()
   T.eq(string.format("a read at %ds", wait), sent("/homeowner/homes$"), 1)
+  if now - outageAt <= 120 then
+    T.eq(string.format("still online after %ds without a read", now - outageAt), staleCount(58001), 0)
+  end
 end
+T.eq("told once its reads stopped, after two Poll Intervals", staleCount(58001), 1)
 deviceAlways = nil
 now = now + 300
+toProxy = {}
 EC.Refresh_Generators()
 T.eq("a refresh that reads everything", props["Driver Status"], "Connected (3 generators)")
+T.truthy("brings the generator back", proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)])
+T.eq("and isn't told again", staleCount(58001), 0)
 
 T.section("record reads refused even after a fresh sign-in wait longer each time")
 deviceAlways = { 401, { message = "Unauthorized" } }

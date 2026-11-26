@@ -167,6 +167,13 @@
         retry: false,
       };
     }
+    if (state.reason === "stale") {
+      return {
+        title: "KOHLER not answering",
+        text: "KOHLER isn't answering the driver's reads, so the readings below may be out of date.",
+        retry: true,
+      };
+    }
     if (state.reason === "waiting") {
       return { title: "Connecting", text: "Waiting for the generator's first reading.", retry: true };
     }

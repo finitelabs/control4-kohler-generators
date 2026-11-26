@@ -505,6 +505,11 @@ local gRecordReadFloor = {}
 --- By generator id, when its record was last taken.
 --- @type table<string, integer>
 local gRecordReadAt = {}
+--- When the driver started, which stands in for a generator not read since.
+local gStartedAt = os.time()
+--- By generator id, whether its companion was told its reads stopped.
+--- @type table<string, boolean>
+local gStaleTold = {}
 
 --- Read one generator's record and hand it to its companion.
 --- @param identity KohlerIdentity
@@ -537,6 +542,7 @@ local function readGenerator(identity, refreshId, generation, afterCommand)
     end
     gRecordReadFloor[key] = readId
     gRecordReadAt[key] = os.time()
+    gStaleTold[key] = nil
     gState.records[key] = record
     handoff(key)
     if feedsDue(key, record) then
@@ -658,6 +664,22 @@ local function pollIntervalS()
   return configuredPollS()
 end
 
+--- Tell each generator's companion, once, when it has not been read for two Poll Intervals: KOHLER is
+--- not answering, so its readings are out of date. Its next read brings it back.
+local function goOfflineIfStale()
+  for key in pairs(gState.generators) do
+    local readAt = gRecordReadAt[key] or gStartedAt
+    if not gStaleTold[key] and os.time() - readAt > 2 * configuredPollS() then
+      gStaleTold[key] = true
+      log:warn("Generator %s has not been read for %ds; showing it offline", key, os.time() - readAt)
+      local binding = bindings:getDynamicBinding(NS, key)
+      if binding then
+        SendToProxy(binding.bindingId, CMD.READS_STALE, {})
+      end
+    end
+  end
+end
+
 --- Sets the next poll at the rate the generators need. Each poll sets the one after it once its
 --- reads settle, so polls never pile up behind a slow cloud and a new rate applies from the next one.
 --- Refresh Generators is not held back by this.
@@ -674,6 +696,7 @@ local function startPolling()
         startPolling()
       end
     end
+    goOfflineIfStale()
     local refresh = refreshGenerators()
     if refresh == nil then
       return again()

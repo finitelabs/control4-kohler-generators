@@ -26,6 +26,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
+- Fixed a generator showing Online with old readings while KOHLER doesn't answer
+  the driver's reads. It now shows KOHLER not answering after two Poll
+  Intervals.
 - Fixed Account Disconnected not firing when KOHLER refuses the driver's reads.
 - Fixed a generator's icon in the Control4 app showing Standby after a
   controller restart, until its first reading.
