@@ -170,7 +170,12 @@ end
 
 -- ─── Companion handoff ─────────────────────────────────────────────────────
 
---- Push a generator's record to its bound companion (if any).
+--- By generator id, whether its companion was told its reads stopped.
+--- @type table<string, boolean>
+local gStaleTold = {}
+
+--- Push a generator's record to its bound companion (if any). A cached record handed while its
+--- reads have stopped is followed by the stale tell again, so the companion doesn't show it Online.
 --- @param key string The generator's id.
 local function handoff(key)
   local record = gState.records[key]
@@ -179,6 +184,9 @@ local function handoff(key)
     return
   end
   SendToProxy(binding.bindingId, CMD.UPDATE_GENERATOR, { JSON = JSON:encode(record) })
+  if gStaleTold[key] then
+    SendToProxy(binding.bindingId, CMD.READS_STALE, {})
+  end
 end
 
 --- Push a generator's alerts and event log to its bound companion (if any).
@@ -195,10 +203,6 @@ local function handoffFeeds(key)
     { ALERTS = JSON:encode(feeds.alerts), EVENTS = JSON:encode(feeds.events) }
   )
 end
-
---- By generator id, whether its companion was told its reads stopped.
---- @type table<string, boolean>
-local gStaleTold = {}
 
 --- Tell a generator's companion it is gone.
 --- @param key string

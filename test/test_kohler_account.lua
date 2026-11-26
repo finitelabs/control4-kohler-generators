@@ -513,6 +513,10 @@ for _, wait in ipairs({ 30, 60, 120, 240 }) do
   end
 end
 T.eq("told once its reads stopped, after two Poll Intervals", staleCount(58001), 1)
+toProxy = {}
+RFP.REFRESH_STATE(bindingOf(58001), "REFRESH_STATE", {})
+T.eq("a companion that asks again in the outage is handed its record", #toProxy, 3)
+T.eq("then told again its reads stopped", toProxy[2].command, constants.CMD.READS_STALE)
 deviceAlways = nil
 now = now + 300
 toProxy = {}
