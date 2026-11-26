@@ -448,16 +448,19 @@ EC.Reset_Driver({ ["Are You Sure?"] = "Yes" })
 valuesLib.reset = realReset
 T.eq("Reset Driver resets the variables", resets, 1)
 T.eq("and makes Account Connected again", valuesLib:getValue("Account Connected").value, false)
+T.eq("the conditional reads it too", TC.ACCOUNT_CONNECTED("", { VALUE = "Connected", LOGIC = "EQUAL" }), false)
 local stale = table.remove(held, 1)
 local signIn = held
 held = nil
 stale()
 T.falsy("no binding comes back from it", bindingOf(58001))
 T.eq("nor a count", props["Driver Status"], "Connecting")
+local eventsBeforeSignIn = #events
 for _, release in ipairs(signIn) do
   release()
 end
 T.eq("the new sign-in reads the account", props["Driver Status"], "Connected (3 generators)")
+T.eq("and fires Account Connected", events[eventsBeforeSignIn + 1], "Account Connected")
 T.truthy("and binds it", bindingOf(58001))
 
 T.section("a read answered after the email changes is not taken")

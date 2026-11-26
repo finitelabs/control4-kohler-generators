@@ -419,8 +419,19 @@ RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSO
 T.eq("Load Pool Pump", var("Load Pool Pump"), true)
 local gone = JSON:decode(JSON:encode(pump))
 table.remove(gone.loadShed.parameters, 1)
+local logging = require("lib.logging")
+local realWarn, kept = logging.warn, 0
+logging.warn = function(self, fmt, ...)
+  if tostring(fmt):find("is kept for programming", 1, true) then
+    kept = kept + 1
+  end
+  return realWarn(self, fmt, ...)
+end
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(gone) })
 T.eq("Load Pool Pump is kept, with its last state", var("Load Pool Pump"), true)
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(gone) })
+logging.warn = realWarn
+T.eq("and logged once", kept, 1)
 
 T.section("Load Control off removes load variables restored at a restart")
 ShimRestartDirector()
