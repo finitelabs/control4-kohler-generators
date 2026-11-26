@@ -45,7 +45,9 @@ exercise schedule and switch the generator's load-shed loads.
 - [Installer Setup](#installer-setup)
   - [Adding the Driver](#adding-the-driver)
   - [Driver Properties](#driver-properties)
+    <!-- #ifdef DRIVERCENTRAL -->
     - [Cloud Settings](#cloud-settings)
+    <!-- #endif -->
     - [Driver Settings](#driver-settings)
     - [Generator](#generator)
   - [Connections](#connections)
@@ -160,10 +162,17 @@ Log Level.
 
 When Enabled, the driver sends Finite Labs a short report once an hour, and a
 report of each error it hits, at most 10 a minute, so problems in the driver can
-be found and fixed. Set it to Disabled to send nothing. The Kohler Generators
-driver's documentation lists what a report holds. The Diagnostics Snapshot
-action prints a report in the Lua output, and sends it to Finite Labs only while
-Cloud Monitoring is Enabled.
+be found and fixed. Set it to Disabled to send nothing.
+
+A report holds the controller's MAC address and OS version, the driver's name,
+version, device ID and DriverCentral license status, how much memory the driver
+uses, and the sizes of its largest internal tables. An error report also holds
+the error message and where in the driver it happened. Before a message is sent,
+anything in it that looks like a password, token, key, network address or email
+address is removed.
+
+The Diagnostics Snapshot action prints a report in the Lua output, and sends it
+only while Cloud Monitoring is Enabled.
 
 <!-- #endif -->
 
@@ -174,7 +183,7 @@ driver has read the generator.
 
 #### Generator Name (read-only)
 
-The generator's name in the KOHLER app.
+Displays the generator's name in the KOHLER app.
 
 #### Auto Rename Driver \[ Off | **_On_** \]
 
@@ -184,31 +193,31 @@ app, or named only by its serial number, is named KOHLER and its model instead.
 
 #### Model (read-only)
 
-The generator's model.
+Displays the generator's model.
 
 #### Serial Number (read-only)
 
-The generator's serial number.
+Displays the generator's serial number.
 
 #### Controller (read-only)
 
-The generator's controller.
+Displays the generator's controller.
 
 #### Firmware Version (read-only)
 
-The controller's firmware version.
+Displays the controller's firmware version.
 
 #### Fuel Type (read-only)
 
-The fuel the generator runs on.
+Displays the fuel the generator runs on.
 
 #### Connection Type (read-only)
 
-How the generator reaches the KOHLER cloud.
+Displays how the generator reaches the KOHLER cloud.
 
 #### Dealer (read-only)
 
-The dealer on the account for this generator, with their phone number.
+Displays the dealer on the account for this generator, with their phone number.
 
 #### Load Control \[ Off | **_On_** \]
 
@@ -216,20 +225,21 @@ Shows the generator's load-shed loads as variables and lets programming switch
 them. The driver sets it from the generator's first reading: `On` when the
 generator has a load control module, `Off` when it has none. Your choice holds
 after that. While it is `Off`, the load variables are removed and **Set Load**
-does nothing.
+does nothing. A load that leaves the generator keeps its variable for
+programming until Load Control is set `Off`.
 
 #### Exercise Schedule (read-only)
 
-How often the generator exercises, on what day and time, in which mode and for
-how long, or `None`.
+Displays how often the generator exercises, on what day and time, in which mode
+and for how long, or `None`.
 
 #### Last Maintenance (read-only)
 
-When the generator was last serviced.
+Displays when the generator was last serviced.
 
 #### Next Maintenance (read-only)
 
-When the generator is next due for service.
+Displays when the generator is next due for service.
 
 ## Connections
 
@@ -287,8 +297,9 @@ Opening or refreshing the page never runs the generator. Start asks first, and
 says what happens: the engine starts and, for a Loaded Full Speed exercise, the
 house moves to generator power until the exercise ends. The page's commands are
 the driver's own Start Exercise, Stop Exercise, Set Exercise Schedule and Set
-Load commands, so they are refused for the same reasons. A button that would be
-refused is grayed out with the reason under it.
+Load commands, so they are refused for the same reasons. Start and Stop are
+grayed out, with the reason under them, when the generator can't start or stop
+an exercise. Any other refusal shows under the card after the button is pressed.
 
 When the account driver is not signed in, or the generator is offline, the page
 says so and offers Try again where a new read can help.
@@ -372,13 +383,13 @@ read again right after. For 30 seconds, **Driver Status** shows whether KOHLER
 took the command, or why it was not sent. A command is sent once: if KOHLER does
 not answer, check the generator before sending it again.
 
-| Command               | What it does                                                                                                                                                                                                                             |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start Exercise        | Starts the engine now for an exercise of the scheduled length. `Unloaded` and `Unloaded Full Speed` run the engine with the house left on utility power. `Loaded Full Speed` also moves the house onto generator power for the exercise. |
-| Stop Exercise         | Ends the exercise that is running and stops the engine.                                                                                                                                                                                  |
-| Set Exercise Schedule | Sets how often the generator exercises (`Weekly`, `Every Other Week` or `Monthly`), the day and time of the next one, the mode, and how long it runs, from 5 to 60 minutes. Enter the time as `14:30` or `2:30 PM`.                      |
-| Set Load              | Turns a load-shed load on or off, as the switch for it in the KOHLER app does. Needs Load Control on.                                                                                                                                    |
-| Refresh               | Reads the generator from KOHLER now.                                                                                                                                                                                                     |
+| Command               | Parameters                          | Description                                                                                                                                                                                                                              |
+| --------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start Exercise        | Mode                                | Starts the engine now for an exercise of the scheduled length. `Unloaded` and `Unloaded Full Speed` run the engine with the house left on utility power. `Loaded Full Speed` also moves the house onto generator power for the exercise. |
+| Stop Exercise         | None                                | Ends the exercise that is running and stops the engine.                                                                                                                                                                                  |
+| Set Exercise Schedule | Frequency, Day, Time, Mode, Minutes | Sets how often the generator exercises (`Weekly`, `Every Other Week` or `Monthly`), the day and time of the next one, the mode, and how long it runs, from 5 to 60 minutes. Enter the time as `14:30` or `2:30 PM`.                      |
+| Set Load              | Load, State                         | Turns a load-shed load on or off, as the switch for it in the KOHLER app does. Needs Load Control on.                                                                                                                                    |
+| Refresh               | None                                | Reads the generator from KOHLER now.                                                                                                                                                                                                     |
 
 The driver refuses a command the KOHLER app would refuse, and sends nothing:
 

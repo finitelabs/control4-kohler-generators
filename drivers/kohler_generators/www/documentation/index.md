@@ -246,13 +246,13 @@ releases.
 
 ##### Email
 
-The email address the homeowner signs in to the KOHLER Energy Management app
-with.
+Sets the email address the homeowner signs in to the KOHLER Energy Management
+app with.
 
 ##### Password
 
-The KOHLER account's password. It is hidden in Composer and never written to the
-logs.
+Sets the KOHLER account's password. It is hidden in Composer and never written
+to the logs.
 
 ##### Login Status (read-only)
 
