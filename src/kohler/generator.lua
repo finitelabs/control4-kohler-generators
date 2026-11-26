@@ -166,6 +166,7 @@ end
 --- @field host string The telemetry backend its reads name, as `sourceDeviceHost`.
 --- @field connected boolean Whether the cloud hears from the generator.
 --- @field mac string
+--- @field home? string The home the app lists it under; set only by M.fromHomes.
 
 --- The device part of a record, or the record itself when it is a homes entry.
 --- @param record table

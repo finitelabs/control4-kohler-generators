@@ -19,7 +19,7 @@ local RUNNING = {
 --- Below this a utility voltage reading means the utility is out.
 local UTILITY_OUT_V = 100
 --- Persist key: the generators that have reported a utility voltage of at least UTILITY_OUT_V, by id.
-local SENSED_KEY = "UtilitySensed"
+local SENSED_PERSIST_KEY = "UtilitySensed"
 
 --- Alert and event levels that mean a fault.
 local FAULT_LEVELS = { Fault = true, Shutdown = true }
@@ -153,15 +153,15 @@ end
 local function sensesUtility(id, utilityV)
   if utilityV >= UTILITY_OUT_V then
     if id ~= nil then
-      local sensed = persist:get(SENSED_KEY, {}) or {}
+      local sensed = persist:get(SENSED_PERSIST_KEY, {}) or {}
       if not sensed[tostring(id)] then
         sensed[tostring(id)] = true
-        persist:set(SENSED_KEY, sensed)
+        persist:set(SENSED_PERSIST_KEY, sensed)
       end
     end
     return true
   end
-  return id ~= nil and (persist:get(SENSED_KEY, {}) or {})[tostring(id)] == true
+  return id ~= nil and (persist:get(SENSED_PERSIST_KEY, {}) or {})[tostring(id)] == true
 end
 
 --- The generator's state from its record.
@@ -244,7 +244,7 @@ end
 
 --- Forgets which generators sense utility voltage, as on a fresh install.
 function M.reset()
-  persist:set(SENSED_KEY, nil)
+  persist:set(SENSED_PERSIST_KEY, nil)
 end
 
 --- Whether the generator needs the fast poll: its engine runs or the utility is out.
