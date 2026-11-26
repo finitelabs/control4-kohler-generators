@@ -109,6 +109,7 @@ end
 
 --- @class KohlerPageContext
 --- @field identity KohlerIdentity|nil The generator as the account last handed it; nil while signed out.
+--- @field answered boolean|nil Whether the account has answered since start-up.
 --- @field record table|nil Its last record.
 --- @field alerts table|nil Its last alerts reply.
 --- @field events table|nil Its last event log.
@@ -125,7 +126,7 @@ function M.state(ctx)
   if type(record) ~= "table" or identity == nil then
     return {
       connected = false,
-      reason = identity == nil and "account" or "waiting",
+      reason = (identity == nil and ctx.answered) and "account" or "waiting",
       scale = ctx.scale,
       lastCommand = ctx.lastCommand,
     }

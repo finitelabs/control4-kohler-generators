@@ -21,6 +21,9 @@ local constants = require("constants")
 local Generator = require("kohler.generator")
 local Page = require("kohler.page")
 
+local ACCOUNT_DEVICE = 900
+C4:Bind(ACCOUNT_DEVICE, 1, C4:GetDeviceID(), constants.GENERATOR_BINDING, constants.GENERATOR_CLASS)
+
 local FIXTURES = (debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "fixtures/kohler/"
 
 --- @param name string
@@ -145,7 +148,8 @@ T.eq(
   Page.state({ identity = Generator.identity(fixture("device-58001.json")), now = NOW, scale = "F" }).reason,
   "waiting"
 )
-T.eq("signed out", Page.state({ now = NOW, scale = "F" }).reason, "account")
+T.eq("signed out", Page.state({ answered = true, now = NOW, scale = "F" }).reason, "account")
+T.eq("before the account answers", Page.state({ now = NOW, scale = "F" }).reason, "waiting")
 
 -- ─── The link ──────────────────────────────────────────────────────────────
 
@@ -357,5 +361,14 @@ T.section("signed out: the page says so")
 RFP.goOffline(constants.GENERATOR_BINDING)
 T.eq("not connected", toUI[#toUI].message.state.connected, false)
 T.eq("because of the account", toUI[#toUI].message.state.reason, "account")
+
+T.section("at start-up, the page says Connecting until the account answers")
+dofile(DRIVER)
+OnDriverInit()
+ShimLateInit()
+ExecuteCommand("KG_PAGE_HELLO", { page = "p2" })
+T.eq("waiting for the account", toUI[#toUI].message.state.reason, "waiting")
+RFP.goOffline(constants.GENERATOR_BINDING)
+T.eq("then the account's answer", toUI[#toUI].message.state.reason, "account")
 
 T.finish()

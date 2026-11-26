@@ -16,6 +16,9 @@ local DRIVER = root .. "/drivers/kohler_generator/driver.lua"
 local JSON = require("JSON")
 local constants = require("constants")
 
+local ACCOUNT_DEVICE = 900
+C4:Bind(ACCOUNT_DEVICE, 1, C4:GetDeviceID(), constants.GENERATOR_BINDING, constants.GENERATOR_CLASS)
+
 local FIXTURES = (debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "fixtures/kohler/"
 
 --- @param name string
@@ -86,6 +89,7 @@ local function online()
 end
 
 T.section("at start-up")
+T.eq("Driver Status reads as the page's title", props["Driver Status"], "Connecting")
 T.eq("asks the account for its record", asked, { constants.GENERATOR_BINDING .. " " .. constants.CMD.REFRESH_STATE })
 T.eq("Online is false", online(), false)
 T.eq("the icon is sent at start-up, as a notification", icons, { "5001 offline NOTIFY" })
@@ -147,14 +151,14 @@ T.eq("no event", #events, before)
 T.section("goOffline")
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
 RFP.goOffline(constants.GENERATOR_BINDING)
-T.eq("Driver Status", props["Driver Status"], "Offline")
+T.eq("Driver Status", props["Driver Status"], "Not connected")
 T.eq("Generator Offline fires", events[#events], "Generator Offline")
 
 T.section("the account's connection removed")
 RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
 T.eq("online before", online(), true)
 OnBindingChanged(constants.GENERATOR_BINDING, constants.GENERATOR_CLASS, false)
-T.eq("Driver Status", props["Driver Status"], "Offline")
+T.eq("Driver Status", props["Driver Status"], "Not connected")
 T.eq("Generator Offline fires", events[#events], "Generator Offline")
 T.eq("offline", online(), false)
 local count = #events
@@ -182,5 +186,14 @@ T.section("a tap runs nothing")
 asked = {}
 RFP.SELECT(5001)
 T.eq("nothing sent", asked, {})
+
+T.section("a generator connected to no Kohler Generators driver")
+C4:Unbind(C4:GetDeviceID(), constants.GENERATOR_BINDING)
+asked = {}
+dofile(DRIVER)
+OnDriverInit()
+ShimLateInit()
+T.eq("Driver Status", props["Driver Status"], "Not connected")
+T.eq("asks nothing", asked, {})
 
 T.finish()

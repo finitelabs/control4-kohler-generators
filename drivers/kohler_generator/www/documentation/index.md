@@ -120,9 +120,10 @@ Kohler Generators driver and every Kohler Generator driver.
 
 #### Driver Status (read-only)
 
-Displays `Online` while the generator is reaching the KOHLER cloud,
-`Generator offline` while it is not, and `Offline` while the account driver is
-signed out or the generator is no longer on the account.
+Displays `Connecting` until the Kohler Generators driver answers, `Online` while
+the generator is reaching the KOHLER cloud, `Generator offline` while it is not,
+and `Not connected` while the account driver is signed out, deleted or
+disconnected, or the generator is no longer on the account.
 
 #### Driver Version (read-only)
 

@@ -183,6 +183,9 @@ local gToldBefore = {}
 --- @type table<string, boolean>
 local gKeptLoadVariables = {}
 
+--- Whether the account has answered since start-up, with the record or goOffline.
+local gAnswered = false
+
 --- The generator's last record; nil until the first since start-up.
 --- @type table|nil
 local gRecord = nil
@@ -568,6 +571,7 @@ function RFP.updateGenerator(idBinding, _strCommand, tParams)
   end
   local renamed = not gIdentity or gIdentity.name ~= identity.name
   gIdentity = identity
+  gAnswered = true
   for _, p in ipairs(IDENTITY_PROPERTIES) do
     UpdateProperty(p[1], identity[p[2]])
   end
@@ -619,7 +623,8 @@ end
 function RFP.goOffline(idBinding)
   log:trace("RFP.goOffline(%s)", idBinding)
   gIdentity = nil
-  C4:UpdateProperty("Driver Status", "Offline")
+  gAnswered = true
+  C4:UpdateProperty("Driver Status", "Not connected")
   setOnline(false)
   updateIcon()
   publishPage()
@@ -932,6 +937,7 @@ function OnDriverInit()
     getState = function()
       return Page.state({
         identity = gIdentity,
+        answered = gAnswered,
         record = gRecord,
         alerts = gAlertsReply,
         events = gEventsReply,
@@ -969,7 +975,11 @@ function OnDriverLateInit()
   end
   gInitialized = true
   updateIcon()
-  C4:UpdateProperty("Driver Status", "Waiting for the Kohler Generators driver")
+  if tointeger(C4:GetBoundProviderDevice(C4:GetDeviceID(), ACCOUNT_BINDING)) == 0 then
+    RFP.goOffline(ACCOUNT_BINDING)
+    return
+  end
+  C4:UpdateProperty("Driver Status", "Connecting")
   -- The account answers with the record, or goOffline while it is signed out.
   SendToProxy(ACCOUNT_BINDING, constants.CMD.REFRESH_STATE, {})
 end
