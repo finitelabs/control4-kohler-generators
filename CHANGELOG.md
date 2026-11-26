@@ -37,6 +37,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   for a fault that didn't change.
 - Fixed a generator staying online when its Kohler Generators driver is deleted
   or its connection removed.
+- Fixed a Poll Interval change while the Kohler Generators driver waits to retry
+  KOHLER sending reads before the wait ends.
 
 ### Changed
 

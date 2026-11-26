@@ -495,6 +495,10 @@ T.section("record reads refused even after a fresh sign-in wait longer each time
 deviceAlways = { 401, { message = "Unauthorized" } }
 requests = {}
 EC.Refresh_Generators()
+local pollsBefore = #polls
+setProperty("Poll Interval", "120 seconds")
+setProperty("Poll Interval", "60 seconds")
+T.eq("a Poll Interval change in the wait starts no polling", #polls, pollsBefore)
 for _, wait in ipairs({ 5, 10, 20, 40 }) do
   T.eq(string.format("waits %ds", wait), props["Driver Status"], string.format("Not connected; retrying in %ds", wait))
   T.eq(string.format("one sign-in before the %ds wait", wait), sent(constants.TOKEN_PATH .. "$"), 1)

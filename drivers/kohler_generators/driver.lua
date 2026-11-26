@@ -979,7 +979,7 @@ function OPC.Password(_v)
 end
 
 function OPC.Poll_Interval(_v)
-  if gInitialized and client:hasSession() then
+  if gInitialized and gPollingS ~= nil then
     startPolling()
   end
 end
