@@ -17,6 +17,10 @@ local DRIVER = root .. "/drivers/kohler_generator/driver.lua"
 local JSON = require("JSON")
 local constants = require("constants")
 
+-- The companion is connected to an account driver, as on a controller.
+local ACCOUNT_DEVICE = 900
+C4:Bind(ACCOUNT_DEVICE, 1, C4:GetDeviceID(), constants.GENERATOR_BINDING, constants.GENERATOR_CLASS)
+
 local FIXTURES = (debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. "fixtures/kohler/"
 
 --- @param name string

@@ -974,6 +974,10 @@ function OnDriverLateInit()
   end
   gInitialized = true
   updateIcon()
+  if (tonumber(C4:GetBoundProviderDevice(C4:GetDeviceID(), ACCOUNT_BINDING)) or 0) == 0 then
+    RFP.goOffline(ACCOUNT_BINDING)
+    return
+  end
   C4:UpdateProperty("Driver Status", "Connecting")
   -- The account answers with the record, or goOffline while it is signed out.
   SendToProxy(ACCOUNT_BINDING, constants.CMD.REFRESH_STATE, {})

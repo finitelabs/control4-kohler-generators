@@ -18,6 +18,10 @@ local DRIVER = root .. "/drivers/kohler_generator/driver.lua"
 
 local JSON = require("JSON")
 local constants = require("constants")
+
+-- The companion is connected to an account driver, as on a controller.
+local ACCOUNT_DEVICE = 900
+C4:Bind(ACCOUNT_DEVICE, 1, C4:GetDeviceID(), constants.GENERATOR_BINDING, constants.GENERATOR_CLASS)
 local Generator = require("kohler.generator")
 local Page = require("kohler.page")
 
@@ -358,5 +362,14 @@ T.section("signed out: the page says so")
 RFP.goOffline(constants.GENERATOR_BINDING)
 T.eq("not connected", toUI[#toUI].message.state.connected, false)
 T.eq("because of the account", toUI[#toUI].message.state.reason, "account")
+
+T.section("at start-up, the page says Connecting until the account answers")
+dofile(DRIVER)
+OnDriverInit()
+ShimLateInit()
+ExecuteCommand("KG_PAGE_HELLO", { page = "p2" })
+T.eq("waiting for the account", toUI[#toUI].message.state.reason, "waiting")
+RFP.goOffline(constants.GENERATOR_BINDING)
+T.eq("then the account's answer", toUI[#toUI].message.state.reason, "account")
 
 T.finish()
