@@ -571,6 +571,7 @@ function RFP.updateGenerator(idBinding, _strCommand, tParams)
   end
   local renamed = not gIdentity or gIdentity.name ~= identity.name
   gIdentity = identity
+  gAnswered = true
   for _, p in ipairs(IDENTITY_PROPERTIES) do
     UpdateProperty(p[1], identity[p[2]])
   end
@@ -974,7 +975,7 @@ function OnDriverLateInit()
   end
   gInitialized = true
   updateIcon()
-  if (tonumber(C4:GetBoundProviderDevice(C4:GetDeviceID(), ACCOUNT_BINDING)) or 0) == 0 then
+  if tointeger(C4:GetBoundProviderDevice(C4:GetDeviceID(), ACCOUNT_BINDING)) == 0 then
     RFP.goOffline(ACCOUNT_BINDING)
     return
   end
