@@ -260,18 +260,17 @@ end
 
 --- The Navigator icon for the generator's state, as a driver.xml state id, and its description.
 --- Offline comes first, then a fault, the utility out, an exercise, and a run; otherwise standby.
+--- Before the first record since start-up it is offline, whatever Online was restored as.
 --- @param online boolean
 --- @param status KohlerStatus|nil Nil before the first record.
 --- @param fault boolean
 --- @return string id
 --- @return string description
 function M.icon(online, status, fault)
-  if not online then
+  if not online or status == nil then
     return "offline", "Offline"
   elseif fault then
     return "fault", "Fault"
-  elseif status == nil then
-    return "standby", "Standby"
   elseif status.utilityOut then
     return "utility_out", "Utility power out"
   elseif status.exercising then

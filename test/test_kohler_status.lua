@@ -241,7 +241,7 @@ T.eq(
   icon(true, { utilityOut = true, exercising = true, running = true }, false),
   "utility_out Utility power out"
 )
-T.eq("before the first record", icon(true, nil, false), "standby Standby")
+T.eq("before the first record", icon(true, nil, false), "offline Offline")
 T.eq("offline before the first record", icon(false, nil, false), "offline Offline")
 
 T.section("the schedule line")
