@@ -35,6 +35,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   generator that didn't change.
 - Fixed a controller restart firing the Fault contact and Fault variable twice
   for a fault that didn't change.
+- Fixed a generator staying online when its Kohler Generators driver is deleted
+  or its connection removed.
 
 ### Changed
 

@@ -411,5 +411,17 @@ T.eq("Load Control off leaves Load Watts", var("Load Watts"), 4200)
 T.eq("and removes the load variables", var("Load A"), nil)
 Properties["Load Control"] = "On"
 
+T.section("a controller start's unbind and bind before late init fire nothing")
+handOver("standby", true)
+ShimRestartDirector()
+events = {}
+dofile(DRIVER)
+OnDriverInit()
+OnBindingChanged(constants.GENERATOR_BINDING, constants.GENERATOR_CLASS, false)
+OnBindingChanged(constants.GENERATOR_BINDING, constants.GENERATOR_CLASS, true)
+ShimLateInit()
+handOver("standby", true)
+T.eq("no Generator Offline or Online", events, {})
+
 os.time = realTime
 T.finish()
