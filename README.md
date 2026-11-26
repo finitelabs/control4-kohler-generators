@@ -267,16 +267,16 @@ Generators** does this for you.
 
 ### Variables
 
-| Variable          | Type    | Description                                     |
-| ----------------- | ------- | ----------------------------------------------- |
-| Account Connected | Boolean | Whether the driver is signed in to the account. |
+| Variable          | Type    | Description                                                                  |
+| ----------------- | ------- | ---------------------------------------------------------------------------- |
+| Account Connected | Boolean | Whether the driver is signed in to the account and KOHLER accepts its reads. |
 
 ### Events
 
-| Event                | Description                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Account Connected    | Fires when the driver signs in to the KOHLER account, or signs in again after losing it. Not fired when a reboot finds it as it was. |
-| Account Disconnected | Fires when the driver loses its KOHLER sign-in. Use it to send the integrator a notification.                                        |
+| Event                | Description                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Account Connected    | Fires when the driver signs in to the KOHLER account, or signs in again or KOHLER accepts its reads again after losing them. Not fired when a reboot finds it as it was. |
+| Account Disconnected | Fires when the driver loses its KOHLER sign-in, or KOHLER refuses its reads. Use it to send the integrator a notification.                                               |
 
 ### Conditionals
 
@@ -318,6 +318,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 -->
 
 ## Unreleased
+
+### Fixed
+
+- Fixed Account Disconnected not firing when KOHLER refuses the driver's reads.
 
 ### Removed
 

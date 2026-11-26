@@ -358,6 +358,19 @@ end
 
 -- ─── Reading the account ───────────────────────────────────────────────────
 
+--- Record whether the account is connected, firing its event on a change after start-up.
+--- @param connected boolean
+local function setConnected(connected)
+  gConnected = connected
+  values:update("Account Connected", connected, "BOOL")
+  if connected and gWasConnected == false then
+    C4:FireEventByID(EVENT.ACCOUNT_CONNECTED)
+  elseif not connected and gWasConnected == true then
+    C4:FireEventByID(EVENT.ACCOUNT_DISCONNECTED)
+  end
+  gWasConnected = connected
+end
+
 --- A failed read can sign in again and a sign-in reads the account, so the two call each other and
 --- both live on this table.
 local Account = {}
@@ -369,6 +382,10 @@ local gUnavailableRefreshId = nil
 --- they keep being refused; nil once a read works.
 --- @type number|nil
 local gUnauthorizedBackoffS = nil
+
+--- Whether reads were refused with a fresh sign-in, so the account counts as connected again only
+--- once a refresh is read without a refusal.
+local gReadsRefused = false
 
 --- A failed read: a 429 or 5xx pauses the poll; a refused sign-in signs in again, and a read
 --- refused even after a fresh sign-in waits before trying again.
@@ -392,6 +409,7 @@ function Account.readFailed(err, what, refreshId)
   elseif err.kind == "unauthorized" then
     local wait = gUnauthorizedBackoffS or LOGIN_RETRY_S
     gUnauthorizedBackoffS = math.min(wait * 2, LOGIN_RETRY_MAX_S)
+    gReadsRefused = true
     Account.login(nil, wait, "KOHLER refused access")
   elseif err.kind == "credentials" or err.kind == "refused" then
     Account.login()
@@ -555,8 +573,15 @@ local function refreshGenerators()
     local function settled(ok)
       unread = unread - 1
       allRead = allRead and ok
-      if unread <= 0 and allRead and not stale(refreshId, generation) then
-        gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
+      if unread <= 0 and not stale(refreshId, generation) then
+        -- A refused read signs in again, which makes its refresh stale, so this one had none.
+        if gReadsRefused then
+          gReadsRefused = false
+          setConnected(true)
+        end
+        if allRead then
+          gUnavailableBackoffS, gUnauthorizedBackoffS = nil, nil
+        end
       end
     end
     if unread == 0 then
@@ -672,19 +697,6 @@ function TC.ACCOUNT_CONNECTED(strConditionName, tParams)
   return test == gConnected
 end
 
---- Record whether the account is connected, firing its event on a change after start-up.
---- @param connected boolean
-local function setConnected(connected)
-  gConnected = connected
-  values:update("Account Connected", connected, "BOOL")
-  if connected and gWasConnected == false then
-    C4:FireEventByID(EVENT.ACCOUNT_CONNECTED)
-  elseif not connected and gWasConnected == true then
-    C4:FireEventByID(EVENT.ACCOUNT_DISCONNECTED)
-  end
-  gWasConnected = connected
-end
-
 --- Take every generator offline and forget what was read.
 local function dropGenerators()
   for key in pairs(gState.generators) do
@@ -709,6 +721,7 @@ function Account.login(retryBackoffS, waitS, waitStatus)
   if waitS ~= nil then
     C4:UpdateProperty("Login Status", waitStatus)
     C4:UpdateProperty("Driver Status", string.format("Not connected; retrying in %ds", waitS))
+    setConnected(false)
     for key in pairs(gState.generators) do
       goOffline(key)
     end
@@ -744,7 +757,9 @@ function Account.login(retryBackoffS, waitS, waitStatus)
       return
     end
     C4:UpdateProperty("Login Status", "Logged In")
-    setConnected(true)
+    if not gReadsRefused then
+      setConnected(true)
+    end
     gPausedUntil, gUnavailableBackoffS = 0, nil
     local refresh = refreshGenerators()
     startPolling()
