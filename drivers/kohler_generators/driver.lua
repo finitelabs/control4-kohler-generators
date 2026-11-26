@@ -262,10 +262,10 @@ local function markRemovedCompanions()
       local marked = name and name:find(REMOVED_SUFFIX, 1, true) ~= nil
       if name and not listed and not marked then
         log:info("Generator %s left the account; renaming %s", key, name)
-        C4:RenameDevice(proxyId, name .. REMOVED_SUFFIX)
+        RenameDevice(proxyId, name .. REMOVED_SUFFIX)
       elseif name and listed and marked then
         log:info("Generator %s is back on the account; renaming %s", key, name)
-        C4:RenameDevice(proxyId, (name:gsub(REMOVED_SUFFIX:gsub("%p", "%%%0"), "")))
+        RenameDevice(proxyId, (name:gsub(REMOVED_SUFFIX:gsub("%p", "%%%0"), "")))
       end
     end
   end

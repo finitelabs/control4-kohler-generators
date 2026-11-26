@@ -383,9 +383,9 @@ local function applyRecord(record)
   values:update("Next Maintenance", s.nextMaintenance, "STRING", nil, nil, { property = false })
   values:update("Maintenance Due", s.maintenanceDue, "BOOL")
   updateLoads(record, s.loads)
-  C4:UpdateProperty("Exercise Schedule", s.exerciseSchedule)
-  C4:UpdateProperty("Last Maintenance", s.lastMaintenance)
-  C4:UpdateProperty("Next Maintenance", s.nextMaintenance)
+  UpdateProperty("Exercise Schedule", s.exerciseSchedule)
+  UpdateProperty("Last Maintenance", s.lastMaintenance)
+  UpdateProperty("Next Maintenance", s.nextMaintenance)
   updateFault()
 
   local flags = {
@@ -525,7 +525,7 @@ function RFP.updateGenerator(idBinding, _strCommand, tParams)
   local renamed = not gIdentity or gIdentity.name ~= identity.name
   gIdentity = identity
   for _, p in ipairs(IDENTITY_PROPERTIES) do
-    C4:UpdateProperty(p[1], identity[p[2]])
+    UpdateProperty(p[1], identity[p[2]])
   end
   if renamed then
     applyGeneratorName()
