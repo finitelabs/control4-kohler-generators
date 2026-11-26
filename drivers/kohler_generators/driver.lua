@@ -196,9 +196,14 @@ local function handoffFeeds(key)
   )
 end
 
+--- By generator id, whether its companion was told its reads stopped.
+--- @type table<string, boolean>
+local gStaleTold = {}
+
 --- Tell a generator's companion it is gone.
 --- @param key string
 local function goOffline(key)
+  gStaleTold[key] = nil
   local binding = bindings:getDynamicBinding(NS, key)
   if binding then
     SendToProxy(binding.bindingId, CMD.GO_OFFLINE, {})
@@ -505,11 +510,6 @@ local gRecordReadFloor = {}
 --- By generator id, when its record was last taken.
 --- @type table<string, integer>
 local gRecordReadAt = {}
---- When the driver started, which stands in for a generator not read since.
-local gStartedAt = os.time()
---- By generator id, whether its companion was told its reads stopped.
---- @type table<string, boolean>
-local gStaleTold = {}
 
 --- Read one generator's record and hand it to its companion.
 --- @param identity KohlerIdentity
@@ -664,12 +664,14 @@ local function pollIntervalS()
   return configuredPollS()
 end
 
---- Tell each generator's companion, once, when it has not been read for two Poll Intervals: KOHLER is
---- not answering, so its readings are out of date. Its next read brings it back.
+--- Tell each generator's companion, once, when its record has not been read for two Poll Intervals:
+--- KOHLER is not answering, so its readings are out of date. Its next read brings it back. Only a
+--- generator whose record was handed over this sign-in has readings to go out of date. Run after a
+--- poll's reads settle, so a read that just worked counts.
 local function goOfflineIfStale()
-  for key in pairs(gState.generators) do
-    local readAt = gRecordReadAt[key] or gStartedAt
-    if not gStaleTold[key] and os.time() - readAt > 2 * configuredPollS() then
+  for key in pairs(gState.records) do
+    local readAt = gRecordReadAt[key]
+    if readAt ~= nil and not gStaleTold[key] and os.time() - readAt > 2 * configuredPollS() then
       gStaleTold[key] = true
       log:warn("Generator %s has not been read for %ds; showing it offline", key, os.time() - readAt)
       local binding = bindings:getDynamicBinding(NS, key)
@@ -693,10 +695,10 @@ local function startPolling()
   SetTimer("KohlerPoll", gPollingS * ONE_SECOND, function()
     local function again()
       if generation == gPollGeneration then
+        goOfflineIfStale()
         startPolling()
       end
     end
-    goOfflineIfStale()
     local refresh = refreshGenerators()
     if refresh == nil then
       return again()

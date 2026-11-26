@@ -520,6 +520,10 @@ EC.Refresh_Generators()
 T.eq("a refresh that reads everything", props["Driver Status"], "Connected (3 generators)")
 T.truthy("brings the generator back", proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)])
 T.eq("and isn't told again", staleCount(58001), 0)
+toProxy = {}
+now = now + 130
+ShimFireTimers()
+T.eq("a poll late past two Poll Intervals whose read works tells nothing", staleCount(58001), 0)
 
 T.section("record reads refused even after a fresh sign-in wait longer each time")
 deviceAlways = { 401, { message = "Unauthorized" } }

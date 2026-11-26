@@ -640,6 +640,9 @@ end
 --- @param idBinding integer
 function RFP.readsStale(idBinding)
   log:trace("RFP.readsStale(%s)", idBinding)
+  if gIdentity == nil or gRecord == nil then
+    return
+  end
   gStale = true
   C4:UpdateProperty("Driver Status", "KOHLER not answering")
   setOnline(false)
