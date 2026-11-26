@@ -613,6 +613,18 @@ function RFP.goOffline(idBinding)
   publishPage()
 end
 
+--- The link to the account went: the Kohler Generators driver was deleted, or the connection
+--- removed. At a controller start, Director unbinds and binds again before OnDriverLateInit; the
+--- account hands the record over on its own bind.
+--- @param idBinding integer
+--- @param _strClass string
+--- @param bIsBound boolean
+OBC[ACCOUNT_BINDING] = function(idBinding, _strClass, bIsBound)
+  if gInitialized and not bIsBound then
+    RFP.goOffline(idBinding)
+  end
+end
+
 --- A tap on the Navigator button, which the app answers by opening the generator page. It runs
 --- nothing.
 --- @param idBinding integer

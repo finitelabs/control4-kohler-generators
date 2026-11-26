@@ -150,6 +150,17 @@ RFP.goOffline(constants.GENERATOR_BINDING)
 T.eq("Driver Status", props["Driver Status"], "Offline")
 T.eq("Generator Offline fires", events[#events], "Generator Offline")
 
+T.section("the account's connection removed")
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
+T.eq("online before", online(), true)
+OnBindingChanged(constants.GENERATOR_BINDING, constants.GENERATOR_CLASS, false)
+T.eq("Driver Status", props["Driver Status"], "Offline")
+T.eq("Generator Offline fires", events[#events], "Generator Offline")
+T.eq("offline", online(), false)
+local count = #events
+OnBindingChanged(constants.GENERATOR_BINDING, constants.GENERATOR_CLASS, true)
+T.eq("binding again fires nothing until the account hands the record over", #events, count)
+
 T.section("a generator named only by its serial number")
 renamed = {}
 local serialNamed = JSON:decode(fixture("device-58001.json"))
