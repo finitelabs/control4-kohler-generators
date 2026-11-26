@@ -110,6 +110,7 @@ end
 --- @class KohlerPageContext
 --- @field identity KohlerIdentity|nil The generator as the account last handed it; nil while signed out.
 --- @field answered boolean|nil Whether the account has answered since start-up.
+--- @field stale boolean|nil Whether KOHLER has stopped answering the generator's reads.
 --- @field record table|nil Its last record.
 --- @field alerts table|nil Its last alerts reply.
 --- @field events table|nil Its last event log.
@@ -177,8 +178,8 @@ function M.state(ctx)
 
   local clockOffset = Generator.clockOffset(record)
   return {
-    connected = s.online,
-    reason = not s.online and "offline" or nil,
+    connected = s.online and not ctx.stale,
+    reason = ctx.stale and "stale" or (not s.online and "offline" or nil),
     scale = ctx.scale,
     lastHeard = Generator.time(device.lastConnectedTimestamp),
     top = {

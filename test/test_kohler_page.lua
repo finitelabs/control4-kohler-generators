@@ -138,6 +138,12 @@ T.eq("not connected", offline.connected, false)
 T.eq("because it is offline", offline.reason, "offline")
 T.eq("Start refused", offline.exercise.start, "The generator is offline")
 
+T.section("KOHLER not answering: not connected, the last reading kept")
+local stale = stateOf(fixture("device-58001.json"), { stale = true })
+T.eq("not connected", stale.connected, false)
+T.eq("because reads stopped", stale.reason, "stale")
+T.truthy("the last reading is still shown", stale.top)
+
 T.section("loads only with Load Control on and a load control module")
 T.eq("Load Control off", stateOf(fixture("device-58001.json"), { loadControl = false }).loads, nil)
 T.eq("no module", liquid.loads, nil)

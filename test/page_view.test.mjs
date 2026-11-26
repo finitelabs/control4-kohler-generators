@@ -131,6 +131,19 @@ test("service: maintenance due shows in the warn tone", () => {
   assert.ok(v.service.rows.some((r) => r.label === "Dealer" && r.value === "Sample Power Service, 555-0100"));
 });
 
+test("not connected: KOHLER not answering keeps the last reading", () => {
+  const v = KGView.view(
+    sample((s) => {
+      s.connected = false;
+      s.reason = "stale";
+    }),
+    NOW,
+  );
+  assert.equal(v.notConnected.title, "KOHLER not answering");
+  assert.equal(v.notConnected.retry, true);
+  assert.ok(v.top);
+});
+
 test("not connected: account, waiting and offline", () => {
   let v = KGView.view({ connected: false, reason: "account", scale: "F" }, NOW);
   assert.equal(v.notConnected.title, "Not connected");

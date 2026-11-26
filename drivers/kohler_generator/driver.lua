@@ -186,6 +186,9 @@ local gKeptLoadVariables = {}
 --- Whether the account has answered since start-up, with the record or goOffline.
 local gAnswered = false
 
+--- Whether KOHLER has stopped answering this generator's reads; cleared by its next record.
+local gStale = false
+
 --- The generator's last record; nil until the first since start-up.
 --- @type table|nil
 local gRecord = nil
@@ -578,6 +581,7 @@ function RFP.updateGenerator(idBinding, _strCommand, tParams)
   if renamed then
     applyGeneratorName()
   end
+  gStale = false
   if os.time() >= gResultUntil then
     C4:UpdateProperty("Driver Status", identity.connected and "Online" or "Generator offline")
   end
@@ -624,7 +628,23 @@ function RFP.goOffline(idBinding)
   log:trace("RFP.goOffline(%s)", idBinding)
   gIdentity = nil
   gAnswered = true
+  gStale = false
   C4:UpdateProperty("Driver Status", "Not connected")
+  setOnline(false)
+  updateIcon()
+  publishPage()
+end
+
+--- KOHLER has not answered the generator's reads for two Poll Intervals, so its readings are out of
+--- date. The next record brings it back.
+--- @param idBinding integer
+function RFP.readsStale(idBinding)
+  log:trace("RFP.readsStale(%s)", idBinding)
+  if gIdentity == nil or gRecord == nil then
+    return
+  end
+  gStale = true
+  C4:UpdateProperty("Driver Status", "KOHLER not answering")
   setOnline(false)
   updateIcon()
   publishPage()
@@ -945,6 +965,7 @@ function OnDriverInit()
         scale = scale(),
         loadControl = loadControlOn(),
         lastCommand = gLastCommand,
+        stale = gStale,
       })
     end,
   })

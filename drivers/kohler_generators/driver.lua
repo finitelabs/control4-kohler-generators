@@ -170,7 +170,12 @@ end
 
 -- ─── Companion handoff ─────────────────────────────────────────────────────
 
---- Push a generator's record to its bound companion (if any).
+--- By generator id, whether its companion was told its reads stopped.
+--- @type table<string, boolean>
+local gStaleTold = {}
+
+--- Push a generator's record to its bound companion (if any). A cached record handed while its
+--- reads have stopped is followed by the stale tell again, so the companion doesn't show it Online.
 --- @param key string The generator's id.
 local function handoff(key)
   local record = gState.records[key]
@@ -179,6 +184,9 @@ local function handoff(key)
     return
   end
   SendToProxy(binding.bindingId, CMD.UPDATE_GENERATOR, { JSON = JSON:encode(record) })
+  if gStaleTold[key] then
+    SendToProxy(binding.bindingId, CMD.READS_STALE, {})
+  end
 end
 
 --- Push a generator's alerts and event log to its bound companion (if any).
@@ -199,6 +207,7 @@ end
 --- Tell a generator's companion it is gone.
 --- @param key string
 local function goOffline(key)
+  gStaleTold[key] = nil
   local binding = bindings:getDynamicBinding(NS, key)
   if binding then
     SendToProxy(binding.bindingId, CMD.GO_OFFLINE, {})
@@ -537,6 +546,7 @@ local function readGenerator(identity, refreshId, generation, afterCommand)
     end
     gRecordReadFloor[key] = readId
     gRecordReadAt[key] = os.time()
+    gStaleTold[key] = nil
     gState.records[key] = record
     handoff(key)
     if feedsDue(key, record) then
@@ -658,6 +668,24 @@ local function pollIntervalS()
   return configuredPollS()
 end
 
+--- Tell each generator's companion, once, when its record has not been read for two Poll Intervals:
+--- KOHLER is not answering, so its readings are out of date. Its next read brings it back. Only a
+--- generator whose record was handed over this sign-in has readings to go out of date. Run after a
+--- poll's reads settle, so a read that just worked counts.
+local function goOfflineIfStale()
+  for key in pairs(gState.records) do
+    local readAt = gRecordReadAt[key]
+    if readAt ~= nil and not gStaleTold[key] and os.time() - readAt > 2 * configuredPollS() then
+      gStaleTold[key] = true
+      log:warn("Generator %s has not been read for %ds; showing it offline", key, os.time() - readAt)
+      local binding = bindings:getDynamicBinding(NS, key)
+      if binding then
+        SendToProxy(binding.bindingId, CMD.READS_STALE, {})
+      end
+    end
+  end
+end
+
 --- Sets the next poll at the rate the generators need. Each poll sets the one after it once its
 --- reads settle, so polls never pile up behind a slow cloud and a new rate applies from the next one.
 --- Refresh Generators is not held back by this.
@@ -671,6 +699,7 @@ local function startPolling()
   SetTimer("KohlerPoll", gPollingS * ONE_SECOND, function()
     local function again()
       if generation == gPollGeneration then
+        goOfflineIfStale()
         startPolling()
       end
     end

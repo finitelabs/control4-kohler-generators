@@ -124,8 +124,10 @@ Kohler Generators driver and every Kohler Generator driver.
 
 Displays `Connecting` until the Kohler Generators driver answers, `Online` while
 the generator is reaching the KOHLER cloud, `Generator offline` while it is not,
-and `Not connected` while the account driver is signed out, deleted or
-disconnected, or the generator is no longer on the account.
+`KOHLER not answering` once KOHLER has not answered the generator's reads for
+two of the account driver's Poll Intervals, and `Not connected` while the
+account driver is signed out, deleted or disconnected, or the generator is no
+longer on the account.
 
 #### Driver Version (read-only)
 
@@ -302,8 +304,9 @@ grayed out, with the reason under them, when the generator can't start or stop
 an exercise. Any other refusal shows under the Exercise card after the button is
 pressed.
 
-When the account driver is not signed in, or the generator is offline, the page
-says so and offers Try again where a new read can help.
+When the account driver is not signed in, the generator is offline, or KOHLER
+stops answering, the page says so and offers Try again where a new read can
+help.
 
 # <span style="color:#336EE5">Programming Reference</span>
 

@@ -42,6 +42,8 @@ return {
     UPDATE_FEEDS = "updateFeeds",
     --- account to companion: the generator is gone, or the account is signed out
     GO_OFFLINE = "goOffline",
+    --- account to companion: KOHLER has not answered the generator's reads for two Poll Intervals
+    READS_STALE = "readsStale",
     --- companion to account: send the generator's record again
     REFRESH_STATE = "REFRESH_STATE",
     --- companion to account: a command for the generator, as { JSON = a KohlerCommand }, or

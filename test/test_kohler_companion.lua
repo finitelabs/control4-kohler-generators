@@ -165,6 +165,22 @@ local count = #events
 OnBindingChanged(constants.GENERATOR_BINDING, constants.GENERATOR_CLASS, true)
 T.eq("binding again fires nothing until the account hands the record over", #events, count)
 
+T.section("KOHLER stops answering the generator's reads")
+RFP.goOffline(constants.GENERATOR_BINDING)
+ReceivedFromProxy(constants.GENERATOR_BINDING, constants.CMD.READS_STALE, {})
+T.eq("ignored with no generator handed over", props["Driver Status"], "Not connected")
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
+local before = #events
+ReceivedFromProxy(constants.GENERATOR_BINDING, constants.CMD.READS_STALE, {})
+T.eq("Driver Status", props["Driver Status"], "KOHLER not answering")
+T.eq("offline", online(), false)
+T.eq("Generator Offline fires", events[#events], "Generator Offline")
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("device-58001.json") })
+T.eq("the next record brings it back", props["Driver Status"], "Online")
+T.eq("online", online(), true)
+T.eq("with Generator Online", events[#events], "Generator Online")
+T.eq("two events in all", #events - before, 2)
+
 T.section("a generator named only by its serial number")
 renamed = {}
 local serialNamed = JSON:decode(fixture("device-58001.json"))
