@@ -299,7 +299,8 @@ house moves to generator power until the exercise ends. The page's commands are
 the driver's own Start Exercise, Stop Exercise, Set Exercise Schedule and Set
 Load commands, so they are refused for the same reasons. Start and Stop are
 grayed out, with the reason under them, when the generator can't start or stop
-an exercise. Any other refusal shows under the card after the button is pressed.
+an exercise. Any other refusal shows under the Exercise card after the button is
+pressed.
 
 When the account driver is not signed in, or the generator is offline, the page
 says so and offers Try again where a new read can help.
