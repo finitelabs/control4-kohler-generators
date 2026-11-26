@@ -72,7 +72,7 @@ end
 
 --- A date and time as the controller shows it, "" for none.
 --- @param epoch integer|nil
---- @return string
+--- @return string text
 function M.formatTime(epoch)
   if epoch == nil then
     return ""
@@ -168,7 +168,7 @@ end
 --- @param record table The full record (devices/{id}).
 --- @param now integer Epoch seconds.
 --- @param scale string The project's temperature scale, "C" or "F".
---- @return KohlerStatus
+--- @return KohlerStatus status
 function M.fromRecord(record, now, scale)
   local device = deviceOf(record)
   local n = Generator.number
@@ -249,7 +249,7 @@ end
 
 --- Whether the generator needs the fast poll: its engine runs or the utility is out.
 --- @param record any
---- @return boolean
+--- @return boolean busy
 function M.busy(record)
   if type(record) ~= "table" then
     return false
@@ -289,7 +289,7 @@ end
 
 --- The generator's active alerts.
 --- @param alerts any The alerts reply.
---- @return KohlerAlerts
+--- @return KohlerAlerts alerts
 function M.alerts(alerts)
   local result = { count = 0, last = "", fault = false }
   local newest

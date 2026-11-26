@@ -37,7 +37,7 @@ end
 
 --- The load-shed loads a record lists, empty without a connected load control module.
 --- @param record table|nil
---- @return KohlerLoad[]
+--- @return KohlerLoad[] loads
 function M.loads(record)
   if type(record) ~= "table" then
     return {}
@@ -47,7 +47,7 @@ end
 
 --- Whether the record shows a connected load control module.
 --- @param record table|nil
---- @return boolean
+--- @return boolean present
 function M.hasLoadControl(record)
   return type(record) == "table" and type(record.loadShed) == "table" and record.loadShed.isConnected == true
 end
@@ -110,7 +110,7 @@ end
 --- @param epoch integer
 --- @param lastRead any The record's exercise.nextStartTimestamp.
 --- @param clockOffset? integer The generator's clock offset, from Generator.clockOffset.
---- @return string
+--- @return string timestamp
 function M.timestamp(epoch, lastRead, clockOffset)
   local rest = type(lastRead) == "string" and lastRead:match("T%d%d:%d%d:%d%d%.?%d*(.*)$") or ""
   if rest == "Z" then

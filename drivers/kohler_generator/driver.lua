@@ -864,7 +864,7 @@ function OnDriverInit()
       values:update(v[1], v[3], v[2])
     end
   end
-  gPage = Page.link({
+  gPage = Page.Link:new({
     device = C4:GetDeviceID(),
     boot = C4:UUID("Random"),
     encode = function(value)

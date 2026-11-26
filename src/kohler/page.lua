@@ -119,7 +119,7 @@ end
 
 --- What the page shows.
 --- @param ctx KohlerPageContext
---- @return table
+--- @return table state
 function M.state(ctx)
   local record, identity = ctx.record, ctx.identity
   if type(record) ~= "table" or identity == nil then
@@ -239,19 +239,22 @@ end
 local Link = {}
 Link.__index = Link
 
+--- Creates a page link.
 --- @param opts table { getState, send, encode, device, boot?, now? }
---- @return KohlerPageLink
-function M.link(opts)
-  local self = setmetatable({}, Link)
-  self._boot = opts.boot or tostring(math.random(1, 2 ^ 31 - 1))
-  self._device = tostring(opts.device)
-  self._rev = 0
-  self._getState = opts.getState
-  self._send = opts.send
-  self._encode = opts.encode
-  self._now = opts.now or os.time
-  return self
+--- @return KohlerPageLink link
+function Link:new(opts)
+  local instance = setmetatable({}, self)
+  instance._boot = opts.boot or tostring(math.random(1, 2 ^ 31 - 1))
+  instance._device = tostring(opts.device)
+  instance._rev = 0
+  instance._getState = opts.getState
+  instance._send = opts.send
+  instance._encode = opts.encode
+  instance._now = opts.now or os.time
+  return instance
 end
+
+M.Link = Link
 
 --- @private
 --- @return boolean
