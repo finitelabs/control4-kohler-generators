@@ -408,10 +408,10 @@ Generators** does this for you.
 
 ### Events
 
-| Event                | Description                                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Account Connected    | Fires when the driver signs in to the KOHLER account, or signs in again or KOHLER accepts its reads again after losing them. Not fired when a reboot finds it as it was. |
-| Account Disconnected | Fires when the driver loses its KOHLER sign-in, or KOHLER refuses its reads. Use it to send the integrator a notification.                                               |
+| Event                | Description                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Account Connected    | Fires when the driver signs in to the KOHLER account, after each driver or controller start too, or when KOHLER accepts its reads again after refusing them. |
+| Account Disconnected | Fires when the driver loses its KOHLER sign-in, or KOHLER refuses its reads. Use it to send the integrator a notification.                                   |
 
 ### Conditionals
 

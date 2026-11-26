@@ -900,6 +900,76 @@ T.falsy("the password is kept", IsEmpty(Properties["Password"]))
 T.falsy("Automatic Updates is left alone", props["Automatic Updates"])
 held = nil
 
+T.section("after a restart, a companion that asks during the sign-in waits for its record")
+EC.Reconnect()
+EC.Add_Generators()
+T.truthy("58001 has its binding", bindingOf(58001))
+ShimRestartDirector()
+held, events, toProxy = {}, {}, {}
+dofile(DRIVER)
+OnDriverInit()
+ShimLateInit()
+T.eq("signing in", props["Login Status"], "Logging in...")
+RFP.REFRESH_STATE(bindingOf(58001), "REFRESH_STATE", {})
+T.falsy("no goOffline", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+while held and #held > 0 do
+  local waiting = held
+  held = {}
+  for _, answer in ipairs(waiting) do
+    answer()
+  end
+end
+held = nil
+T.eq("signed in", props["Login Status"], "Logged In")
+T.eq("Account Connected fires at the start too", events, { "Account Connected" })
+T.truthy("the record follows", proxySends(constants.CMD.UPDATE_GENERATOR)[bindingOf(58001)])
+T.falsy("and still no goOffline", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+
+local function restart()
+  ShimRestartDirector()
+  dofile(DRIVER)
+  OnDriverInit()
+  ShimLateInit()
+end
+
+T.section("after a restart, a sign-in that fails takes the companions offline")
+toProxy = {}
+tokenAnswers = { { 400, { error = "invalid_grant", error_description = "The credentials provided were invalid." } } }
+restart()
+T.eq("Login Status", props["Login Status"], "Invalid email or password")
+T.truthy("goOffline to the companions", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+
+T.section("after a restart, a sign-in that fails for now takes the companions offline while it waits")
+toProxy = {}
+tokenAnswers = { { 503, "Service Unavailable" } }
+restart()
+T.eq("Login Status", props["Login Status"], "Login failed")
+T.truthy("goOffline to the companions", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+ShimFireTimers()
+T.eq("then signs in", props["Login Status"], "Logged In")
+
+T.section("after a restart, a generator the account no longer lists goes offline")
+T.truthy("58003 has its binding", bindingOf(58003))
+local gone = table.remove(homes[2].devices)
+T.eq("the cabin generator is gone", gone.id, 58003)
+toProxy = {}
+restart()
+T.eq("signed in", props["Login Status"], "Logged In")
+T.truthy("goOffline to its companion", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58003)])
+T.falsy("not to the others", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+table.insert(homes[2].devices, gone)
+
+T.section("after a restart, a build with no KOHLER client takes the companions offline")
+local clientId = constants.CLIENT_ID
+constants.CLIENT_ID = nil
+toProxy = {}
+restart()
+T.eq("Login Status", props["Login Status"], "This build has no KOHLER client")
+T.truthy("goOffline to the companions", proxySends(constants.CMD.GO_OFFLINE)[bindingOf(58001)])
+constants.CLIENT_ID = clientId
+restart()
+T.eq("signed in again", props["Login Status"], "Logged In")
+
 T.section("Reset Driver with no license keeps the account stopped and says so")
 local drivercentral = require("lib.drivercentral")
 local wasLicensed = drivercentral._licensed

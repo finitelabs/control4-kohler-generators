@@ -273,10 +273,10 @@ Generators** does this for you.
 
 ### Events
 
-| Event                | Description                                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Account Connected    | Fires when the driver signs in to the KOHLER account, or signs in again or KOHLER accepts its reads again after losing them. Not fired when a reboot finds it as it was. |
-| Account Disconnected | Fires when the driver loses its KOHLER sign-in, or KOHLER refuses its reads. Use it to send the integrator a notification.                                               |
+| Event                | Description                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Account Connected    | Fires when the driver signs in to the KOHLER account, after each driver or controller start too, or when KOHLER accepts its reads again after refusing them. |
+| Account Disconnected | Fires when the driver loses its KOHLER sign-in, or KOHLER refuses its reads. Use it to send the integrator a notification.                                   |
 
 ### Conditionals
 
@@ -330,6 +330,12 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   controller restart, until its first reading.
 - Fixed a load-shed load named Watts or Percent taking over the Load Watts or
   Load Percent variable, and Load Control off deleting it.
+- Fixed a controller restart firing Generator Offline and Generator Online for a
+  generator that didn't change.
+
+### Changed
+
+- Changed Account Connected to fire after each driver or controller start too.
 
 ### Removed
 
