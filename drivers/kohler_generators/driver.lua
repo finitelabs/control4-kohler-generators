@@ -69,7 +69,7 @@ local REMOVED_SUFFIX = " - REMOVED FROM KOHLER"
 local REFRESH_MIN_S = 5
 --- The generators given a companion, by key, so a companion the integrator deletes isn't added again on its
 --- own. Add Generators still adds one.
-local ADDED_KEY = "GeneratorsAdded"
+local ADDED_PERSIST_KEY = "GeneratorsAdded"
 --- Settable properties a reset returns to their defaults; the sign-in and update settings are kept.
 --- @type table<string, string>
 local RESET_PROPERTY_VALUES = {
@@ -327,7 +327,7 @@ local function addGenerators(auto)
         result.added,
         result.failed
       )
-      local added = persist:get(ADDED_KEY, {}) or {}
+      local added = persist:get(ADDED_PERSIST_KEY, {}) or {}
       for _, need in ipairs(needs) do
         handoff(need.key)
         if next(C4:GetBoundConsumerDevices(C4:GetDeviceID(), need.binding) or {}) ~= nil then
@@ -336,7 +336,7 @@ local function addGenerators(auto)
           gAutoTried[need.key] = true
         end
       end
-      persist:set(ADDED_KEY, added)
+      persist:set(ADDED_PERSIST_KEY, added)
       if #result.missing > 0 then
         C4:UpdateProperty("Driver Status", "Load the Kohler Generator driver on the controller first")
       elseif result.failed > 0 then
@@ -351,7 +351,7 @@ end
 
 --- Adds the generators no add has given a companion yet.
 local function autoAddGenerators()
-  local added = persist:get(ADDED_KEY, {}) or {}
+  local added = persist:get(ADDED_PERSIST_KEY, {}) or {}
   for key in pairs(gState.generators) do
     if not added[key] and not gAutoTried[key] then
       log:info("Adding the account's generators that have no driver yet")
@@ -1201,7 +1201,7 @@ function EC.Reset_Driver(tParams)
     values:update("Account Connected", false, "BOOL")
     gConnected, gWasConnected = false, nil
     companions:reset()
-    persist:set(ADDED_KEY, nil)
+    persist:set(ADDED_PERSIST_KEY, nil)
     Status.reset()
     gAutoTried = {}
     client:setServer(nil)

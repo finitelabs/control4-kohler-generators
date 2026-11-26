@@ -105,25 +105,25 @@ local CONTACTS = {
 local RESTART_GRACE_S = 300
 
 --- Persisted: the highest event id this generator's events have fired up to.
-local CURSOR_KEY = "EventCursor"
+local CURSOR_PERSIST_KEY = "EventCursor"
 
 --- Persisted: the flags the last record set, so a change across a restart fires once.
-local FLAGS_KEY = "StatusFlags"
+local FLAGS_PERSIST_KEY = "StatusFlags"
 
 --- Persisted: how many alerts were active at the last read, so alerts that clear across a restart
 --- fire Alerts Cleared once.
-local ALERT_COUNT_KEY = "AlertCount"
+local ALERT_COUNT_PERSIST_KEY = "AlertCount"
 
 --- Persisted: whether an alert was a fault at the last read, so a fault holds across a restart until
 --- the first read.
-local ALERT_FAULT_KEY = "AlertFault"
+local ALERT_FAULT_PERSIST_KEY = "AlertFault"
 
 --- Persisted: each contact output's state as last told, by connection id as text.
-local CONTACTS_KEY = "ContactStates"
+local CONTACTS_PERSIST_KEY = "ContactStates"
 
 --- Persisted: set once the driver has chosen Load Control from the first record, after which the
 --- property is the integrator's.
-local LOAD_CONTROL_SET_KEY = "LoadControlSet"
+local LOAD_CONTROL_SET_PERSIST_KEY = "LoadControlSet"
 
 --- What each command is called in the Driver Status.
 local COMMAND_NAMES = {
@@ -289,7 +289,7 @@ local function tellContacts()
     end
   end
   if changed then
-    persist:set(CONTACTS_KEY, gToldBefore)
+    persist:set(CONTACTS_PERSIST_KEY, gToldBefore)
   end
 end
 
@@ -366,8 +366,8 @@ end
 --- @param loads KohlerLoad[]
 local function updateLoads(record, loads)
   gRecord = record
-  if not persist:get(LOAD_CONTROL_SET_KEY) then
-    persist:set(LOAD_CONTROL_SET_KEY, true)
+  if not persist:get(LOAD_CONTROL_SET_PERSIST_KEY) then
+    persist:set(LOAD_CONTROL_SET_PERSIST_KEY, true)
     local choice = Controls.hasLoadControl(record) and "On" or "Off"
     if Properties["Load Control"] ~= choice then
       UpdateProperty("Load Control", choice, false)
@@ -437,7 +437,7 @@ local function applyRecord(record)
     fire(name)
   end
   gFlags = flags
-  persist:set(FLAGS_KEY, flags)
+  persist:set(FLAGS_PERSIST_KEY, flags)
   tellContacts()
 end
 
@@ -447,10 +447,10 @@ end
 --- @param events table
 local function applyFeeds(alerts, events)
   local a = Status.alerts(alerts)
-  local hadAlerts = (tonumber(persist:get(ALERT_COUNT_KEY)) or 0) > 0
+  local hadAlerts = (tonumber(persist:get(ALERT_COUNT_PERSIST_KEY)) or 0) > 0
   gAlertFault = a.fault
-  persist:set(ALERT_COUNT_KEY, a.count)
-  persist:set(ALERT_FAULT_KEY, a.fault)
+  persist:set(ALERT_COUNT_PERSIST_KEY, a.count)
+  persist:set(ALERT_FAULT_PERSIST_KEY, a.fault)
   values:update("Active Alerts", a.count, "NUMBER")
   values:update("Last Alert", a.last, "STRING")
   updateFault()
@@ -458,12 +458,12 @@ local function applyFeeds(alerts, events)
     fire("Alerts Cleared")
   end
 
-  local cursor = tonumber(persist:get(CURSOR_KEY))
+  local cursor = tonumber(persist:get(CURSOR_PERSIST_KEY))
   local since = not gEventsRead and (os.time() - RESTART_GRACE_S) or nil
   local news, highest = Status.news(events, cursor, since)
   gEventsRead = true
   if highest ~= cursor then
-    persist:set(CURSOR_KEY, highest)
+    persist:set(CURSOR_PERSIST_KEY, highest)
   end
   if news.fault then
     fire("Fault")
@@ -850,7 +850,7 @@ end
 
 function OPC.Load_Control(_v)
   if gInitialized then
-    persist:set(LOAD_CONTROL_SET_KEY, true)
+    persist:set(LOAD_CONTROL_SET_PERSIST_KEY, true)
   end
   if gRecord ~= nil then
     updateLoads(gRecord, Controls.loads(gRecord))
@@ -948,10 +948,10 @@ function OnDriverInit()
       })
     end,
   })
-  local flags = persist:get(FLAGS_KEY)
+  local flags = persist:get(FLAGS_PERSIST_KEY)
   gFlags = type(flags) == "table" and flags or nil
-  gAlertFault = persist:get(ALERT_FAULT_KEY) == true
-  local told = persist:get(CONTACTS_KEY)
+  gAlertFault = persist:get(ALERT_FAULT_PERSIST_KEY) == true
+  local told = persist:get(CONTACTS_PERSIST_KEY)
   gToldBefore = type(told) == "table" and told or {}
   gTold = {}
   for _, contact in ipairs(CONTACTS) do

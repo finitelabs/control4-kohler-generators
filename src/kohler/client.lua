@@ -32,9 +32,15 @@ local DEFAULT_RETRY_AFTER_S = 60
 --- @field code? integer The HTTP status, when there was one.
 --- @field retryAfter? integer Seconds to wait, for "rateLimited".
 
+--- @class KohlerTestCloud
+--- @field origin string The test cloud's origin, with no trailing slash.
+--- @field clientId string|nil Its client id; the build's when nil.
+--- @field clientSecret string|nil Its client secret; the build's when nil.
+--- @field apiKey string|nil Its API key; the build's when nil.
+
 --- @class KohlerClient
 --- @field _allowed fun(): boolean False while the driver may not reach the cloud.
---- @field _server string|nil The test cloud's origin, or nil for KOHLER's.
+--- @field _server KohlerTestCloud|nil The test cloud in use, or nil for KOHLER's.
 --- @field _email string|nil The account email.
 --- @field _password string|nil The account password.
 --- @field _access string|nil The access token held.
@@ -441,7 +447,7 @@ end
 --- exercise schedule, or a load-shed load.
 --- @param request KohlerRequest
 --- @param host string The record's deviceHost, which routes the call.
---- @return Deferred<any, KohlerError>
+--- @return Deferred<any, KohlerError> body The API's answer.
 function Client:send(request, host)
   return self:_call(request.method, request.path, { sourceDeviceHost = host }, request.body)
 end
