@@ -317,6 +317,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Removed
+
+- Removed Automatic Updates from the Kohler Generator driver. The Kohler
+  Generators driver's setting updates both drivers.
+
 ## v20261125 - 2026-11-25
 
 ### Added

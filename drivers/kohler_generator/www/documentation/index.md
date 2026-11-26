@@ -101,20 +101,20 @@ the account driver in the "Connections" tab.
 
 ## Driver Properties
 
-### Cloud Settings
-
 <!-- #ifdef DRIVERCENTRAL -->
+
+### Cloud Settings
 
 #### Cloud Status (read-only)
 
 Displays the DriverCentral cloud license status.
 
-<!-- #endif -->
-
 #### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates. Changing it here changes it on the
 Kohler Generators driver and every Kohler Generator driver.
+
+<!-- #endif -->
 
 ### Driver Settings
 
