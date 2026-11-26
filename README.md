@@ -341,6 +341,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Fixed a load-shed load named Control changing the Load Control property.
 - Fixed Load Control Off leaving load variables from before a controller
   restart.
+- Fixed a generator's Driver Status and its page in the Control4 app naming the
+  same state differently.
 
 ### Changed
 

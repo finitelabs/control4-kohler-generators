@@ -145,7 +145,8 @@ T.eq(
   Page.state({ identity = Generator.identity(fixture("device-58001.json")), now = NOW, scale = "F" }).reason,
   "waiting"
 )
-T.eq("signed out", Page.state({ now = NOW, scale = "F" }).reason, "account")
+T.eq("signed out", Page.state({ answered = true, now = NOW, scale = "F" }).reason, "account")
+T.eq("before the account answers", Page.state({ now = NOW, scale = "F" }).reason, "waiting")
 
 -- ─── The link ──────────────────────────────────────────────────────────────
 
