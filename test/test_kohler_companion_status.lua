@@ -411,6 +411,34 @@ T.eq("Load Control off leaves Load Watts", var("Load Watts"), 4200)
 T.eq("and removes the load variables", var("Load A"), nil)
 Properties["Load Control"] = "On"
 
+T.section("a load that leaves the record keeps its variable")
+local pump = JSON:decode(fixture("state-standby.json"))
+pump.loadShed.parameters[1].displayName = "Pool Pump"
+pump.loadShed.parameters[1].value = true
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(pump) })
+T.eq("Load Pool Pump", var("Load Pool Pump"), true)
+local gone = JSON:decode(JSON:encode(pump))
+table.remove(gone.loadShed.parameters, 1)
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(gone) })
+T.eq("Load Pool Pump is kept, with its last state", var("Load Pool Pump"), true)
+
+T.section("Load Control off removes load variables restored at a restart")
+ShimRestartDirector()
+start()
+Properties["Load Control"] = "Off"
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(gone) })
+T.eq("Load Pool Pump is removed", var("Load Pool Pump"), nil)
+Properties["Load Control"] = "On"
+
+T.section("a load named Control leaves the Load Control property alone")
+props["Load Control"] = nil
+local control = JSON:decode(fixture("state-standby.json"))
+control.loadShed.parameters[1].displayName = "Control"
+control.loadShed.parameters[1].value = true
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(control) })
+T.eq("Load Control", var("Load Control"), true)
+T.eq("the Load Control property is kept", props["Load Control"] == nil or props["Load Control"] == "On", true)
+
 T.section("a controller start's unbind and bind before late init fire nothing")
 handOver("standby", true)
 ShimRestartDirector()

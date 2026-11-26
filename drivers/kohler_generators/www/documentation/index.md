@@ -363,8 +363,8 @@ Signs in to KOHLER again with the email and password entered.
 
 #### Reset Driver
 
-> ⚠️ This will reset all connection bindings and delete any programming
-> associated with them.
+> ⚠️ This will reset all connection bindings and the Account Connected variable,
+> and delete any programming associated with them.
 
 Signs out and removes all generator connections, then signs in again and
 rediscovers the account from scratch.

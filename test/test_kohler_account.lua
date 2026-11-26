@@ -438,7 +438,16 @@ T.eq("the generators are read again", props["Driver Status"], "Connected (3 gene
 T.section("a read answered after Reset Driver is not taken")
 held = {}
 EC.Refresh_Generators()
+local valuesLib = require("lib.values")
+local realReset, resets = valuesLib.reset, 0
+valuesLib.reset = function(self)
+  resets = resets + 1
+  return realReset(self)
+end
 EC.Reset_Driver({ ["Are You Sure?"] = "Yes" })
+valuesLib.reset = realReset
+T.eq("Reset Driver resets the variables", resets, 1)
+T.eq("and makes Account Connected again", valuesLib:getValue("Account Connected").value, false)
 local stale = table.remove(held, 1)
 local signIn = held
 held = nil

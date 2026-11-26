@@ -1197,6 +1197,8 @@ function EC.Reset_Driver(tParams)
   if (tParams or {})["Are You Sure?"] == "Yes" then
     dropGenerators()
     bindings:reset()
+    values:reset()
+    values:update("Account Connected", false, "BOOL")
     companions:reset()
     persist:set(ADDED_KEY, nil)
     Status.reset()

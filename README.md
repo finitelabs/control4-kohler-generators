@@ -243,8 +243,8 @@ Signs in to KOHLER again with the email and password entered.
 
 #### Reset Driver
 
-> ⚠️ This will reset all connection bindings and delete any programming
-> associated with them.
+> ⚠️ This will reset all connection bindings and the Account Connected variable,
+> and delete any programming associated with them.
 
 Signs out and removes all generator connections, then signs in again and
 rediscovers the account from scratch.
@@ -338,10 +338,17 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   or its connection removed.
 - Fixed a Poll Interval change while the Kohler Generators driver waits to retry
   KOHLER sending reads before the wait ends.
+- Fixed a load-shed load named Control changing the Load Control property.
+- Fixed Load Control Off leaving load variables from before a controller
+  restart.
 
 ### Changed
 
 - Changed Account Connected to fire after each driver or controller start too.
+- Changed Reset Driver on the Kohler Generators driver to reset its Account
+  Connected variable too.
+- Changed a load that leaves the generator to keep its variable for programming,
+  with a note in the log.
 
 ### Removed
 
