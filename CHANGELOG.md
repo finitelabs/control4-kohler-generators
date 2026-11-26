@@ -33,6 +33,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   Load Percent variable, and Load Control off deleting it.
 - Fixed a controller restart firing Generator Offline and Generator Online for a
   generator that didn't change.
+- Fixed a controller restart firing the Fault contact and Fault variable twice
+  for a fault that didn't change.
 
 ### Changed
 

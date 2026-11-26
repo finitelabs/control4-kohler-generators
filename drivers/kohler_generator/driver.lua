@@ -114,6 +114,10 @@ local FLAGS_KEY = "StatusFlags"
 --- fire Alerts Cleared once.
 local ALERT_COUNT_KEY = "AlertCount"
 
+--- Persisted: whether an alert was a fault at the last read, so a fault holds across a restart until
+--- the first read.
+local ALERT_FAULT_KEY = "AlertFault"
+
 --- Persisted: each contact output's state as last told, by connection id as text.
 local CONTACTS_KEY = "ContactStates"
 
@@ -155,9 +159,8 @@ local gOnline = false
 --- @type KohlerStatus|nil
 local gStatus = nil
 
---- What its alerts said at the last read; nil until the first since start-up.
---- @type KohlerAlerts|nil
-local gAlerts = nil
+--- Whether an alert was a fault at the last read; restored at start.
+local gAlertFault = false
 
 --- The flags the last record set, which the next one is compared with; restored at start, and nil
 --- only before a generator's first record ever.
@@ -243,7 +246,7 @@ end
 --- Whether the generator has a fault: it reports it is shut down, or an alert is a fault.
 --- @return boolean
 local function hasFault()
-  return (gStatus ~= nil and gStatus.shutDown) or (gAlerts ~= nil and gAlerts.fault)
+  return (gStatus ~= nil and gStatus.shutDown) or gAlertFault
 end
 
 --- Whether a contact output is closed; nil before the first record.
@@ -430,8 +433,9 @@ end
 local function applyFeeds(alerts, events)
   local a = Status.alerts(alerts)
   local hadAlerts = (tonumber(persist:get(ALERT_COUNT_KEY)) or 0) > 0
-  gAlerts = a
+  gAlertFault = a.fault
   persist:set(ALERT_COUNT_KEY, a.count)
+  persist:set(ALERT_FAULT_KEY, a.fault)
   values:update("Active Alerts", a.count, "NUMBER")
   values:update("Last Alert", a.last, "STRING")
   updateFault()
@@ -916,6 +920,7 @@ function OnDriverInit()
   })
   local flags = persist:get(FLAGS_KEY)
   gFlags = type(flags) == "table" and flags or nil
+  gAlertFault = persist:get(ALERT_FAULT_KEY) == true
   local told = persist:get(CONTACTS_KEY)
   gToldBefore = type(told) == "table" and told or {}
   gTold = {}
