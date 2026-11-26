@@ -179,9 +179,9 @@ local gTold = {}
 --- @type table<string, boolean>
 local gToldBefore = {}
 
---- The load variables the driver has made, by variable name.
+--- The load variables already logged as kept for a load no longer on the record, by variable name.
 --- @type table<string, boolean>
-local gLoadVariables = {}
+local gKeptLoadVariables = {}
 
 --- The generator's last record; nil until the first since start-up.
 --- @type table|nil
@@ -336,27 +336,29 @@ local function loadVariable(loadName)
   return name
 end
 
---- Remove the load variables, while Load Control is off: those made since start-up, and those the
---- record's loads would have, which a restart restored.
---- @param loads KohlerLoad[]
-local function removeLoadVariables(loads)
-  for _, load in ipairs(loads) do
-    local name = loadVariable(load.name)
-    if name ~= nil then
-      gLoadVariables[name] = true
+--- The load variables that exist, made since start-up or restored at it.
+--- @return table<string, boolean> names
+local function loadVariables()
+  local names = {}
+  for name, value in pairs(values:getValues()) do
+    if not value.deleted and value.varType ~= nil and name:find("^Load ") and not FIXED_VARIABLES[name] then
+      names[name] = true
     end
   end
-  for name in pairs(gLoadVariables) do
-    local existing = values:getValue(name)
-    if existing ~= nil and not existing.deleted then
-      values:delete(name)
-    end
+  return names
+end
+
+--- Remove the load variables, while Load Control is off.
+local function removeLoadVariables()
+  for name in pairs(loadVariables()) do
+    values:delete(name)
   end
-  gLoadVariables = {}
+  gKeptLoadVariables = {}
 end
 
 --- Keep a variable per load-shed load while Load Control is on. The first record chooses Load
---- Control: on when the generator has a load control module.
+--- Control: on when the generator has a load control module. A load that leaves the record keeps
+--- its variable, which programming may read, and is logged once.
 --- @param record table
 --- @param loads KohlerLoad[]
 local function updateLoads(record, loads)
@@ -369,7 +371,7 @@ local function updateLoads(record, loads)
     end
   end
   if not loadControlOn() then
-    removeLoadVariables(loads)
+    removeLoadVariables()
     return
   end
   local taken = {}
@@ -379,8 +381,18 @@ local function updateLoads(record, loads)
       log:debug("Load %s has no variable: its name is taken", load.name)
     else
       taken[name] = true
-      values:update(name, load.on, "BOOL")
-      gLoadVariables[name] = true
+      -- The name comes from KOHLER, so it may match a property's.
+      values:update(name, load.on, "BOOL", nil, nil, { property = false })
+      gKeptLoadVariables[name] = nil
+    end
+  end
+  for name in pairs(loadVariables()) do
+    if not taken[name] and not gKeptLoadVariables[name] then
+      gKeptLoadVariables[name] = true
+      log:warn(
+        "%s is kept for programming, but its load is no longer on the generator; Load Control Off removes it",
+        name
+      )
     end
   end
 end
