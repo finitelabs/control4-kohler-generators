@@ -177,6 +177,7 @@ T.eq("On Generator Power", var("On Generator Power"), true)
 T.eq("Running", var("Running"), true)
 T.eq("the contacts that changed", told, { "1 CLOSED", "2 CLOSED" })
 T.eq("Is On Generator Power", test("ON_GENERATOR_POWER", "Generator Power"), true)
+T.eq("Utility power is Out", test("UTILITY_POWER", "Out"), true)
 
 T.section("the same record again fires nothing")
 events, told = {}, {}
@@ -187,6 +188,7 @@ T.eq("contacts", told, {})
 T.section("power restored")
 handOver("restored", true)
 T.eq("events", events, { "Utility Power Restored", "Engine Stopped" })
+T.eq("Utility power is On", test("UTILITY_POWER", "On"), true)
 T.eq("contacts", told, { "1 OPENED", "2 OPENED" })
 
 T.section("a fault")
@@ -349,6 +351,30 @@ T.section("an unreadable feed is ignored")
 events = {}
 RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", { ALERTS = "{", EVENTS = "[]" })
 T.eq("no event", events, {})
+
+T.section("in the start delay, utility power is out before the house is on the generator")
+local delay = JSON:decode(fixture("state-outage.json"))
+delay.powerSource = "Utility"
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(delay) })
+T.eq("Utility power is Out", test("UTILITY_POWER", "Out"), true)
+T.eq("the house is not on generator power yet", test("ON_GENERATOR_POWER", "Generator Power"), false)
+handOver("standby")
+
+T.section("a load whose variable name is taken gets no variable")
+local clash = JSON:decode(fixture("state-standby.json"))
+clash.generatorLoadW = 4200
+clash.loadShed.parameters[1].displayName = "Watts"
+clash.loadShed.parameters[1].value = true
+clash.loadShed.parameters[2].displayName = "A"
+clash.loadShed.parameters[2].value = true
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(clash) })
+T.eq("Load Watts keeps the reading", var("Load Watts"), 4200)
+T.eq("Load A is the first load to take the name", var("Load A"), true)
+Properties["Load Control"] = "Off"
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = JSON:encode(clash) })
+T.eq("Load Control off leaves Load Watts", var("Load Watts"), 4200)
+T.eq("and removes the load variables", var("Load A"), nil)
+Properties["Load Control"] = "On"
 
 os.time = realTime
 T.finish()

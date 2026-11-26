@@ -86,6 +86,13 @@ local VARIABLES = {
   { "Maintenance Due", "BOOL", false },
 }
 
+--- The fixed variables by name, which no load's variable may take.
+--- @type table<string, boolean>
+local FIXED_VARIABLES = {}
+for _, v in ipairs(VARIABLES) do
+  FIXED_VARIABLES[v[1]] = true
+end
+
 --- The contact outputs: driver.xml connection id, and whether each is closed.
 local CONTACTS = {
   { id = 1, name = "On Generator Power" },
@@ -315,11 +322,15 @@ local function publishPage()
   end
 end
 
---- A load's variable name: "Load HVAC A", "Load A".
+--- A load's variable name: "Load HVAC A", "Load A"; nil when it is a fixed variable's.
 --- @param loadName string
---- @return string
+--- @return string|nil name
 local function loadVariable(loadName)
-  return loadName:find("^Load ") and loadName or ("Load " .. loadName)
+  local name = loadName:find("^Load ") and loadName or ("Load " .. loadName)
+  if FIXED_VARIABLES[name] then
+    return nil
+  end
+  return name
 end
 
 --- Remove the load variables, while Load Control is off: those made since start-up, and those the
@@ -327,7 +338,10 @@ end
 --- @param loads KohlerLoad[]
 local function removeLoadVariables(loads)
   for _, load in ipairs(loads) do
-    gLoadVariables[loadVariable(load.name)] = true
+    local name = loadVariable(load.name)
+    if name ~= nil then
+      gLoadVariables[name] = true
+    end
   end
   for name in pairs(gLoadVariables) do
     local existing = values:getValue(name)
@@ -355,10 +369,16 @@ local function updateLoads(record, loads)
     removeLoadVariables(loads)
     return
   end
+  local taken = {}
   for _, load in ipairs(loads) do
     local name = loadVariable(load.name)
-    values:update(name, load.on, "BOOL")
-    gLoadVariables[name] = true
+    if name == nil or taken[name] then
+      log:debug("Load %s has no variable: its name is taken", load.name)
+    else
+      taken[name] = true
+      values:update(name, load.on, "BOOL")
+      gLoadVariables[name] = true
+    end
   end
 end
 
@@ -457,6 +477,14 @@ end
 --- @return boolean result
 function TC.ON_GENERATOR_POWER(_strConditionName, tParams)
   return testBool(tParams, "Generator Power", gStatus ~= nil and gStatus.onGeneratorPower)
+end
+
+--- Tests whether the utility power is out.
+--- @param _strConditionName string
+--- @param tParams table VALUE and LOGIC.
+--- @return boolean result
+function TC.UTILITY_POWER(_strConditionName, tParams)
+  return testBool(tParams, "Out", gStatus ~= nil and gStatus.utilityOut)
 end
 
 --- Tests whether the engine runs.

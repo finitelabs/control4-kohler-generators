@@ -20,11 +20,17 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
+### Added
+
+- Added a Utility power conditional for programming.
+
 ### Fixed
 
 - Fixed Account Disconnected not firing when KOHLER refuses the driver's reads.
 - Fixed a generator's icon in the Control4 app showing Standby after a
   controller restart, until its first reading.
+- Fixed a load-shed load named Watts or Percent taking over the Load Watts or
+  Load Percent variable, and Load Control off deleting it.
 
 <!-- #ifndef DRIVERCENTRAL -->
 

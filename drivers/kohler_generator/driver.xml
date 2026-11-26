@@ -37,6 +37,16 @@
       <sort_order>2</sort_order>
     </conditional>
     <conditional>
+      <id>8</id>
+      <name>UTILITY_POWER</name>
+      <type>BOOL</type>
+      <condition_statement>Utility power</condition_statement>
+      <description>NAME utility power is STRING</description>
+      <true_text>Out</true_text>
+      <false_text>On</false_text>
+      <sort_order>3</sort_order>
+    </conditional>
+    <conditional>
       <id>3</id>
       <name>GENERATOR_RUNNING</name>
       <type>BOOL</type>
@@ -44,7 +54,7 @@
       <description>NAME engine is STRING</description>
       <true_text>Running</true_text>
       <false_text>Not Running</false_text>
-      <sort_order>3</sort_order>
+      <sort_order>4</sort_order>
     </conditional>
     <conditional>
       <id>4</id>
@@ -54,7 +64,7 @@
       <description>NAME is STRING</description>
       <true_text>Exercising</true_text>
       <false_text>Not Exercising</false_text>
-      <sort_order>4</sort_order>
+      <sort_order>5</sort_order>
     </conditional>
     <conditional>
       <id>5</id>
@@ -64,7 +74,7 @@
       <description>NAME switch is STRING</description>
       <true_text>In Auto</true_text>
       <false_text>Not In Auto</false_text>
-      <sort_order>5</sort_order>
+      <sort_order>6</sort_order>
     </conditional>
     <conditional>
       <id>6</id>
@@ -74,7 +84,7 @@
       <description>NAME is STRING</description>
       <true_text>Faulted</true_text>
       <false_text>Not Faulted</false_text>
-      <sort_order>6</sort_order>
+      <sort_order>7</sort_order>
     </conditional>
     <conditional>
       <id>7</id>
@@ -84,7 +94,7 @@
       <description>NAME maintenance is STRING</description>
       <true_text>Due</true_text>
       <false_text>Not Due</false_text>
-      <sort_order>7</sort_order>
+      <sort_order>8</sort_order>
     </conditional>
   </conditionals>
   <events>
