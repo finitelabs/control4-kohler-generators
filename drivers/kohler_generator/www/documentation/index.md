@@ -382,24 +382,26 @@ The number variables can be compared in programming too.
 
 ### Commands
 
-Each command goes to KOHLER through the account driver, and the generator is
-read again right after. For 30 seconds, **Driver Status** shows whether KOHLER
-took the command, or why it was not sent. A command is sent once: if KOHLER does
-not answer, check the generator before sending it again.
+Start Exercise, Stop Exercise, Set Exercise Schedule and Set Load go to KOHLER
+through the account driver, and the generator is read again right after. For 30
+seconds, **Driver Status** shows whether KOHLER took the command, or why it was
+not sent. A command is sent once: if KOHLER does not answer, check the generator
+before sending it again.
 
-| Command               | Parameters                          | Description                                                                                                                                                                                                                              |
-| --------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start Exercise        | Mode                                | Starts the engine now for an exercise of the scheduled length. `Unloaded` and `Unloaded Full Speed` run the engine with the house left on utility power. `Loaded Full Speed` also moves the house onto generator power for the exercise. |
-| Stop Exercise         | None                                | Ends the exercise that is running and stops the engine.                                                                                                                                                                                  |
-| Set Exercise Schedule | Frequency, Day, Time, Mode, Minutes | Sets how often the generator exercises (`Weekly`, `Every Other Week` or `Monthly`), the day and time of the next one, the mode, and how long it runs, from 5 to 60 minutes. Enter the time as `14:30` or `2:30 PM`.                      |
-| Set Load              | Load, State                         | Turns a load-shed load on or off, as the switch for it in the KOHLER app does. Needs Load Control on.                                                                                                                                    |
-| Refresh               | None                                | Reads the generator from KOHLER now.                                                                                                                                                                                                     |
+| Command               | Parameters                          | Description                                                                                                                                                                                                                                                             |
+| --------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start Exercise        | Mode                                | Starts the engine now for an exercise of the scheduled length. `Unloaded` and `Unloaded Full Speed` run the engine with the house left on utility power. `Loaded Full Speed` also moves the house onto generator power for the exercise.                                |
+| Stop Exercise         | None                                | Ends the exercise that is running and stops the engine.                                                                                                                                                                                                                 |
+| Set Exercise Schedule | Frequency, Day, Time, Mode, Minutes | Sets how often the generator exercises (`Weekly`, `Every Other Week` or `Monthly`), the day and time of the next one, the mode, and how long it runs, from 5 to 60 minutes. Enter the time as `14:30` or `2:30 PM`.                                                     |
+| Set Load              | Load, State                         | Turns a load-shed load on or off, as the switch for it in the KOHLER app does. Needs Load Control on.                                                                                                                                                                   |
+| Refresh               | None                                | Reads the generator from KOHLER now, even while it is offline. It is skipped while the account driver's reads are paused or the generator was read in the last 5 seconds, and shows a result in Driver Status only when the account driver isn't signed in or licensed. |
 
 The driver refuses a command the KOHLER app would refuse, and sends nothing:
 
-- Any command while the generator is offline, while the account driver is
-  reconnecting or its reads are paused, or when the generator's last reading is
-  older than two of the account driver's Poll Intervals.
+- Start Exercise, Stop Exercise, Set Exercise Schedule and Set Load while the
+  generator is offline, while the account driver is reconnecting or its reads
+  are paused, or when the generator's last reading is older than two of the
+  account driver's Poll Intervals.
 - **Start Exercise** while utility power is out, the engine already runs, the
   switch is not in Auto, or the generator is not ready to run.
 - **Stop Exercise** when no exercise is running.
