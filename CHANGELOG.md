@@ -48,8 +48,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Changed Account Connected to fire after each driver or controller start too.
 - Changed Reset Driver on the Kohler Generators driver to reset its Account
   Connected variable too.
-- Changed a load that leaves the generator to keep its variable for programming,
-  with a note in the log.
+- Changed a load that leaves the generator to log that its variable is kept for
+  programming.
 
 <!-- #ifndef DRIVERCENTRAL -->
 
