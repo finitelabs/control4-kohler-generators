@@ -299,6 +299,41 @@ start()
 handOver("standby", true)
 T.eq("cleared across the restart", events, { "Alerts Cleared" })
 
+T.section("a fault alert that holds across a restart fires nothing")
+events, told = {}, {}
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("state-standby.json") })
+RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", {
+  ALERTS = fixture("state-fault-alerts.json"),
+  EVENTS = fixture("state-standby-events.json"),
+})
+T.eq("a fault alert on a generator in standby is a fault", var("Fault"), true)
+ShimRestartDirector()
+events, told = {}, {}
+start()
+local faultChanges = {}
+local realValuesUpdate = require("lib.values").update
+require("lib.values").update = function(self, name, value, ...)
+  if name == "Fault" and value ~= var("Fault") then
+    faultChanges[#faultChanges + 1] = value
+  end
+  return realValuesUpdate(self, name, value, ...)
+end
+RFP.updateGenerator(constants.GENERATOR_BINDING, "updateGenerator", { JSON = fixture("state-standby.json") })
+RFP.updateFeeds(constants.GENERATOR_BINDING, "updateFeeds", {
+  ALERTS = fixture("state-fault-alerts.json"),
+  EVENTS = fixture("state-standby-events.json"),
+})
+require("lib.values").update = realValuesUpdate
+T.eq("Fault never changes", faultChanges, {})
+T.eq("the Fault contact is told its state without firing", told, {
+  "1 STATE_OPENED",
+  "2 STATE_OPENED",
+  "3 STATE_CLOSED",
+  "4 STATE_OPENED",
+})
+T.eq("no events", events, {})
+handOver("standby", true)
+
 T.section("an event logged while the driver was stopped")
 ShimRestartDirector()
 events = {}
