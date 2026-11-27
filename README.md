@@ -319,6 +319,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Fixed
+
+- Fixed Update Drivers and Automatic Updates failing to install a release whose
+  driver files were too large to download.
+
 ## v20261127 - 2026-11-27
 
 ### Added
