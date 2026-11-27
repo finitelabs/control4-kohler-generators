@@ -443,6 +443,8 @@ can file an issue on GitHub:
 
 https://github.com/finitelabs/control4-kohler-generators/issues/new
 
+<a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 <!-- #endif -->
 
 <!-- #embed-changelog -->
